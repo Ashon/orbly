@@ -1,11 +1,12 @@
-# 멘션 응답용 추론 샌드박스.
+# 멘션 응답용 추론 샌드박스. 저장소(pnpm sandbox:*)와 데스크톱 앱(번들 안의 sandbox)이 같이 쓴다.
+# 작업은 src/tools/sandbox-job.ts 가 실행한다. 바뀌는 파일은 모두 VERDA_HOME(기본 ~/.verda) 아래에 둔다.
 # - egress-proxy: 상시 실행. 내부 네트워크에서 허용 도메인으로만 나가는 출구
 # - reasoner: 이미지 빌드 전용. 실행은 봇이 요청마다 docker run --rm 으로 띄운다.
 # - renderer: 이미지 빌드 전용. 답변의 다이어그램/차트를 네트워크 없는 일회용 컨테이너에서 PNG 로 그린다.
 # - ops-broker: (profile ops) 운영 점검 중계. SSH 키, kubeconfig, 작업 디렉터리를 가진 유일한
 #   컨테이너이고, 추론 컨테이너에는 정해진 읽기 전용 조회만 MCP 도구로 제공한다.
 #   값은 모두 설정 파일(VERDA_HOME/.env, 기본 ~/.verda/.env)의 OPS_* 에서 온다.
-#   생성 파일과 비운 마운트의 빈 자리는 저장소 밖 VERDA_HOME/ops-broker 에 있고 (pnpm ops:prepare 가 만든다),
+#   생성 파일과 비운 마운트의 빈 자리는 저장소 밖 VERDA_HOME/ops-broker 에 있고 (broker 작업이 만든다),
 #   비운 기능은 broker 가 그 도구 없이 뜬다.
 name: verda-sandbox
 
@@ -19,7 +20,8 @@ services:
       - /tmp
       - /run
     volumes:
-      - ./proxy/allowed-domains.txt:/etc/egress/allowed-domains.txt:ro
+      # 허용 도메인 목록. 없으면 작업이 proxy/allowed-domains.txt 로 만든다. (설정 화면에서 고친다)
+      - ${VERDA_HOME:-${HOME}/.verda}/sandbox/allowed-domains.txt:/etc/egress/allowed-domains.txt:ro
     networks:
       - sandbox
       - egress
@@ -45,8 +47,8 @@ services:
 
   ops-broker:
     build:
-      context: ..
-      dockerfile: sandbox/ops-broker/Dockerfile
+      # broker 는 미리 묶은 번들(ops-broker/dist/server.mjs, pnpm bundle)만 넣는다.
+      context: ./ops-broker
       args:
         KUBECTL_VERSION: v1.37.0
     image: verda-ops-broker:latest
@@ -77,7 +79,7 @@ services:
       JIRA_PROJECTS: ${OPS_JIRA_PROJECTS:-}
       GIT_ALLOWED_OWNERS: ${OPS_GIT_ALLOWED_OWNERS:-}
     volumes:
-      # 호스트 SSH 점검 (host_*). 호스트 목록은 pnpm ops:prepare 가 인벤토리에서 만든다.
+      # 호스트 SSH 점검 (host_*). 호스트 목록은 broker 작업이 인벤토리에서 만든다.
       - ${OPS_SSH_KEY:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/ssh-key}:/run/secrets/ssh-key:ro
       - ${OPS_SSH_KNOWN_HOSTS:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/known_hosts}:/run/secrets/known_hosts:ro
       - ${VERDA_HOME:-${HOME}/.verda}/ops-broker/hosts.json:/etc/ops/hosts.json:ro

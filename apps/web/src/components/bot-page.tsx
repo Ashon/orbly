@@ -189,15 +189,17 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
             재시작
           </Button>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={busy || phase === "external"}
-          onClick={() => run(() => control.restart(true))}
-        >
-          <Hammer />
-          빌드 후 재시작
-        </Button>
+        {supervisor.canBuild && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy || phase === "external"}
+            onClick={() => run(() => control.restart(true))}
+          >
+            <Hammer />
+            빌드 후 재시작
+          </Button>
+        )}
         {live && (
           <Button
             size="sm"
@@ -224,7 +226,7 @@ function Info({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 rounded-xl bg-card px-3.5 py-3">
+    <div className="surface-card min-w-0 px-4 py-3.5">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground [&_svg]:size-3.5">
         {icon}
         {label}

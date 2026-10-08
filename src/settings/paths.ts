@@ -24,6 +24,14 @@ export function envFilePath(
   return path.join(verdaHome(env, home), ".env");
 }
 
+/** 바깥 접속 허용 목록. egress 프록시가 마운트한다. 없으면 sandbox/proxy/allowed-domains.txt 로 만든다. */
+export function allowlistPath(
+  env: NodeJS.ProcessEnv = process.env,
+  home = homedir()
+): string {
+  return path.join(verdaHome(env, home), "sandbox", "allowed-domains.txt");
+}
+
 /** broker 가 마운트하는 생성 파일(hosts.json, kubeconfig)과 비운 마운트의 빈 자리(unset/) */
 export function brokerRuntimeDir(
   env: NodeJS.ProcessEnv = process.env,

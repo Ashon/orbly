@@ -1,11 +1,11 @@
 import { execFile } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { configFingerprint } from "../config.js";
 import { readBotStatus } from "../runtime/status.js";
 import { readEnvFile, readEnvValues } from "../settings/env-file.js";
-import { brokerRuntimeDir } from "../settings/paths.js";
+import { allowlistPath, brokerRuntimeDir } from "../settings/paths.js";
 import { parseAllowlist, readAllowlistFile, REQUIRED_DOMAINS } from "./allowlist.js";
 import { brokerExpected } from "./env.js";
 import type {
@@ -237,19 +237,6 @@ export function commandRunner(env: NodeJS.ProcessEnv, cwd: string): Run {
 }
 
 const mtime = (file: string) => (existsSync(file) ? statSync(file).mtimeMs : undefined);
-const newest = (dir: string): number =>
-  existsSync(dir)
-    ? readdirSync(dir, { withFileTypes: true }).reduce(
-        (max, item) =>
-          Math.max(
-            max,
-            item.isDirectory()
-              ? newest(path.join(dir, item.name))
-              : statSync(path.join(dir, item.name)).mtimeMs
-          ),
-        0
-      )
-    : 0;
 const expandHome = (value: string, home: string) =>
   value === "~" || value.startsWith("~/") ? path.join(home, value.slice(1)) : value;
 
@@ -276,7 +263,8 @@ async function sandboxAuthor(
  * 비밀 값은 읽지 않는다. (파일이 있는지, GitHub 로그인이 되어 있는지만 본다)
  */
 export async function collectSandboxStatus(options: {
-  repoRoot: string;
+  /** sandbox/compose.yaml 이 있는 디렉터리 (저장소 또는 앱 안) */
+  sandboxDir: string;
   /** 설정 파일 (저장소 밖, src/settings/paths.ts) */
   envFile: string;
   dataDir: string;
@@ -285,7 +273,7 @@ export async function collectSandboxStatus(options: {
   run: Run;
   home?: string;
 }): Promise<SandboxStatus> {
-  const { repoRoot, run } = options;
+  const { sandboxDir, run } = options;
   const home = options.home ?? homedir();
   const values: NodeJS.ProcessEnv = {
     ...readEnvValues(readEnvFile(options.envFile)),
@@ -294,7 +282,11 @@ export async function collectSandboxStatus(options: {
   const reasoner = values.REASONER === "codex" ? "codex" : "claude";
   const useDocker = values.REASONER_SANDBOX === "docker";
   const opsOn = values.OPS_TOOLS === "on";
-  const allowlistFile = path.join(repoRoot, "sandbox/proxy/allowed-domains.txt");
+  // 허용 목록은 VERDA_HOME 아래에 있고, 아직 없으면(프록시를 띄운 적 없음) 기본 목록을 보여 준다.
+  const allowlistFile = allowlistPath(options.env, home);
+  const allowlistSource = existsSync(allowlistFile)
+    ? allowlistFile
+    : path.join(sandboxDir, "proxy/allowed-domains.txt");
 
   const status: SandboxStatus = {
     checkedAt: new Date().toISOString(),
@@ -305,7 +297,7 @@ export async function collectSandboxStatus(options: {
     pending: [],
     allowlist: {
       file: allowlistFile,
-      domains: parseAllowlist(readAllowlistFile(allowlistFile)),
+      domains: parseAllowlist(readAllowlistFile(allowlistSource)),
       required: REQUIRED_DOMAINS[reasoner],
     },
     activeRequests: 0,
@@ -515,7 +507,8 @@ export async function collectSandboxStatus(options: {
               broker && brokerImage && broker.Image !== brokerImage.id
             ),
             imageCreatedAt: brokerImage?.createdAt,
-            sourceMtime: newest(path.join(repoRoot, "src/broker")),
+            // broker 이미지에 들어가는 번들 (pnpm bundle, 패키지 앱은 앱 안의 번들)
+            sourceMtime: mtime(path.join(sandboxDir, "ops-broker/dist/server.mjs")),
             env: pickEnv(broker?.Config.Env ?? [], BROKER_ENV_KEYS),
             mounts: Object.fromEntries(
               (broker?.Mounts ?? []).map((m) => [m.Destination, m.Source])

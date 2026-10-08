@@ -11,7 +11,8 @@ export type { SupervisorState };
 
 /**
  * 데스크톱 앱이 봇(Socket Mode)을 자식 프로세스로 띄우고 관리한다.
- * - 저장소의 빌드 결과(dist/index.js)를 Electron utilityProcess 로 실행한다. 소스가 더 새로우면 먼저 빌드한다.
+ * - 봇 실행 파일을 Electron utilityProcess 로 실행한다. 개발 실행은 저장소의 dist/index.js 이고 소스가 더 새로우면
+ *   먼저 빌드한다. 패키지 앱은 앱 안의 묶음(bot/index.mjs)을 그대로 쓴다. (app-paths.ts)
  * - 터미널(pnpm dev 등)에서 이미 봇이 떠 있으면 건드리지 않고 "external" 로 보여 준다.
  * - 정상 동작하던 봇이 죽으면 몇 번까지 다시 띄운다. 시작하자마자 죽으면 설정 문제로 보고 멈춘다.
  * - 중지는 SIGTERM 이다. 봇은 처리 중인 요청을 최대 20초 기다리고, 남은 요청은 다음 시작 때 이어서 처리한다.
@@ -38,7 +39,12 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
 
   constructor(
     private readonly options: {
-      repoRoot: string;
+      /** 봇 실행 파일 */
+      entry: string;
+      /** 개발 실행에서만: 다시 빌드할 저장소. 없으면 빌드하지 않는다. (패키지 앱) */
+      repoRoot?: string;
+      /** 봇의 작업 디렉터리 */
+      cwd: string;
       /** 설정 파일 (저장소 밖, src/settings/paths.ts) */
       envFile: string;
       dataDir: string;
@@ -54,6 +60,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       output: [],
       autoStart: this.readSettings().autoStartBot,
       restarts: 0,
+      canBuild: options.repoRoot !== undefined,
     };
     this.refreshExternal();
     // 외부 봇이 뜨고 지는 것도 따라간다.
@@ -82,8 +89,11 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     this.refreshExternal();
     if (this.state.phase === "external") return;
     this.stopRequested = false;
-    const entry = path.join(this.options.repoRoot, "dist/index.js");
-    if (options.rebuild || this.needsBuild(entry)) {
+    const { entry } = this.options;
+    if (
+      this.options.repoRoot &&
+      (options.rebuild || this.needsBuild(entry, this.options.repoRoot))
+    ) {
       if (!(await this.build())) return;
     }
     this.spawn(entry);
@@ -122,7 +132,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     if (this.poller) clearInterval(this.poller);
   }
 
-  /** pnpm build (tsc). 출력은 output 에 남는다. */
+  /** pnpm build (tsc). 출력은 output 에 남는다. 개발 실행에서만 부른다. */
   private build(): Promise<boolean> {
     this.set({ phase: "building", message: "봇을 빌드하는 중 (pnpm build)", output: [] });
     return new Promise((resolve) => {
@@ -130,7 +140,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         "pnpm",
         ["build"],
         {
-          cwd: this.options.repoRoot,
+          cwd: this.options.repoRoot!,
           env: { ...process.env, PATH: this.options.toolPath() },
           timeout: 180_000,
           maxBuffer: 4 * 1024 * 1024,
@@ -167,7 +177,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     env.NODE_ENV = "production";
 
     const child = utilityProcess.fork(entry, [], {
-      cwd: this.options.repoRoot,
+      cwd: this.options.cwd,
       env,
       stdio: "pipe",
       serviceName: "Verda bot",
@@ -243,7 +253,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
   }
 
   /** dist/index.js 가 없거나 src 가 더 새로우면 빌드가 필요하다. */
-  private needsBuild(entry: string): boolean {
+  private needsBuild(entry: string, repoRoot: string): boolean {
     if (!existsSync(entry)) return true;
     const built = statSync(entry).mtimeMs;
     const newest = (dir: string): number =>
@@ -252,7 +262,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         const mtime = item.isDirectory() ? newest(file) : statSync(file).mtimeMs;
         return Math.max(max, mtime);
       }, 0);
-    return newest(path.join(this.options.repoRoot, "src")) > built;
+    return newest(path.join(repoRoot, "src")) > built;
   }
 
   private readSettings(): Settings {

@@ -269,7 +269,7 @@ export function SettingsPage() {
               />
             );
             return (
-              <section key={group.id} className="overflow-hidden rounded-xl bg-card">
+              <section key={group.id} className="surface-card overflow-hidden">
                 <header className="flex items-start gap-3 border-b border-canvas px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <h2 className="text-sm font-semibold">{group.label}</h2>
@@ -310,10 +310,7 @@ export function SettingsPage() {
           )}
 
           <section
-            className={cn(
-              "overflow-hidden rounded-xl bg-card",
-              tab !== "bot" && "hidden"
-            )}
+            className={cn("surface-card overflow-hidden", tab !== "bot" && "hidden")}
           >
             <header className="border-b border-canvas px-4 py-3">
               <h2 className="text-sm font-semibold">앱</h2>

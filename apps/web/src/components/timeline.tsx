@@ -106,7 +106,7 @@ export function Timeline({ run }: { run: RunRecord }) {
       {run.outputs.length > 0 && (
         <div className="ml-10 grid grid-cols-2 gap-3">
           {run.outputs.map((output) => (
-            <figure key={output.file} className="overflow-hidden rounded-xl bg-card">
+            <figure key={output.file} className="surface-card overflow-hidden">
               <a href={artifactUrl(run.id, output.file)} target="_blank" rel="noreferrer">
                 <img
                   src={artifactUrl(run.id, output.file)}
@@ -164,15 +164,15 @@ function Bubble({
 }) {
   return (
     <div className="flex gap-3">
-      <div className="shrink-0 pt-0.5">{avatar}</div>
+      <div className="shrink-0 pt-1">{avatar}</div>
       <div
         className={cn(
-          "min-w-0 flex-1 rounded-xl px-4 py-3",
-          // 봇 답변은 민트 면, 요청은 카드 면으로 구분한다.
-          accent ? "bg-card-accent" : "bg-card"
+          "min-w-0 flex-1 px-5 py-4",
+          // 봇 답변은 민트 면, 요청은 카드 면으로 구분한다. (개요 카드와 같은 모양)
+          accent ? "surface-card-accent [--code-bg:var(--card)]" : "surface-card"
         )}
       >
-        <div className="mb-1.5 flex items-baseline gap-2">
+        <div className="mb-2 flex items-baseline gap-2">
           <span className="text-sm font-semibold">{title}</span>
           {meta && <span className="text-[11px] text-muted-foreground">{meta}</span>}
         </div>
@@ -252,7 +252,6 @@ function Step({ event }: { event: RunEvent }) {
 
 function ToolStep({ event }: { event: Extract<RunEvent, { kind: "tool" | "command" }> }) {
   const isTool = event.kind === "tool";
-  const name = isTool ? `${event.server}.${event.tool}` : "shell";
   const preview = isTool ? previewArgs(event.arguments) : event.command;
   const output = isTool ? (event.error ?? event.result) : event.output;
   const failed =
@@ -276,13 +275,13 @@ function ToolStep({ event }: { event: Extract<RunEvent, { kind: "tool" | "comman
     <ExpandableRow
       icon={icon}
       label={
-        <span className="flex items-center gap-1">
-          {isTool ? (
-            <Wrench className="size-3 text-muted-foreground" />
-          ) : (
-            <SquareTerminal className="size-3 text-muted-foreground" />
-          )}
-          <span className="font-mono">{name}</span>
+        // 서버(ops, codex_apps 등)는 작은 표로, 도구 이름만 크게 보여 준다.
+        <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1 rounded-md bg-well px-1.5 py-px text-[10px] font-medium text-muted-foreground [&_svg]:size-3">
+            {isTool ? <Wrench /> : <SquareTerminal />}
+            {isTool ? event.server : "shell"}
+          </span>
+          {isTool && <span className="font-mono">{event.tool}</span>}
         </span>
       }
       preview={preview}

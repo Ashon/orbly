@@ -72,9 +72,6 @@ interface ContextLine {
   files?: SlackFileRef[];
 }
 
-/** 첨부 이미지를 잠시 내려받는 곳. 도커(colima) 마운트가 되도록 홈 아래 프로젝트 디렉터리를 쓴다. */
-const ATTACHMENTS_ROOT = path.resolve("data/attachments");
-
 /** 멘션 텍스트에서 봇 호출 표기를 지운다. */
 export function stripBotMention(text: string, botUserId: string): string {
   return text
@@ -214,7 +211,11 @@ export class MentionResponder {
     handled: 0,
   };
 
+  /** 첨부 이미지를 잠시 내려받는 곳. 도커 마운트가 되도록 홈 아래 데이터 폴더(VERDA_DATA_DIR)를 쓴다. */
+  private readonly attachmentsRoot: string;
+
   constructor(private readonly deps: MentionResponderDeps) {
+    this.attachmentsRoot = path.join(deps.config.dataDir, "attachments");
     this.limiter = new ConcurrencyLimiter(deps.config.mention.concurrency, MAX_QUEUE);
   }
 
@@ -309,7 +310,7 @@ export class MentionResponder {
       attempts: (resume?.attempts ?? 0) + 1,
       startedAt: resume?.startedAt ?? Date.now(),
     });
-    const attachmentsDir = path.join(ATTACHMENTS_ROOT, randomUUID());
+    const attachmentsDir = path.join(this.attachmentsRoot, randomUUID());
 
     try {
       const context = await this.loadContext(event, threadTs, [event.ts, placeholderTs]);
@@ -647,8 +648,8 @@ export class MentionResponder {
 
   private async cleanupStaleAttachments(): Promise<void> {
     const now = Date.now();
-    for (const name of await readdir(ATTACHMENTS_ROOT).catch(() => [] as string[])) {
-      const dir = path.join(ATTACHMENTS_ROOT, name);
+    for (const name of await readdir(this.attachmentsRoot).catch(() => [] as string[])) {
+      const dir = path.join(this.attachmentsRoot, name);
       const info = await stat(dir).catch(() => undefined);
       if (info?.isDirectory() && now - info.mtimeMs > STALE_ATTACHMENTS_MS) {
         await rm(dir, { recursive: true, force: true });

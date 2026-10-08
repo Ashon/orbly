@@ -23,6 +23,7 @@ import { readBotStatus } from "../../../src/runtime/status.js";
 import { envFilePath } from "../../../src/settings/paths.js";
 import { BotSupervisor, type SupervisorState } from "./bot.js";
 import { SandboxService } from "./sandbox.js";
+import { resolveAppPaths } from "./app-paths.js";
 import { SettingsStore } from "./settings.js";
 
 /**
@@ -32,8 +33,9 @@ import { SettingsStore } from "./settings.js";
  * - 창을 닫으면 트레이로 숨고 봇은 계속 동작한다. 앱을 종료하면 봇도 처리 중인 요청을 마무리하고 종료한다.
  */
 const distDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(distDir, "../../..");
-const webDistDir = path.join(repoRoot, "apps/web/dist");
+/** 개발 실행은 저장소의 빌드 결과를, 패키지 앱(Verda.app)은 앱 안의 묶음 파일을 쓴다. */
+const paths = resolveAppPaths(distDir, app.isPackaged);
+const webDistDir = paths.webDist;
 /** 설정 파일은 저장소 밖에 둔다. (VERDA_HOME, 기본 ~/.verda) */
 const envFile = envFilePath();
 const webDevUrl = app.isPackaged ? undefined : process.env.VERDA_WEB_DEV_URL;
@@ -99,7 +101,8 @@ const settings = new SettingsStore({
 
 /** 샌드박스 상태, 허용 도메인, 적용 작업 */
 const sandbox = new SandboxService({
-  repoRoot,
+  sandboxDir: paths.sandboxDir,
+  jobRunner: paths.jobRunner,
   envFile,
   dataDir,
   env: process.env,
@@ -108,7 +111,10 @@ const sandbox = new SandboxService({
 
 const supervisor = manageBot
   ? new BotSupervisor({
-      repoRoot,
+      entry: paths.botEntry,
+      repoRoot: paths.repoRoot,
+      // 패키지 앱은 쓰기 가능한 데이터 폴더에서 봇을 띄운다.
+      cwd: paths.repoRoot ?? dataDir,
       envFile,
       dataDir,
       toolPath,

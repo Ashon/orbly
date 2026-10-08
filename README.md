@@ -39,7 +39,7 @@ Socket Mode 로 연결해서 공개 엔드포인트가 필요 없고, 봇 토큰
 | PDF | 네트워크 없는 일회용 컨테이너(`pdftotext`)에서 앞 50쪽 텍스트만 추출 | 20MB, 텍스트 계열과 합쳐 최대 4개 |
 | 그 밖의 형식, 외부 파일(Google Drive 등) | 읽지 않고 이름과 이유를 모델에 알림 | |
 
-- 첨부 안의 지시문은 데이터로만 다룬다. 내려받은 파일은 `data/attachments/<id>` 에 두었다가 답변이 끝나면 지운다.
+- 첨부 안의 지시문은 데이터로만 다룬다. 내려받은 파일은 `VERDA_DATA_DIR/attachments/<id>` 에 두었다가 답변이 끝나면 지운다.
   (colima 는 홈 아래 경로만 컨테이너에 마운트되므로 `/tmp` 를 쓰지 않는다.)
 - 권한이 없으면 Slack 이 파일 대신 로그인 페이지를 돌려주는데, 이 경우 "files:read 권한 확인" 으로 표시한다.
 
@@ -56,7 +56,7 @@ Socket Mode 로 연결해서 공개 엔드포인트가 필요 없고, 봇 토큰
 일러스트, 사진 같은 그림은 codex 의 이미지 생성 기능(`image_generation`)으로 만든다. (claude 백엔드는 없음)
 
 - codex 는 생성 이미지를 `~/.codex/generated_images` 에 저장한다. 샌드박스 컨테이너에서는 요청마다
-  `data/attachments/<id>/generated` 를 `/out` 으로 마운트하고, entrypoint 가 이 경로를 `/out` 으로 이어서 호스트에 남긴다.
+  `VERDA_DATA_DIR/attachments/<id>/generated` 를 `/out` 으로 마운트하고, entrypoint 가 이 경로를 `/out` 으로 이어서 호스트에 남긴다.
   컨테이너에서 호스트로 쓸 수 있는 경로는 이것 하나다.
 - 봇이 답변 뒤에 생성 이미지(최대 4장)와 다이어그램을 함께 스레드에 올린다. 생성에는 1분 안팎이 걸린다.
 - codex 는 정해진 크기(1024x1024, 1536x1024 등)로만 생성하므로, 크기/비율 요청이 없으면 정사각형으로 만들게 하고
@@ -69,8 +69,9 @@ Socket Mode 로 연결해서 공개 엔드포인트가 필요 없고, 봇 토큰
 | `src/mention/responder.ts` | 멘션 처리, 맥락 수집, 답변 게시 |
 | `src/reasoner/` | `claude -p`, `codex exec` 실행 래퍼, 호스트/도커 실행기 |
 | `src/broker/` | ops-broker: SSH 호스트 점검, k8s 조회, 작업 디렉터리 읽기 (MCP 서버) |
-| `src/tools/ops-prepare.ts` | broker 마운트 준비, 인벤토리로 호스트 목록 생성 (`pnpm ops:prepare`) |
-| `src/tools/k8s-kubeconfig.ts` | 조회 전용 SA 토큰으로 broker kubeconfig 생성 (`pnpm k8s:kubeconfig`) |
+| `src/tools/sandbox-job.ts` | 샌드박스 적용 작업: 이미지 빌드, 프록시, broker(마운트 준비, 호스트 목록), kubeconfig. 앱과 `pnpm sandbox:*` 가 같이 쓴다 |
+| `scripts/bundle.mjs` | 봇, 샌드박스 작업, broker 를 의존성까지 묶는다 (`pnpm bundle`, 패키지 앱과 broker 이미지가 쓴다) |
+| `apps/desktop/scripts/package-mac.mjs` | 설치용 macOS 앱과 dmg, zip (`pnpm package:mac`) |
 | `src/slack/` | 사용자/채널 정보 캐시, mrkdwn 변환 |
 | `src/tools/check-slack.ts` | Slack 앱 설정 점검 (`pnpm slack:check`) |
 | `sandbox/` | 추론 컨테이너 이미지, egress 프록시, compose |
@@ -96,7 +97,7 @@ Socket Mode 로 연결해서 공개 엔드포인트가 필요 없고, 봇 토큰
 | 항목 | 제한 |
 | --- | --- |
 | 파일시스템 | 루트 읽기 전용. 호스트에서 보이는 것은 참고 디렉터리(ro)와 codex 인증 파일(ro)뿐 |
-| 네트워크 | 외부 라우팅 없는 `internal` 네트워크. `sandbox/proxy/allowed-domains.txt` 의 도메인만 443 CONNECT 허용 |
+| 네트워크 | 외부 라우팅 없는 `internal` 네트워크. `~/.verda/sandbox/allowed-domains.txt` 의 도메인만 443 CONNECT 허용 (처음에는 `sandbox/proxy/allowed-domains.txt` 로 만든다) |
 | 권한 | 모든 capability 제거, `no-new-privileges`, uid 1000, pids/메모리/CPU 제한 |
 | 인증 | claude 는 `SANDBOX_CLAUDE_OAUTH_TOKEN` 또는 `SANDBOX_ANTHROPIC_API_KEY` 를 환경 변수 이름으로만 넘김(프로세스 인자 노출 없음). codex 는 `auth.json` 을 읽기 전용 마운트 후 tmpfs 로 복사 |
 | 실패 시 | 이미지, 네트워크, 프록시가 없으면 시작 로그에 남기고 추론 호출은 실패한다. 호스트 실행으로 대신하지 않는다. |
@@ -116,7 +117,7 @@ Socket Mode 로 연결해서 공개 엔드포인트가 필요 없고, 봇 토큰
 
 ```sh
 pnpm sandbox:build     # 추론 이미지(claude, codex CLI), 렌더링 이미지, 프록시 이미지 빌드
-pnpm sandbox:up        # egress 프록시와 내부 네트워크 시작 (allowed-domains.txt 변경 후에도 실행)
+pnpm sandbox:up        # egress 프록시와 내부 네트워크 시작 (허용 도메인 목록 변경 후에도 실행)
 claude setup-token     # claude 백엔드를 쓸 때: 구독 토큰 발급 -> .env 의 SANDBOX_CLAUDE_OAUTH_TOKEN
 ```
 
@@ -164,7 +165,7 @@ CLI 버전은 `sandbox/compose.yaml` 의 build args 로 고정되어 있다. 호
   - 거부: 변경 없음, `.github/workflows/`, `.gitmodules`, 비밀 파일 경로, diff 의 비밀 값 형식, 50개 초과 파일, 3000줄 초과 추가
   - 커밋 작성자는 `OPS_GIT_AUTHOR_NAME`, `OPS_GIT_AUTHOR_EMAIL`, 비우면 전역 git 설정(`git config --global`)의 사용자다.
     이 저장소의 git 설정과는 별개다. PR 은 `gh` 로그인 계정으로 만들어진다. 시간당 10개 제한.
-- GitHub 토큰은 `pnpm sandbox:ops-up` 이 `gh auth token` 으로 읽어 broker 환경 변수로만 넘긴다. 모델은 볼 수 없다.
+- GitHub 토큰은 broker 작업(`pnpm sandbox:ops-up`, 앱의 broker 다시 띄우기)이 `gh auth token` 으로 읽어 broker 환경 변수로만 넘긴다. 모델은 볼 수 없다.
   `repo`, `workflow` 범위의 토큰이므로, 운영에서는 대상 저장소만 허용한 fine-grained PAT 로 바꾸는 것을 권장한다.
 - 작업 공간은 24시간 뒤 정리된다.
 
@@ -184,7 +185,7 @@ CLI 버전은 `sandbox/compose.yaml` 의 build args 로 고정되어 있다. 호
 # 1) k8s 조회 전용 SA: 조회할 클러스터마다 sandbox/k8s/verda-ro.yaml 적용
 # 2) SA 토큰으로 broker kubeconfig 생성 (로컬 관리자 kubeconfig 로 토큰 Secret 을 읽는다)
 pnpm k8s:kubeconfig
-# 3) 마운트 준비와 호스트 목록 생성(pnpm ops:prepare) 후 broker 빌드/시작
+# 3) broker 번들(pnpm bundle), 마운트 준비와 호스트 목록 생성 후 broker 빌드/시작
 pnpm sandbox:ops-up
 ```
 
@@ -223,10 +224,10 @@ pnpm sandbox:ops-up
 
 재시작 처리:
 
-- 처리 중인 멘션은 `data/inflight.json` 에 기록된다. 봇이 재시작되면 같은 "답변 작성 중" 메시지로 한 번 이어서 처리하고,
+- 처리 중인 멘션은 `VERDA_DATA_DIR/inflight.json` 에 기록된다. 봇이 재시작되면 같은 "답변 작성 중" 메시지로 한 번 이어서 처리하고,
   이미 이어서 처리했거나 30분이 지난 요청은 "다시 멘션해 주세요" 로 바꾼다.
 - 종료 신호(SIGINT, SIGTERM)를 받으면 새 이벤트를 받지 않고 처리 중인 요청을 최대 20초 기다린다.
-- 시작할 때 1시간이 지난 첨부/산출물 임시 디렉터리(`data/attachments/*`)를 지운다.
+- 시작할 때 1시간이 지난 첨부/산출물 임시 디렉터리(`VERDA_DATA_DIR/attachments/*`)를 지운다.
 
 요구 사항: Node.js 22.9 이상, pnpm 11, 샌드박스를 쓰면 Docker.
 
@@ -236,9 +237,23 @@ pnpm sandbox:ops-up
 화면은 `apps/web`(React)이다.
 
 ```sh
-pnpm desktop        # 봇, 화면, 앱을 빌드하고 실행
+pnpm desktop        # 봇, 화면, 앱을 빌드하고 저장소에서 실행 (개발)
 pnpm desktop:dev    # 화면은 Vite 개발 서버(127.0.0.1:5179), 앱은 그 주소를 연다
+pnpm package:mac    # 설치용 Verda.app 과 dmg, zip 을 release/ 에 만든다
+pnpm install:mac    # 만든 Verda.app 을 /Applications 에 설치한다 (실행 중이면 종료 후)
 ```
+
+설치해서 쓰기 (패키지 앱):
+
+- `Verda.app` 안에 화면, 봇과 샌드박스 작업 묶음(`pnpm bundle`), `sandbox/` 파일이 들어 있어서 저장소, Node, pnpm 없이 동작한다.
+  필요한 것은 Docker(샌드박스), 추론 CLI(claude 또는 codex) 로그인, 운영 도구를 쓰면 gh, git 정도다.
+- 설정(`~/.verda/.env`)과 기록, 허용 도메인 목록은 앱 밖(`VERDA_HOME`, 기본 `~/.verda`)에 있어서 앱을 다시 설치해도 그대로다.
+- 샌드박스 적용 작업(이미지 빌드, 프록시, broker, kubeconfig)은 앱 안의 작업 묶음을 앱의 Node 로 실행한다.
+  저장소에서는 같은 작업을 `pnpm sandbox:build`, `sandbox:up`, `sandbox:ops-up`, `k8s:kubeconfig` 로 실행한다.
+- 패키지 앱은 묶음을 그대로 쓰므로 "빌드 후 재시작" 이 없다. 코드를 바꾸면 `pnpm package:mac && pnpm install:mac` 으로 다시 설치한다.
+- 서명은 이 컴퓨터용(ad-hoc)이다. 다른 Mac 에 배포하려면 Developer ID 서명과 공증이 필요하다.
+- 같은 Slack 앱 토큰으로 봇을 두 개 띄우지 않도록, 패키지 앱을 쓰는 동안에는 `pnpm desktop` 이나 `pnpm dev` 를 함께 띄우지 않는다.
+  (둘 다 떠도 봇 실행 잠금 때문에 나중에 뜬 쪽은 "다른 곳에서 실행 중" 으로 보여 주기만 한다)
 
 화면 구성:
 
@@ -249,10 +264,11 @@ pnpm desktop:dev    # 화면은 Vite 개발 서버(127.0.0.1:5179), 앱은 그 �
 봇 관리:
 
 - 앱을 열면 봇을 자동으로 띄운다. (설정 화면의 "앱" 에서 끌 수 있다. 저장 위치는 `VERDA_DATA_DIR/desktop.json`)
-- 저장소의 `dist/index.js` 를 Electron utilityProcess 로 실행한다. `src` 가 더 새로우면 먼저 `pnpm build` 한다.
+- 봇을 Electron utilityProcess 로 실행한다. 개발 실행은 저장소의 `dist/index.js` 이고 `src` 가 더 새로우면 먼저 `pnpm build` 한다.
+  패키지 앱은 앱 안의 봇 묶음(`bot/index.mjs`)을 그대로 쓴다.
   환경 변수는 `node --env-file` 과 같이 설정 파일(`~/.verda/.env`)을 읽고, 이미 있는 환경 변수가 우선한다.
   PATH 는 로그인 셸에서 가져온다. (Finder 로 띄워도 docker, codex, pnpm 을 찾도록)
-- 봇 화면에서 시작, 중지, 재시작, 빌드 후 재시작을 한다. 처리 중인 요청 수는 메뉴 막대 아이콘 옆에 표시된다.
+- 봇 화면에서 시작, 중지, 재시작, 빌드 후 재시작(개발 실행만)을 한다. 처리 중인 요청 수는 메뉴 막대 아이콘 옆에 표시된다.
 - 메뉴 막대(트레이)는 상태와 바로 쓰는 동작만 둔다: 봇 상태, 봇 시작(꺼져 있을 때) 또는 재시작, Verda 열기, 종료.
   앱 설정(자동 시작, 기록 폴더 열기)은 설정 화면에 있다.
 - 중지와 앱 종료는 SIGTERM 이다. 봇은 처리 중인 요청을 최대 20초 기다리고, 남은 요청은 다음 시작 때 이어서 처리한다.
@@ -287,7 +303,7 @@ pnpm desktop:dev    # 화면은 Vite 개발 서버(127.0.0.1:5179), 앱은 그 �
   | 구성 요소 | 설정 | 적용 |
   | --- | --- | --- |
   | 추론 샌드박스 (요청마다 새 컨테이너) | `SANDBOX_*`, `OPS_TOOLS` | 봇 재시작 |
-  | 바깥 접속 허용 도메인 (egress-proxy) | `sandbox/proxy/allowed-domains.txt` | 프록시 재시작 (`pnpm sandbox:up`) |
+  | 바깥 접속 허용 도메인 (egress-proxy) | `~/.verda/sandbox/allowed-domains.txt` | 프록시 재시작 (`pnpm sandbox:up`) |
   | ops-broker | `OPS_GIT_*`, `OPS_FS_ROOT`, `OPS_SSH_*`, `OPS_K8S_*`, `OPS_JIRA_*` | broker 다시 띄우기 (`pnpm sandbox:ops-up`) |
 
 - 상태: docker, 이미지 4개, 프록시와 broker 컨테이너, broker 도구(SSH 호스트 수, k8s, 파일, GitHub, PR, Jira), 자격 증명 파일과

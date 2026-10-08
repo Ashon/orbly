@@ -1,10 +1,13 @@
 import AppKit
 
-// assets/verda-icon.svg 의 색과 도형을 macOS 앱 아이콘 격자에 맞춰 PNG 로 그린다.
-// 개발 실행(electron .)은 독 아이콘을 PNG 그대로 쓰므로, 시스템이 패키지 앱 아이콘에 해 주는 처리
-// (1024 중 824 본체, 둥근 사각형, 그림자, 위쪽 반사광)를 직접 그린다.
-// 사용: swift apps/desktop/scripts/icon.swift <assets 디렉터리>
-let destination = URL(fileURLWithPath: CommandLine.arguments[1])
+// assets/verda-icon.svg 의 색과 도형을 PNG 로 그린다.
+// - 기본: 개발 실행(electron .)용 독 아이콘. 독이 PNG 를 그대로 쓰므로, 시스템이 패키지 앱 아이콘에 해 주는 처리
+//   (1024 중 824 본체, 둥근 사각형, 그림자, 위쪽 반사광)를 직접 그린다.
+//   사용: swift apps/desktop/scripts/icon.swift <assets 디렉터리>
+// - --iconset: 패키지 앱(.icns)용 macOS 아이콘 세트. svg 그대로 꽉 채워 그리고, 격자와 효과는 시스템이 입힌다.
+//   사용: swift apps/desktop/scripts/icon.swift --iconset <Verda.iconset>
+let iconsetMode = CommandLine.arguments[1] == "--iconset"
+let destination = URL(fileURLWithPath: CommandLine.arguments[iconsetMode ? 2 : 1])
 
 let emerald = CGColor(red: 0x01 / 255, green: 0xab / 255, blue: 0x78 / 255, alpha: 1)
 let green = CGColor(red: 0x1f / 255, green: 0xc2 / 255, blue: 0x89 / 255, alpha: 1)
@@ -108,6 +111,40 @@ func render(pixels: Int, to name: String) throws {
         .write(to: destination.appendingPathComponent(name))
 }
 
-// 독/창 아이콘(1024)과 README 로고(256, 화면에서 128 로 보인다)
-try render(pixels: 1024, to: "verda-icon.png")
-try render(pixels: 256, to: "verda-icon-256.png")
+/// svg 와 같은 꽉 찬 아이콘: 32 격자, 모서리 8, 대각선 그라데이션, 흰 링
+func renderFlat(pixels: Int, to name: String) throws {
+    let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+    let context = NSGraphicsContext(bitmapImageRep: bitmap)!.cgContext
+    let unit = CGFloat(pixels) / 32
+    context.addPath(CGPath(roundedRect: CGRect(x: 0, y: 0, width: 32 * unit, height: 32 * unit),
+        cornerWidth: 8 * unit, cornerHeight: 8 * unit, transform: nil))
+    context.clip()
+    // svg 는 y 가 아래로 커진다: (4, 28) -> (28, 4) 는 여기서 왼쪽 아래 -> 오른쪽 위
+    context.drawLinearGradient(gradient([emerald, mint], [0, 1]),
+        start: CGPoint(x: 4 * unit, y: 4 * unit), end: CGPoint(x: 28 * unit, y: 28 * unit),
+        options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+    let ring = CGMutablePath()
+    ring.addEllipse(in: CGRect(x: 7.5 * unit, y: 7.5 * unit, width: 17 * unit, height: 17 * unit))
+    ring.addEllipse(in: CGRect(x: 12.75 * unit, y: 12.75 * unit, width: 6.5 * unit, height: 6.5 * unit))
+    context.addPath(ring)
+    context.setFillColor(CGColor(gray: 1, alpha: 1))
+    context.fillPath(using: .evenOdd)
+    try bitmap.representation(using: .png, properties: [:])!
+        .write(to: destination.appendingPathComponent(name))
+}
+
+if iconsetMode {
+    try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+    for size in [16, 32, 128, 256, 512] {
+        for scale in [1, 2] {
+            try renderFlat(pixels: size * scale,
+                to: "icon_\(size)x\(size)\(scale == 2 ? "@2x" : "").png")
+        }
+    }
+} else {
+    // 독/창 아이콘(1024)과 README 로고(256, 화면에서 128 로 보인다)
+    try render(pixels: 1024, to: "verda-icon.png")
+    try render(pixels: 256, to: "verda-icon-256.png")
+}

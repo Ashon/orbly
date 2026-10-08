@@ -17,6 +17,10 @@ describe("slackToMarkdown", () => {
     expect(slackToMarkdown("```\n*keep*\n```\n*bold*")).toBe(
       "```\n*keep*\n```\n**bold**"
     );
+    expect(
+      slackToMarkdown("등록했습니다.\n\n• 차트 첨부\n  ◦ 범위 표시\n• 실패 시 텍스트")
+    ).toBe("등록했습니다.\n\n- 차트 첨부\n  - 범위 표시\n- 실패 시 텍스트");
+    expect(slackToMarkdown("```\n• keep\n```")).toBe("```\n• keep\n```");
   });
 });
 

@@ -1,11 +1,9 @@
 import type { RunRecord } from "@history/types";
 import {
-  AtSign,
   Coins,
   Cpu,
   ExternalLink,
   FileText,
-  Hash,
   ImageIcon,
   Paperclip,
   Timer,
@@ -37,6 +35,7 @@ export function RunDetail({ id }: { id: string }) {
       <RunHeader run={run} />
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto max-w-3xl px-8 py-6">
+          <RunFacts run={run} />
           <TabsContent value="timeline">
             <Timeline run={run} />
           </TabsContent>
@@ -70,8 +69,8 @@ export function RunDetail({ id }: { id: string }) {
   );
 }
 
-function RunHeader({ run }: { run: RunRecord }) {
-  const usage = run.events.reduce(
+function usageOf(run: RunRecord) {
+  return run.events.reduce(
     (sum, e) =>
       e.kind === "usage"
         ? {
@@ -82,20 +81,25 @@ function RunHeader({ run }: { run: RunRecord }) {
         : sum,
     { input: 0, output: 0, cost: 0 }
   );
-  const tools = run.events.filter(
-    (e) => e.kind === "tool" || e.kind === "command"
-  ).length;
-  const duration = run.durationMs ?? Date.now() - Date.parse(run.startedAt);
+}
 
+/** 머리는 상태, 요청, 탭만 둔다. 실행 수치는 본문 위 요약 카드(RunFacts)에 있다. */
+function RunHeader({ run }: { run: RunRecord }) {
   return (
     <header className="border-b bg-canvas/80 px-8 pt-5 pb-0 backdrop-blur">
       <div className="mx-auto max-w-3xl">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <StatusBadge status={run.status} />
           {run.attempts > 1 && <Badge variant="secondary">시도 {run.attempts}회</Badge>}
-          <span className="font-mono text-[11px] text-muted-foreground">{run.id}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate">{run.slack.channelLabel}</span>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="truncate">@{run.slack.userName ?? run.slack.userId}</span>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="shrink-0 tabular-nums">{formatDateTime(run.startedAt)}</span>
+          </span>
           {run.slack.permalink && (
-            <Button asChild variant="outline" size="xs" className="ml-auto">
+            <Button asChild variant="outline" size="xs" className="ml-auto shrink-0">
               <a href={run.slack.permalink} target="_blank" rel="noreferrer">
                 <ExternalLink />
                 Slack 에서 보기
@@ -103,29 +107,9 @@ function RunHeader({ run }: { run: RunRecord }) {
             </Button>
           )}
         </div>
-        <h1 className="mt-3 line-clamp-3 text-lg leading-snug font-semibold tracking-tight">
+        <h1 className="mt-2.5 line-clamp-2 text-lg leading-snug font-semibold tracking-tight">
           {run.request || "(빈 요청)"}
         </h1>
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <Meta icon={<Hash />}>{run.slack.channelLabel.replace(/^#/, "")}</Meta>
-          <Meta icon={<AtSign />}>{run.slack.userName ?? run.slack.userId}</Meta>
-          <Meta icon={<Cpu />}>
-            {run.backend.reasoner}@{run.backend.sandbox}
-            {run.backend.model ? ` (${run.backend.model})` : ""}
-          </Meta>
-          <Meta icon={<Timer />}>
-            {formatDuration(duration)}
-            {run.status === "running" ? " 경과" : ""}
-          </Meta>
-          {tools > 0 && <Meta icon={<Wrench />}>도구 {tools}회</Meta>}
-          {usage.input + usage.output > 0 && (
-            <Meta icon={<Coins />}>
-              입력 {formatNumber(usage.input)} / 출력 {formatNumber(usage.output)} 토큰
-              {usage.cost > 0 ? ` ($${usage.cost.toFixed(3)})` : ""}
-            </Meta>
-          )}
-          <span>{formatDateTime(run.startedAt)}</span>
-        </div>
         <TabsList className="mt-4 mb-3">
           <TabsTrigger value="timeline">작업 과정</TabsTrigger>
           <TabsTrigger value="attachments">
@@ -144,12 +128,61 @@ function RunHeader({ run }: { run: RunRecord }) {
   );
 }
 
-function Meta({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+/** 실행 요약: 소요, 도구, 토큰, 추론 백엔드. 개요 카드와 같은 모양 */
+function RunFacts({ run }: { run: RunRecord }) {
+  const usage = usageOf(run);
+  const tools = run.events.filter(
+    (e) => e.kind === "tool" || e.kind === "command"
+  ).length;
+  const duration = run.durationMs ?? Date.now() - Date.parse(run.startedAt);
   return (
-    <span className="flex items-center gap-1 [&_svg]:size-3.5">
-      {icon}
-      {children}
-    </span>
+    <div className="surface-card mb-6 grid grid-cols-4 divide-x divide-canvas">
+      <Fact
+        icon={<Timer />}
+        label={run.status === "running" ? "경과" : "소요"}
+        value={formatDuration(duration)}
+      />
+      <Fact icon={<Wrench />} label="도구 호출" value={`${tools}회`} />
+      <Fact
+        icon={<Coins />}
+        label="토큰 (입력 / 출력)"
+        value={
+          usage.input + usage.output > 0
+            ? `${formatNumber(usage.input)} / ${formatNumber(usage.output)}`
+            : "-"
+        }
+        hint={usage.cost > 0 ? `$${usage.cost.toFixed(3)}` : undefined}
+      />
+      <Fact
+        icon={<Cpu />}
+        label="추론"
+        value={`${run.backend.reasoner}@${run.backend.sandbox}`}
+        hint={run.backend.model}
+      />
+    </div>
+  );
+}
+
+function Fact({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0 px-4 py-3">
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground [&_svg]:size-3.5 [&_svg]:shrink-0">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="mt-1 truncate text-sm font-semibold tabular-nums">{value}</div>
+      {hint && <div className="truncate text-[11px] text-muted-foreground">{hint}</div>}
+    </div>
   );
 }
 
@@ -172,7 +205,7 @@ function Attachments({ run }: { run: RunRecord }) {
               ? Paperclip
               : FileText;
         return (
-          <li key={`${item.name}-${i}`} className="flex gap-3 rounded-xl bg-card p-3">
+          <li key={`${item.name}-${i}`} className="surface-card flex gap-3 p-3">
             {item.file ? (
               <img
                 src={artifactUrl(run.id, item.file)}

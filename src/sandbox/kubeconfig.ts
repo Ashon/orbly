@@ -1,9 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { runProcess } from "../reasoner/process.js";
-import { loadBrokerEnv, splitList } from "../sandbox/env.js";
 import { brokerRuntimeDir } from "../settings/paths.js";
+import { splitList, type BrokerEnv } from "./env.js";
 
 interface KubeConfigView {
   contexts?: { name: string; context: { cluster: string } }[];
@@ -18,8 +17,11 @@ interface KubeConfigView {
  * 클러스터 주소와 CA 는 로컬 kubeconfig 에서, 토큰은 각 클러스터의 ServiceAccount 토큰 Secret 에서 읽는다.
  * 로컬 kubeconfig 의 관리자 인증 정보는 결과 파일에 들어가지 않는다.
  */
-async function main(): Promise<void> {
-  const env = loadBrokerEnv(process.env);
+export async function writeKubeconfig(
+  env: BrokerEnv,
+  processEnv: NodeJS.ProcessEnv,
+  log: (line: string) => void
+): Promise<void> {
   const contexts = splitList(env.OPS_K8S_CONTEXTS);
   if (contexts.length === 0)
     throw new Error(
@@ -27,7 +29,7 @@ async function main(): Promise<void> {
     );
   const serviceAccount = env.OPS_K8S_SA;
   const namespace = env.OPS_K8S_SA_NAMESPACE;
-  const output = path.join(brokerRuntimeDir(), "kubeconfig");
+  const output = path.join(brokerRuntimeDir(processEnv), "kubeconfig");
 
   const kubectl = async (args: string[]) =>
     (
@@ -35,6 +37,7 @@ async function main(): Promise<void> {
         cwd: process.cwd(),
         input: "",
         timeoutMs: 30_000,
+        env: processEnv,
       })
     ).stdout;
   const view = JSON.parse(
@@ -88,12 +91,5 @@ async function main(): Promise<void> {
 
   mkdirSync(path.dirname(output), { recursive: true });
   writeFileSync(output, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
-  console.log(`${output}: ${contexts.join(", ")} (${namespace}/${serviceAccount})`);
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err: unknown) => {
-    console.error((err as Error).message);
-    process.exitCode = 1;
-  });
+  log(`${output}: ${contexts.join(", ")} (${namespace}/${serviceAccount})`);
 }

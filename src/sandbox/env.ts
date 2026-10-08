@@ -15,7 +15,7 @@ const projectKey = "[A-Za-z][A-Za-z0-9_]*";
 const name = "[A-Za-z0-9][A-Za-z0-9._@-]*";
 
 /**
- * ops-broker 와 그 준비 명령(pnpm ops:prepare, pnpm k8s:kubeconfig)이 .env 에서 읽는 값.
+ * ops-broker 와 그 준비 작업(sandbox-job 의 broker, kubeconfig)이 .env 에서 읽는 값.
  * sandbox/compose.yaml 의 기본값과 같아야 한다. 비어 있는 기능은 broker 가 도구 없이 뜬다.
  */
 export const BrokerEnvSchema = z.object({
@@ -112,7 +112,7 @@ export function checkBrokerEnv(env: NodeJS.ProcessEnv): ConfigIssue[] {
   }));
 }
 
-/** .env 를 검증해서 읽는다. 준비 명령(pnpm ops:prepare, pnpm k8s:kubeconfig)이 쓴다. */
+/** .env 를 검증해서 읽는다. 준비 작업(sandbox-job 의 broker, kubeconfig)이 쓴다. */
 export function loadBrokerEnv(env: NodeJS.ProcessEnv): BrokerEnv {
   const parsed = BrokerEnvSchema.safeParse(provided(env));
   if (parsed.success) return parsed.data;
@@ -132,7 +132,7 @@ export function splitList(value: string | undefined): string[] {
 }
 
 /**
- * 설정하지 않은 마운트가 대신 가리키는 빈 자리. pnpm ops:prepare 가 만든다.
+ * 설정하지 않은 마운트가 대신 가리키는 빈 자리. broker 작업이 만든다. (src/sandbox/prepare.ts)
  * (runtimeDir 은 brokerRuntimeDir(), sandbox/compose.yaml 과 같아야 한다)
  */
 export function unsetMount(runtimeDir: string, name: string): string {

@@ -1,8 +1,0 @@
-# 비밀 값과 로컬 산출물은 이미지 빌드 컨텍스트에 넣지 않는다.
-.env
-.env.*
-!.env.example
-node_modules
-dist
-data
-.git

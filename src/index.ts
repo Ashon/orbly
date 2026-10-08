@@ -140,7 +140,7 @@ async function main(): Promise<void> {
     botUserId,
     extractPdfText: (pdfPath) => executor.extractPdfText(pdfPath),
     renderer,
-    inflight: new InflightStore("data/inflight.json"),
+    inflight: new InflightStore(path.join(config.dataDir, "inflight.json")),
     history,
     workspaceUrl: auth.url,
     onActivity: (requests) => status.update({ requests }),
@@ -180,7 +180,7 @@ async function main(): Promise<void> {
     status.update({ state: "stopping" });
     log.info(`${signal} 수신, 처리 중인 요청을 기다린 뒤 종료합니다.`);
     await app.stop().catch(() => undefined);
-    // 끝나지 않은 요청은 data/inflight.json 에 남아 다음 시작 때 이어서 처리된다.
+    // 끝나지 않은 요청은 VERDA_DATA_DIR/inflight.json 에 남아 다음 시작 때 이어서 처리된다.
     if (!(await responder.drain(20_000))) log.warn("처리 중인 요청을 남기고 종료합니다.");
     log.info(`종료 (pid ${process.pid})`);
     process.exit(0);

@@ -4,8 +4,11 @@ node_modules/
 # build output
 dist/
 *.tsbuildinfo
-
-# runtime data (처리 중 요청, 첨부 임시 파일)
+# pnpm bundle 결과 (봇, 샌드박스 작업, broker 이미지용 묶음)와 pnpm package:mac 결과
+build/
+sandbox/ops-broker/dist/
+release/
+# 로컬 런타임 데이터 (봇의 기본 데이터 위치는 VERDA_DATA_DIR)
 data/
 
 # environment

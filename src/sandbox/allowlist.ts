@@ -1,4 +1,12 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
+import path from "node:path";
 import type { AllowlistIssue } from "./types.js";
 
 export type { AllowlistIssue };
@@ -88,7 +96,15 @@ export function readAllowlistFile(file: string): string {
   return existsSync(file) ? readFileSync(file, "utf8") : "";
 }
 
+/** 허용 목록이 없으면 기본 목록(template, sandbox/proxy/allowed-domains.txt)으로 만든다. */
+export function ensureAllowlistFile(file: string, template: string): void {
+  if (existsSync(file)) return;
+  mkdirSync(path.dirname(file), { recursive: true });
+  copyFileSync(template, file);
+}
+
 export function writeAllowlistFile(file: string, text: string): void {
+  mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(`${file}.tmp`, text);
   renameSync(`${file}.tmp`, file);
 }

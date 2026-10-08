@@ -55,4 +55,6 @@ export interface SupervisorState {
   autoStart: boolean;
   /** 비정상 종료 후 다시 띄운 횟수 (최근 10분) */
   restarts: number;
+  /** 소스에서 다시 빌드할 수 있는지 (개발 실행만. 패키지 앱은 묶음을 그대로 쓴다) */
+  canBuild: boolean;
 }

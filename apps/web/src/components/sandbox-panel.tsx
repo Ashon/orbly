@@ -47,7 +47,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl bg-card">
+    <section className="surface-card overflow-hidden">
       <header className="flex items-start gap-3 border-b border-canvas px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">{title}</h2>
