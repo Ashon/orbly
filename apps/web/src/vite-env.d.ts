@@ -33,6 +33,7 @@ declare global {
           restart?: boolean
         ): Promise<{ issues: SettingsIssue[]; restarted: boolean }>;
         revealEnv(): Promise<void>;
+        openDataDir(): Promise<void>;
       };
       sandbox: {
         status(): Promise<SandboxStatus | null>;

@@ -165,10 +165,8 @@ export function SettingsPage() {
           <div>
             <h1 className="text-lg font-semibold tracking-tight">설정</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              봇은 저장소의{" "}
-              <code className="rounded bg-muted px-1 font-mono text-xs">.env</code> 를
-              읽습니다. 앱과 터미널 실행이 같은 파일을 씁니다. 저장하면 봇을 다시 시작해야
-              적용됩니다.
+              봇은 저장소 밖의 설정 파일(아래 경로)을 읽습니다. 앱과 터미널 실행이 같은
+              파일을 씁니다. 저장하면 봇을 다시 시작해야 적용됩니다.
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="font-mono">{view.envFile}</span>
@@ -194,16 +192,16 @@ export function SettingsPage() {
           {notice && (
             <div
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
                 notice.tone === "ok"
-                  ? "border-status-succeeded/30 bg-status-succeeded/10 text-status-succeeded"
-                  : "border-status-interrupted/30 bg-status-interrupted/10 text-status-interrupted"
+                  ? "bg-status-succeeded/10 text-status-succeeded"
+                  : "bg-status-interrupted/10 text-status-interrupted"
               )}
             >
               {notice.tone === "ok" ? (
-                <CircleCheck className="size-4" />
+                <CircleCheck className="size-4 shrink-0" />
               ) : (
-                <TriangleAlert className="size-4" />
+                <TriangleAlert className="size-4 shrink-0" />
               )}
               {notice.text}
               {notice.restart && canRestart && (
@@ -271,8 +269,8 @@ export function SettingsPage() {
               />
             );
             return (
-              <section key={group.id} className="rounded-xl border bg-card">
-                <header className="flex items-start gap-3 border-b px-4 py-3">
+              <section key={group.id} className="overflow-hidden rounded-xl bg-card">
+                <header className="flex items-start gap-3 border-b border-canvas px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <h2 className="text-sm font-semibold">{group.label}</h2>
                     <p className="mt-0.5 text-xs text-muted-foreground">{group.help}</p>
@@ -296,7 +294,7 @@ export function SettingsPage() {
                 {group.id === "connection" && check && check !== "running" && (
                   <CheckResult items={check} />
                 )}
-                <div className="divide-y">{basic.map(row)}</div>
+                <div className="divide-y divide-canvas">{basic.map(row)}</div>
                 {advanced.length > 0 && (
                   <Advanced count={advanced.length}>{advanced.map(row)}</Advanced>
                 )}
@@ -311,18 +309,23 @@ export function SettingsPage() {
             </>
           )}
 
-          <section className={cn("rounded-xl border bg-card", tab !== "bot" && "hidden")}>
-            <header className="border-b px-4 py-3">
+          <section
+            className={cn(
+              "overflow-hidden rounded-xl bg-card",
+              tab !== "bot" && "hidden"
+            )}
+          >
+            <header className="border-b border-canvas px-4 py-3">
               <h2 className="text-sm font-semibold">앱</h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 데스크톱 앱 설정은 .env 가 아니라 기록 폴더에 저장됩니다.
               </p>
             </header>
-            <div className="divide-y">
+            <div className="divide-y divide-canvas">
               {supervisor && (
                 <Row
                   label="앱을 열면 봇 자동 시작"
-                  help="꺼 두면 봇 화면이나 트레이에서 직접 시작합니다."
+                  help="꺼 두면 봇 화면이나 메뉴 막대(트레이)에서 직접 시작합니다."
                 >
                   <Switch
                     checked={supervisor.autoStart}
@@ -332,11 +335,21 @@ export function SettingsPage() {
               )}
               <Row
                 label="기록 위치"
-                help="VERDA_DATA_DIR. 바꾸려면 .env 를 고치고 앱을 다시 실행합니다."
+                help="VERDA_DATA_DIR. 바꾸려면 설정 파일(.env)을 고치고 앱을 다시 실행합니다."
               >
-                <span className="font-mono text-xs text-muted-foreground">
-                  {view.dataDir}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {view.dataDir}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => void settings.openDataDir()}
+                  >
+                    <FolderOpen />
+                    열기
+                  </Button>
+                </div>
               </Row>
               {view.otherKeys.length > 0 && (
                 <Row
@@ -355,12 +368,12 @@ export function SettingsPage() {
       </ScrollArea>
 
       {changeCount > 0 && (
-        <footer className="shrink-0 border-t bg-background/95 px-8 py-3 backdrop-blur">
+        <footer className="shrink-0 border-t bg-canvas/95 px-8 py-3 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center gap-2">
             <span className="text-sm font-medium">변경 {changeCount}개</span>
             {issues.length > 0 && (
               <span className="flex items-center gap-1 text-xs text-status-failed">
-                <TriangleAlert className="size-3.5" />
+                <TriangleAlert className="size-3.5 shrink-0" />
                 {generalIssues[0]?.message ?? `확인할 항목 ${issues.length}개`}
               </span>
             )}
@@ -578,7 +591,7 @@ function Row({
         {help && <p className="mt-0.5 text-xs text-muted-foreground">{help}</p>}
         {warning && (
           <p className="mt-1 flex items-center gap-1 text-xs text-status-interrupted">
-            <TriangleAlert className="size-3.5" />
+            <TriangleAlert className="size-3.5 shrink-0" />
             {warning}
           </p>
         )}
@@ -620,14 +633,14 @@ function Switch({
 function Advanced({ count, children }: { count: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="border-t">
+    <Collapsible open={open} onOpenChange={setOpen} className="border-t border-canvas">
       <CollapsibleTrigger className="flex w-full items-center gap-1 px-4 py-2 text-left text-xs text-muted-foreground hover:text-foreground">
         <ChevronRight
           className={cn("size-3.5 transition-transform", open && "rotate-90")}
         />
         고급 설정 {count}개
       </CollapsibleTrigger>
-      <CollapsibleContent className="divide-y overflow-hidden border-t data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+      <CollapsibleContent className="divide-y divide-canvas overflow-hidden border-t border-canvas data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -636,7 +649,7 @@ function Advanced({ count, children }: { count: number; children: React.ReactNod
 
 function CheckResult({ items }: { items: SlackCheckItem[] }) {
   return (
-    <ul className="space-y-1 border-b bg-muted/40 px-4 py-2.5">
+    <ul className="space-y-1 border-b border-canvas bg-well/60 px-4 py-2.5">
       {items.map((item) => (
         <li key={item.label} className="flex items-start gap-2 text-xs">
           {item.ok ? (

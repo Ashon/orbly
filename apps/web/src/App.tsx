@@ -1,16 +1,15 @@
-import { LayoutDashboard, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Bot, LayoutDashboard, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
-import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { BotPage } from "./components/bot-page";
-import { BotPill } from "./components/bot-pill";
 import { Overview } from "./components/overview";
 import { RunDetail } from "./components/run-detail";
 import { RunList } from "./components/run-list";
 import { SettingsPage } from "./components/settings-page";
+import { StatusBar } from "./components/status-bar";
 
 type Route =
   | { page: "overview" }
@@ -38,15 +37,10 @@ function useRoute(): [Route, (hash: string) => void] {
   return [route, (hash) => (window.location.hash = hash)];
 }
 
-const THEME_ICON = { system: Monitor, light: Sun, dark: Moon } as const;
-const THEME_LABEL = { system: "시스템 테마", light: "라이트", dark: "다크" } as const;
-
 export default function App() {
   const [route, go] = useRoute();
   const selectedId = route.page === "run" ? route.id : undefined;
   const select = (id?: string) => go(id ? `#/runs/${id}` : "#/");
-  const theme = useTheme();
-  const ThemeIcon = THEME_ICON[theme.mode];
   const isMacDesktop = window.verdaDesktop?.platform === "darwin";
 
   return (
@@ -68,9 +62,8 @@ export default function App() {
             </span>
           </button>
           <span className="text-xs text-muted-foreground">작업 기록</span>
+          {/* 위는 화면 이동만 둔다. 봇 상태와 테마는 아래 상태 막대에 있다. */}
           <div className="ml-auto flex items-center gap-1">
-            <BotPill active={route.page === "bot"} onClick={() => go("#/bot")} />
-            <span className="mx-1 h-4 w-px bg-border" />
             <Tooltip content="개요" side="bottom">
               <Button
                 variant="ghost"
@@ -82,6 +75,17 @@ export default function App() {
                 )}
               >
                 <LayoutDashboard />
+              </Button>
+            </Tooltip>
+            <Tooltip content="봇" side="bottom">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="봇"
+                onClick={() => go("#/bot")}
+                className={cn(route.page === "bot" && "bg-accent text-accent-foreground")}
+              >
+                <Bot />
               </Button>
             </Tooltip>
             <Tooltip content="설정" side="bottom">
@@ -97,21 +101,11 @@ export default function App() {
                 <Settings />
               </Button>
             </Tooltip>
-            <Tooltip content={THEME_LABEL[theme.mode]} side="bottom">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="테마 바꾸기"
-                onClick={theme.next}
-              >
-                <ThemeIcon />
-              </Button>
-            </Tooltip>
           </div>
         </header>
         <div className="flex min-h-0 flex-1">
           <RunList selectedId={selectedId} onSelect={select} />
-          <main className="min-w-0 flex-1">
+          <main className="min-w-0 flex-1 bg-canvas">
             {route.page === "bot" ? (
               <BotPage />
             ) : route.page === "settings" ? (
@@ -125,6 +119,7 @@ export default function App() {
             )}
           </main>
         </div>
+        <StatusBar onOpenBot={() => go("#/bot")} />
       </div>
     </TooltipProvider>
   );

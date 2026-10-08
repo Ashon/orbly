@@ -44,7 +44,7 @@ export function BotPage() {
           <div className="flex items-start gap-4">
             <span
               className={cn(
-                "mt-1 grid size-10 place-items-center rounded-xl border",
+                "mt-1 grid size-10 place-items-center rounded-xl",
                 TONE_CLASS[tone].bg
               )}
             >
@@ -69,7 +69,7 @@ export function BotPage() {
           {supervisor?.message && (
             <p
               className={cn(
-                "mt-3 rounded-lg border px-3 py-2 text-xs",
+                "mt-3 rounded-lg px-3 py-2 text-xs",
                 supervisor.phase === "crashed" ? TONE_CLASS.error.bg : "bg-muted/60",
                 supervisor.phase === "crashed"
                   ? TONE_CLASS.error.text
@@ -210,15 +210,6 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
           </Button>
         )}
       </div>
-      <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
-        <input
-          type="checkbox"
-          className="accent-primary"
-          checked={supervisor.autoStart}
-          onChange={(e) => void control.setAutoStart(e.target.checked)}
-        />
-        앱을 열면 봇 자동 시작
-      </label>
     </div>
   );
 }
@@ -233,7 +224,7 @@ function Info({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border bg-card px-3.5 py-3">
+    <div className="min-w-0 rounded-xl bg-card px-3.5 py-3">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground [&_svg]:size-3.5">
         {icon}
         {label}

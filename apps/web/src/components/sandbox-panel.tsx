@@ -47,8 +47,8 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border bg-card">
-      <header className="flex items-start gap-3 border-b px-4 py-3">
+    <section className="overflow-hidden rounded-xl bg-card">
+      <header className="flex items-start gap-3 border-b border-canvas px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">{title}</h2>
           {help && <div className="mt-0.5 text-xs text-muted-foreground">{help}</div>}
@@ -84,7 +84,7 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
       }
     >
       {status && (
-        <div className="divide-y">
+        <div className="divide-y divide-canvas">
           {status.pending.length > 0 && (
             <PendingList pending={status.pending} sandbox={sandbox} />
           )}
@@ -298,13 +298,13 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
       }
     >
       <div className="space-y-3 px-4 py-3">
-        <p className="flex items-start gap-1.5 rounded-lg border border-status-interrupted/30 bg-status-interrupted/8 px-3 py-2 text-xs text-status-interrupted">
+        <p className="flex items-start gap-1.5 rounded-lg bg-status-interrupted/10 px-3 py-2 text-xs text-status-interrupted">
           <TriangleAlert className="mt-px size-3.5 shrink-0" />
           도메인을 열면 추론 컨테이너가 그곳으로 직접 데이터를 보낼 수 있습니다. 토큰이
           필요한 내부 시스템(GitHub 등)은 도메인을 여는 대신 ops-broker 도구로 붙이는 것을
           권합니다. (토큰이 샌드박스에 들어가지 않습니다)
         </p>
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y divide-card overflow-hidden rounded-lg bg-well">
           {domains.map((domain) => {
             const isRequired = required.includes(domain);
             const issue = issues.find((item) => item.domain === domain);
@@ -398,7 +398,7 @@ export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
       title="적용 작업"
       help="저장소의 pnpm 스크립트를 앱에서 실행합니다. 한 번에 하나씩 돌고, 출력의 비밀 값은 가려집니다."
     >
-      <div className="divide-y">
+      <div className="divide-y divide-canvas">
         {JOB_ORDER.map((kind) => {
           const disruptive = kind === "proxy" || kind === "broker";
           return (
@@ -430,7 +430,11 @@ export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
           );
         })}
       </div>
-      {error && <p className="border-t px-4 py-2 text-xs text-status-failed">{error}</p>}
+      {error && (
+        <p className="border-t border-canvas px-4 py-2 text-xs text-status-failed">
+          {error}
+        </p>
+      )}
       {job && <JobOutput job={job} outputRef={output} />}
     </Card>
   );
@@ -447,14 +451,14 @@ function JobOutput({
     (job.finishedAt ? Date.parse(job.finishedAt) : Date.now()) -
     Date.parse(job.startedAt);
   return (
-    <div className="border-t px-4 py-3">
+    <div className="border-t border-canvas px-4 py-3">
       <div className="mb-2 flex items-center gap-2 text-xs">
         {job.state === "running" ? (
-          <LoaderCircle className="size-3.5 animate-spin text-status-running" />
+          <LoaderCircle className="size-3.5 shrink-0 animate-spin text-status-running" />
         ) : job.state === "succeeded" ? (
-          <CircleCheck className="size-3.5 text-status-succeeded" />
+          <CircleCheck className="size-3.5 shrink-0 text-status-succeeded" />
         ) : (
-          <CircleX className="size-3.5 text-status-failed" />
+          <CircleX className="size-3.5 shrink-0 text-status-failed" />
         )}
         <span className="font-medium">{SANDBOX_JOBS[job.kind].label}</span>
         <span className="text-muted-foreground">
@@ -468,7 +472,7 @@ function JobOutput({
       </div>
       <pre
         ref={outputRef}
-        className="max-h-64 overflow-auto rounded-lg border bg-muted/60 px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words"
+        className="max-h-64 overflow-auto rounded-lg bg-well px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words"
       >
         {job.output.join("\n")}
       </pre>

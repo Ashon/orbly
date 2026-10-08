@@ -14,6 +14,9 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-well: var(--well);
+  --color-canvas: var(--canvas);
+  --color-card-accent: var(--card-accent);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -54,6 +57,10 @@
  *   로고 #01ab78 -> #1fc289 -> #48c89c, 링 가장자리 민트 #a8e7d3
  *   글자 대비: 라이트 primary #007c5c 위 흰 글자 5.2:1, 다크 primary #3ccb96 위 #04281d 7.7:1
  *   진행 중 상태는 완료(초록)와 구분되게 청록을 쓴다.
+ * 카드는 테두리 없이 면으로 구분한다. 위에 있는 면일수록 밝다. (라이트, 다크 같은 규칙)
+ *   canvas: 본문 영역 바탕, card: 그 위에 올라온 면, card-accent: 봇 답변처럼 강조하는 면
+ *   well: 카드 안의 목록, 코드, 막대 바탕 (canvas 와 비슷한 높이로 파인 면)
+ *   카드 안의 구분선은 canvas 색(divide-canvas)으로 얇게 판다.
  */
 :root {
   color-scheme: light;
@@ -61,15 +68,18 @@
   --verda-gradient: linear-gradient(74deg, #01ab78 0%, #1fc289 46%, #48c89c 100%);
   --background: oklch(0.99 0.004 165);
   --foreground: oklch(0.23 0.025 172);
+  --canvas: oklch(0.98 0.006 168);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.23 0.025 172);
+  --card-accent: oklch(0.982 0.03 165);
+  --well: oklch(0.972 0.008 168);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.23 0.025 172);
   --primary: #007c5c;
   --primary-foreground: #ffffff;
-  --secondary: oklch(0.962 0.016 165);
+  --secondary: oklch(0.945 0.018 165);
   --secondary-foreground: oklch(0.3 0.05 168);
-  --muted: oklch(0.968 0.009 168);
+  --muted: oklch(0.95 0.011 168);
   --muted-foreground: oklch(0.49 0.03 172);
   --accent: oklch(0.948 0.035 165);
   --accent-foreground: oklch(0.32 0.07 165);
@@ -95,8 +105,11 @@
   color-scheme: dark;
   --background: oklch(0.165 0.012 175);
   --foreground: oklch(0.93 0.012 165);
-  --card: oklch(0.2 0.014 175);
+  --canvas: oklch(0.165 0.012 175);
+  --card: oklch(0.215 0.015 175);
   --card-foreground: oklch(0.93 0.012 165);
+  --card-accent: oklch(0.25 0.035 168);
+  --well: oklch(0.175 0.012 175);
   --popover: oklch(0.21 0.015 175);
   --popover-foreground: oklch(0.93 0.012 165);
   --primary: #3ccb96;

@@ -106,10 +106,7 @@ export function Timeline({ run }: { run: RunRecord }) {
       {run.outputs.length > 0 && (
         <div className="ml-10 grid grid-cols-2 gap-3">
           {run.outputs.map((output) => (
-            <figure
-              key={output.file}
-              className="overflow-hidden rounded-xl border bg-card"
-            >
+            <figure key={output.file} className="overflow-hidden rounded-xl bg-card">
               <a href={artifactUrl(run.id, output.file)} target="_blank" rel="noreferrer">
                 <img
                   src={artifactUrl(run.id, output.file)}
@@ -117,12 +114,12 @@ export function Timeline({ run }: { run: RunRecord }) {
                   className="max-h-80 w-full bg-white object-contain"
                 />
               </a>
-              <figcaption className="border-t px-3 py-1.5 text-xs text-muted-foreground">
+              <figcaption className="border-t border-canvas px-3 py-1.5 text-xs text-muted-foreground">
                 {output.title}
                 {output.kind === "diagram" ? " (그림 블록)" : " (생성 이미지)"}
               </figcaption>
               {output.source && (
-                <Disclosure label="원문" className="border-t">
+                <Disclosure label="원문" className="border-t border-canvas">
                   <CodeBlock
                     code={output.source}
                     className="m-2 mt-0"
@@ -136,7 +133,7 @@ export function Timeline({ run }: { run: RunRecord }) {
       )}
 
       {run.error && run.status !== "succeeded" && (
-        <div className="flex gap-2 rounded-xl border border-status-failed/30 bg-status-failed/8 px-4 py-3 text-sm">
+        <div className="flex gap-2 rounded-xl bg-status-failed/10 px-4 py-3 text-sm">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-status-failed" />
           <div className="min-w-0">
             <p className="font-medium text-status-failed">
@@ -170,8 +167,9 @@ function Bubble({
       <div className="shrink-0 pt-0.5">{avatar}</div>
       <div
         className={cn(
-          "min-w-0 flex-1 rounded-xl border bg-card px-4 py-3 shadow-xs",
-          accent && "border-primary/25 dark:border-primary/20"
+          "min-w-0 flex-1 rounded-xl px-4 py-3",
+          // 봇 답변은 민트 면, 요청은 카드 면으로 구분한다.
+          accent ? "bg-card-accent" : "bg-card"
         )}
       >
         <div className="mb-1.5 flex items-baseline gap-2">
@@ -235,7 +233,7 @@ function Step({ event }: { event: RunEvent }) {
     case "note":
       return (
         <div className="flex items-center gap-1.5 py-1 text-[11px] text-status-interrupted">
-          <Info className="size-3.5" />
+          <Info className="size-3.5 shrink-0" />
           {event.text}
           <span className="text-muted-foreground">{formatClock(event.at)}</span>
         </div>
@@ -338,10 +336,11 @@ function ExpandableRow({
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className={cn("rounded-lg", open && "border bg-card")}
+      className={cn("rounded-lg", open && "bg-card")}
     >
       <CollapsibleTrigger className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent/60">
-        {icon}
+        {/* 미리보기가 길어도 아이콘은 줄어들지 않는다. 줄어드는 것은 미리보기 글자뿐이다. */}
+        <span className="flex shrink-0">{icon}</span>
         <span className="shrink-0 font-medium">{label}</span>
         {preview && (
           <span className="min-w-0 truncate text-muted-foreground">{preview}</span>

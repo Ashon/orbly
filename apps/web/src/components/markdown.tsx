@@ -16,8 +16,8 @@ export function Markdown({
         "prose prose-sm max-w-none text-foreground dark:prose-invert",
         "prose-headings:font-semibold prose-headings:text-foreground prose-p:leading-relaxed",
         "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
-        "prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:font-normal prose-code:before:content-none prose-code:after:content-none",
-        "prose-pre:border prose-pre:bg-muted prose-pre:text-foreground [&_pre_code]:bg-transparent [&_pre_code]:p-0",
+        "prose-code:rounded prose-code:bg-well prose-code:px-1 prose-code:py-0.5 prose-code:font-normal prose-code:before:content-none prose-code:after:content-none",
+        "prose-pre:bg-well prose-pre:text-foreground [&_pre_code]:bg-transparent [&_pre_code]:p-0",
         "prose-th:text-foreground prose-strong:text-foreground",
         className
       )}

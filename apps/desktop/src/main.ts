@@ -225,40 +225,23 @@ function updateTray(): void {
   if (!tray) return;
   const summary = botSummary();
   const phase = supervisor?.current.phase;
-  const key = JSON.stringify([summary, phase, supervisor?.current.autoStart]);
+  const key = JSON.stringify([summary, phase]);
   if (key === lastTrayKey) return;
   lastTrayKey = key;
   tray.setToolTip(`Verda - 봇 ${summary.label}`);
   // 처리 중인 요청이 있으면 메뉴 막대 아이콘 옆에 수를 표시한다. (macOS)
   tray.setTitle(summary.active > 0 ? String(summary.active) : "");
+  // 트레이는 상태와 바로 쓰는 동작만 둔다. 봇 제어는 봇 화면, 앱 설정(자동 시작, 기록 폴더)은 설정 화면에 있다.
+  const live = phase === "running" || phase === "starting";
   const controls: MenuItemConstructorOptions[] = supervisor
     ? [
-        {
-          label: "봇 시작",
-          enabled: phase === "idle" || phase === "crashed",
-          click: () => void supervisor.start(),
-        },
-        {
-          label: "봇 재시작",
-          enabled: phase === "running" || phase === "starting",
-          click: () => void supervisor.restart(),
-        },
-        {
-          label: "빌드 후 재시작",
-          enabled: phase !== "external" && phase !== "building" && phase !== "stopping",
-          click: () => void supervisor.restart({ rebuild: true }),
-        },
-        {
-          label: "봇 중지",
-          enabled: phase === "running" || phase === "starting",
-          click: () => void supervisor.stop(),
-        },
-        {
-          label: "앱을 열면 봇 자동 시작",
-          type: "checkbox",
-          checked: supervisor.current.autoStart,
-          click: (item) => supervisor.setAutoStart(item.checked),
-        },
+        live
+          ? { label: "봇 재시작", click: () => void supervisor.restart() }
+          : {
+              label: "봇 시작",
+              enabled: phase === "idle" || phase === "crashed",
+              click: () => void supervisor.start(),
+            },
         { type: "separator" },
       ]
     : [];
@@ -271,7 +254,6 @@ function updateTray(): void {
       { type: "separator" },
       ...controls,
       { label: "Verda 열기", click: showMainWindow },
-      { label: "기록 폴더 열기", click: () => void shell.openPath(dataDir) },
       { type: "separator" },
       { label: "Verda 종료", click: () => app.quit() },
     ])
@@ -334,6 +316,9 @@ function registerBotIpc(): void {
       return { issues, restarted: true };
     }
   );
+  ipcMain.handle("verda:settings:open-data-dir", (event) => {
+    if (fromMainWindow(event)) void shell.openPath(dataDir);
+  });
   ipcMain.handle("verda:settings:reveal-env", (event) => {
     if (fromMainWindow(event)) shell.showItemInFolder(envFile);
   });

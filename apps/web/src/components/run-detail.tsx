@@ -88,7 +88,7 @@ function RunHeader({ run }: { run: RunRecord }) {
   const duration = run.durationMs ?? Date.now() - Date.parse(run.startedAt);
 
   return (
-    <header className="border-b bg-background/80 px-8 pt-5 pb-0 backdrop-blur">
+    <header className="border-b bg-canvas/80 px-8 pt-5 pb-0 backdrop-blur">
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center gap-2">
           <StatusBadge status={run.status} />
@@ -172,18 +172,15 @@ function Attachments({ run }: { run: RunRecord }) {
               ? Paperclip
               : FileText;
         return (
-          <li
-            key={`${item.name}-${i}`}
-            className="flex gap-3 rounded-xl border bg-card p-3"
-          >
+          <li key={`${item.name}-${i}`} className="flex gap-3 rounded-xl bg-card p-3">
             {item.file ? (
               <img
                 src={artifactUrl(run.id, item.file)}
                 alt={item.name}
-                className="size-20 shrink-0 rounded-lg border bg-white object-cover"
+                className="size-20 shrink-0 rounded-lg bg-white object-cover"
               />
             ) : (
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted">
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-well">
                 <Icon className="size-4 text-muted-foreground" />
               </span>
             )}

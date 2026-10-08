@@ -19,8 +19,9 @@ export function Overview() {
   const maxTool = Math.max(1, ...(data?.topTools.map((t) => t.calls) ?? [1]));
 
   return (
+    // 4열 격자 하나에 모든 카드를 놓는다. 가로, 세로 간격은 같은 gap-4, 아래 줄은 2열씩 차지해 위 카드 경계와 맞춘다.
     <div className="mx-auto max-w-4xl px-8 py-8">
-      <div className="mb-7 flex items-center gap-3">
+      <div className="mb-6 flex items-center gap-3">
         <VerdaMark className="size-10" />
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
@@ -32,7 +33,7 @@ export function Overview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-4">
         <StatCard
           icon={<Activity />}
           label="전체 실행"
@@ -63,12 +64,11 @@ export function Overview() {
           value={data ? String(data.byStatus.running) : "-"}
           accent={Boolean(data?.byStatus.running)}
         />
-      </div>
 
-      <div className="mt-4 grid grid-cols-5 gap-3">
-        <section className="col-span-3 rounded-xl border bg-card p-4">
-          <h2 className="mb-4 text-sm font-medium">최근 14일</h2>
-          <div className="flex h-36 items-end gap-1.5">
+        <section className="col-span-2 flex flex-col rounded-xl bg-card p-4">
+          <h2 className="mb-3 text-sm font-medium">최근 14일</h2>
+          {/* 옆 카드와 높이가 같아지도록 남는 높이를 막대가 쓴다. */}
+          <div className="flex min-h-36 flex-1 items-end gap-1.5">
             {data?.daily.map((day) => (
               <div
                 key={day.day}
@@ -78,7 +78,7 @@ export function Overview() {
                   {day.runs}
                 </span>
                 <div
-                  className="relative w-full overflow-hidden rounded-t-md bg-muted"
+                  className="relative w-full overflow-hidden rounded-t-md bg-well"
                   style={{ height: `${Math.max(4, (day.runs / maxDaily) * 100)}%` }}
                   title={`${day.day}: ${day.runs}건${day.failed ? `, 실패 ${day.failed}` : ""}`}
                 >
@@ -99,7 +99,7 @@ export function Overview() {
             ))}
           </div>
         </section>
-        <section className="col-span-2 rounded-xl border bg-card p-4">
+        <section className="col-span-2 rounded-xl bg-card p-4">
           <h2 className="mb-3 text-sm font-medium">많이 쓴 도구</h2>
           {data?.topTools.length ? (
             <ul className="space-y-2">
@@ -111,7 +111,7 @@ export function Overview() {
                       {tool.calls}
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-well">
                     <div
                       className="verda-gradient h-full rounded-full"
                       style={{ width: `${(tool.calls / maxTool) * 100}%` }}
@@ -129,7 +129,7 @@ export function Overview() {
       </div>
 
       {health.data && (
-        <p className="mt-5 flex items-start gap-1.5 text-xs text-muted-foreground">
+        <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
           <FolderOpen className="mt-px size-3.5 shrink-0" />
           <span className="shrink-0">기록 위치</span>
           <span className="min-w-0 font-mono break-all">{health.data.root}</span>
@@ -153,7 +153,7 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-xl bg-card p-4">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground [&_svg]:size-3.5">
         {icon}
         {label}

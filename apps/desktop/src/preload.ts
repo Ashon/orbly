@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld("verdaDesktop", {
     save: (changes: unknown, restart = false) =>
       ipcRenderer.invoke("verda:settings:save", changes, restart),
     revealEnv: () => ipcRenderer.invoke("verda:settings:reveal-env"),
+    openDataDir: () => ipcRenderer.invoke("verda:settings:open-data-dir"),
   },
   sandbox: {
     status: () => ipcRenderer.invoke("verda:sandbox:status"),

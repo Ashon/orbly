@@ -35,14 +35,9 @@ export function CodeBlock({
   maxHeight?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "group relative overflow-hidden rounded-lg border bg-muted/60",
-        className
-      )}
-    >
+    <div className={cn("group relative overflow-hidden rounded-lg bg-well", className)}>
       {label && (
-        <div className="flex h-7 items-center border-b px-3 text-[11px] font-medium text-muted-foreground">
+        <div className="flex h-7 items-center border-b border-card px-3 text-[11px] font-medium text-muted-foreground">
           {label}
         </div>
       )}
