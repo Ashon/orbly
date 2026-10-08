@@ -1,0 +1,192 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI",
+    "Noto Sans KR", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-status-running: var(--status-running);
+  --color-status-succeeded: var(--status-succeeded);
+  --color-status-failed: var(--status-failed);
+  --color-status-interrupted: var(--status-interrupted);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --animate-pulse-dot: pulse-dot 1.4s ease-in-out infinite;
+  --animate-collapsible-down: collapsible-down 0.18s ease-out;
+  --animate-collapsible-up: collapsible-up 0.18s ease-out;
+}
+
+/*
+ * 색은 로고(assets/verda.svg)의 에메랄드 -> 민트 그라데이션에서 뽑았다.
+ *   로고 #01ab78 -> #1fc289 -> #48c89c, 링 가장자리 민트 #a8e7d3
+ *   글자 대비: 라이트 primary #007c5c 위 흰 글자 5.2:1, 다크 primary #3ccb96 위 #04281d 7.7:1
+ *   진행 중 상태는 완료(초록)와 구분되게 청록을 쓴다.
+ */
+:root {
+  color-scheme: light;
+  --radius: 0.625rem;
+  --verda-gradient: linear-gradient(74deg, #01ab78 0%, #1fc289 46%, #48c89c 100%);
+  --background: oklch(0.99 0.004 165);
+  --foreground: oklch(0.23 0.025 172);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.23 0.025 172);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.23 0.025 172);
+  --primary: #007c5c;
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.962 0.016 165);
+  --secondary-foreground: oklch(0.3 0.05 168);
+  --muted: oklch(0.968 0.009 168);
+  --muted-foreground: oklch(0.49 0.03 172);
+  --accent: oklch(0.948 0.035 165);
+  --accent-foreground: oklch(0.32 0.07 165);
+  --destructive: oklch(0.57 0.2 25);
+  --border: oklch(0.91 0.016 168);
+  --input: oklch(0.89 0.018 168);
+  --ring: rgba(12, 182, 126, 0.5);
+  --sidebar: oklch(0.975 0.01 165);
+  --sidebar-foreground: oklch(0.23 0.025 172);
+  --sidebar-accent: oklch(0.935 0.04 165);
+  --sidebar-accent-foreground: oklch(0.27 0.06 165);
+  --sidebar-border: oklch(0.91 0.016 168);
+  --status-running: #029a92;
+  --status-succeeded: #007c5c;
+  --status-failed: oklch(0.57 0.2 25);
+  --status-interrupted: oklch(0.62 0.14 65);
+  --chart-1: #0cb67e;
+  --chart-2: #46c99b;
+  --chart-3: #a8e7d3;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.165 0.012 175);
+  --foreground: oklch(0.93 0.012 165);
+  --card: oklch(0.2 0.014 175);
+  --card-foreground: oklch(0.93 0.012 165);
+  --popover: oklch(0.21 0.015 175);
+  --popover-foreground: oklch(0.93 0.012 165);
+  --primary: #3ccb96;
+  --primary-foreground: #04281d;
+  --secondary: oklch(0.25 0.02 172);
+  --secondary-foreground: oklch(0.9 0.015 165);
+  --muted: oklch(0.225 0.014 175);
+  --muted-foreground: oklch(0.71 0.025 168);
+  --accent: oklch(0.275 0.04 168);
+  --accent-foreground: oklch(0.94 0.03 165);
+  --destructive: oklch(0.7 0.17 22);
+  --border: oklch(0.9 0.05 165 / 11%);
+  --input: oklch(0.9 0.05 165 / 16%);
+  --ring: rgba(60, 203, 150, 0.6);
+  --sidebar: oklch(0.183 0.013 175);
+  --sidebar-foreground: oklch(0.93 0.012 165);
+  --sidebar-accent: oklch(0.26 0.04 168);
+  --sidebar-accent-foreground: oklch(0.96 0.02 165);
+  --sidebar-border: oklch(0.9 0.05 165 / 10%);
+  --status-running: #1bd3b3;
+  --status-succeeded: #3ccb96;
+  --status-failed: oklch(0.7 0.17 22);
+  --status-interrupted: oklch(0.8 0.13 75);
+  --chart-1: #2ec790;
+  --chart-2: #48c89c;
+  --chart-3: #a8e7d3;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    overflow: hidden;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--chart-1) 35%, transparent);
+  }
+}
+
+@layer utilities {
+  .titlebar-drag {
+    -webkit-app-region: drag;
+  }
+  .titlebar-drag :is(a, button, input, select, textarea, [role="button"]) {
+    -webkit-app-region: no-drag;
+  }
+  .verda-gradient {
+    background: var(--verda-gradient);
+  }
+  .verda-gradient-text {
+    background: var(--verda-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes collapsible-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}

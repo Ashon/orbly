@@ -1,0 +1,80 @@
+# Verda 전용 조회 계정 예시. 조회할 클러스터마다 적용한다. (kubectl apply -f)
+#
+# - 네임스페이스 범위 리소스는 내장 ClusterRole view 로 읽는다. (secrets 제외)
+# - 노드, 네임스페이스, 스토리지, 메트릭처럼 클러스터 범위 리소스는 verda-ro-cluster 로 읽는다.
+# - 계정을 따로 두면 감사 로그에서 Verda 의 조회를 구분하고, 이 계정만 따로 회수할 수 있다.
+#
+# 이름이나 네임스페이스를 바꾸면 .env 의 OPS_K8S_SA, OPS_K8S_SA_NAMESPACE 도 같이 바꾼다.
+# 적용 뒤 pnpm k8s:kubeconfig 로 broker 용 kubeconfig 를 만든다.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: verda
+  labels:
+    app: verda
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: verda-ro
+  namespace: verda
+  labels:
+    app: verda
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: verda-ro-token
+  namespace: verda
+  annotations:
+    kubernetes.io/service-account.name: verda-ro
+  labels:
+    app: verda
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verda-ro-view
+  labels:
+    app: verda
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: verda-ro
+    namespace: verda
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verda-ro-cluster
+  labels:
+    app: verda
+rules:
+  - apiGroups: [""]
+    resources: [nodes, namespaces, persistentvolumes]
+    verbs: [get, list, watch]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses]
+    verbs: [get, list, watch]
+  - apiGroups: [metrics.k8s.io]
+    resources: [nodes, pods]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verda-ro-cluster
+  labels:
+    app: verda
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: verda-ro-cluster
+subjects:
+  - kind: ServiceAccount
+    name: verda-ro
+    namespace: verda

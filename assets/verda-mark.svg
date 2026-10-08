@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="44 44 424 424" width="424" height="424">
+  <title>Verda</title>
+  <defs>
+    <!-- 왼쪽 아래 에메랄드에서 오른쪽 위 민트로 (16도) -->
+    <linearGradient id="verda-ring" gradientUnits="userSpaceOnUse" x1="54" y1="314" x2="458" y2="198">
+      <stop offset="0" stop-color="#01ab78"/>
+      <stop offset="0.25" stop-color="#0cb67e"/>
+      <stop offset="0.46" stop-color="#1fc289"/>
+      <stop offset="0.6" stop-color="#2ec790"/>
+      <stop offset="0.75" stop-color="#38c895"/>
+      <stop offset="0.89" stop-color="#46c99b"/>
+      <stop offset="1" stop-color="#48c89c"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#verda-ring)" fill-rule="evenodd" d="M256 45.5a210.5 210.5 0 1 1 0 421a210.5 210.5 0 1 1 0-421zm0 130a80.5 80.5 0 1 0 0 161a80.5 80.5 0 1 0 0-161z"/>
+</svg>

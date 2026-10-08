@@ -1,0 +1,50 @@
+{
+  "name": "verda",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Verda: 공개 채널 멘션에 로컬 claude/codex CLI 로 답하는 Slack 운영 봇 (Socket Mode)",
+  "type": "module",
+  "packageManager": "pnpm@11.4.0",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=\"${VERDA_HOME:-$HOME/.verda}/.env\" src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --env-file-if-exists=\"${VERDA_HOME:-$HOME/.verda}/.env\" dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests apps/*/src",
+    "format": "prettier --write src tests apps/*/src apps/*/scripts",
+    "format:check": "prettier --check src tests apps/*/src apps/*/scripts",
+    "test": "vitest run",
+    "check": "pnpm typecheck && pnpm --filter @verda/web typecheck && pnpm --filter @verda/desktop typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "sandbox:build": "docker compose -f sandbox/compose.yaml --profile build build",
+    "sandbox:up": "docker compose -f sandbox/compose.yaml up -d --build --force-recreate egress-proxy",
+    "sandbox:down": "docker compose -f sandbox/compose.yaml down",
+    "slack:check": "tsx --env-file-if-exists=\"${VERDA_HOME:-$HOME/.verda}/.env\" src/tools/check-slack.ts",
+    "ops:prepare": "tsx --env-file-if-exists=\"${VERDA_HOME:-$HOME/.verda}/.env\" src/tools/ops-prepare.ts",
+    "k8s:kubeconfig": "tsx --env-file-if-exists=\"${VERDA_HOME:-$HOME/.verda}/.env\" src/tools/k8s-kubeconfig.ts",
+    "sandbox:ops-up": "pnpm ops:prepare && GH_TOKEN=\"$(gh auth token)\" GIT_AUTHOR_NAME=\"$(git config --global user.name)\" GIT_AUTHOR_EMAIL=\"$(git config --global user.email)\" docker compose -f sandbox/compose.yaml --env-file \"${VERDA_HOME:-$HOME/.verda}/.env\" --profile ops up -d --build --force-recreate ops-broker",
+    "desktop:build": "pnpm build && pnpm --filter @verda/web build && pnpm --filter @verda/desktop build",
+    "desktop": "pnpm desktop:build && pnpm --filter @verda/desktop start",
+    "desktop:dev": "pnpm --filter @verda/web dev & pnpm --filter @verda/desktop dev"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@slack/bolt": "^5.1.0",
+    "@slack/web-api": "^8.2.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@slack/types": "^3.2.0",
+    "@types/node": "^24.19.1",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
+  }
+}

@@ -1,0 +1,37 @@
+# Slack 앱 생성 시 "From an app manifest" 에 붙여 넣는다.
+# 공개 채널에서 봇이 멘션되면 스레드에 답한다. 사용자 토큰, DM 권한은 쓰지 않는다.
+display_information:
+  name: Verda
+  description: 공개 채널 멘션에 로컬 claude/codex CLI 로 답하는 운영 봇 (Socket Mode)
+  long_description: Verda 는 공개 채널에서 멘션을 받으면 스레드 맥락과 첨부 파일을 모아 로컬 claude 또는 codex CLI 에 추론을 맡기고, 샌드박스 안에서 서버, k8s, 작업 디렉터리를 조회하거나 그림을 그려 같은 스레드에 답합니다. 코드 수정은 draft PR 로 올립니다.
+  background_color: "#0b6e5b"
+features:
+  bot_user:
+    display_name: verda
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      # 멘션 이벤트 수신
+      - app_mentions:read
+      # 스레드 맥락 읽기 (conversations.replies, conversations.history)
+      - channels:history
+      # 공개 채널 여부 확인 (conversations.info)
+      - channels:read
+      # 답장 게시
+      - chat:write
+      # 멘션/스레드에 첨부된 이미지 내려받기 (url_private_download)
+      - files:read
+      # 그림, 생성 이미지 올리기 (files.uploadV2)
+      - files:write
+      # 맥락 속 사용자 이름 표시
+      - users:read
+settings:
+  event_subscriptions:
+    bot_events:
+      - app_mention
+  interactivity:
+    is_enabled: false
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false

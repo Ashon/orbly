@@ -1,0 +1,10 @@
+# 샌드박스 컨테이너가 접속할 수 있는 도메인 (정확히 일치, 한 줄에 하나)
+# 변경 후: pnpm sandbox:up (프록시 재시작)
+
+# claude CLI (Anthropic API)
+api.anthropic.com
+
+# codex CLI (ChatGPT 로그인 / OpenAI API)
+chatgpt.com
+auth.openai.com
+api.openai.com
