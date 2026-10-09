@@ -1,30 +1,24 @@
-import { Clock, Cpu, Monitor, Moon, Plug, Sun, TriangleAlert } from "lucide-react";
+import { Clock, Cpu, Plug, TriangleAlert } from "lucide-react";
 import type * as React from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useBotStatus } from "@/lib/api";
 import { useSupervisor } from "@/lib/desktop";
 import { formatRelative } from "@/lib/format";
-import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { describeBot, TONE_CLASS } from "./bot-state";
 
-const THEME_ICON = { system: Monitor, light: Sun, dark: Moon } as const;
-const THEME_LABEL = { system: "System", light: "Light", dark: "Dark" } as const;
-
 /**
  * Status bar at the bottom of the window. Holds only bot status to glance at without switching screens.
- * Left: bot (connection, reasoner backend, attached tools, startup check issues). Right: request handling and theme.
+ * Left: bot (connection, reasoner backend, attached tools, startup check issues). Right: request handling.
  */
 export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
   const { data } = useBotStatus();
   const supervisor = useSupervisor();
-  const theme = useTheme();
   const { tone, label } = describeBot(data, supervisor);
   const status = data?.alive ? data.status : undefined;
   const active = status?.requests.active ?? 0;
   const problems = status?.problems ?? [];
   const tools = [...(status?.mcp ?? []), ...(status?.diagrams ? ["diagrams"] : [])];
-  const ThemeIcon = THEME_ICON[theme.mode];
 
   return (
     <footer className="flex h-7 shrink-0 items-center gap-1 border-t border-sidebar-border bg-sidebar px-2 text-[11px] text-muted-foreground">
@@ -82,13 +76,6 @@ export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
             Last request {formatRelative(status.requests.lastAt)}
           </Item>
         )}
-        <Item
-          tip={`Theme: ${THEME_LABEL[theme.mode]} (click to change)`}
-          onClick={theme.next}
-        >
-          <ThemeIcon />
-          <span className="sr-only">Change theme</span>
-        </Item>
       </div>
     </footer>
   );

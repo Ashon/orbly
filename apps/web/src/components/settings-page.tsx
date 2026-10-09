@@ -14,9 +14,12 @@ import {
   CircleX,
   FolderOpen,
   LoaderCircle,
+  Monitor,
+  Moon,
   PlugZap,
   RotateCcw,
   Save,
+  Sun,
   TriangleAlert,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -31,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { botControl, useSandbox, useSupervisor } from "@/lib/desktop";
+import { useTheme, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { AllowlistCard, APPLY_LABEL, JobsCard, SandboxStatusCard } from "./sandbox-panel";
 
@@ -321,6 +325,12 @@ export function SettingsPage() {
               </p>
             </header>
             <div className="divide-y divide-canvas">
+              <Row
+                label="Theme"
+                help="System follows the macOS appearance. VERDA_DESKTOP_THEME in the environment overrides it."
+              >
+                <ThemePicker />
+              </Row>
               {supervisor && (
                 <Row
                   label="Start the bot automatically when the app opens"
@@ -337,7 +347,11 @@ export function SettingsPage() {
                 help="VERDA_DATA_DIR. To change it, edit the settings file (.env) and relaunch the app."
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-xs text-muted-foreground">
+                  {/* A long path is cut short here; hover shows it whole. */}
+                  <span
+                    title={view.dataDir}
+                    className="max-w-72 truncate font-mono text-xs text-muted-foreground"
+                  >
                     {view.dataDir}
                   </span>
                   <Button
@@ -602,6 +616,39 @@ function Row({
         {issue && <p className="mt-1 text-xs text-status-failed">{issue}</p>}
       </div>
       <div className="flex min-h-7 shrink-0 items-center">{children}</div>
+    </div>
+  );
+}
+
+const THEMES: { mode: ThemeMode; label: string; icon: typeof Monitor }[] = [
+  { mode: "system", label: "System", icon: Monitor },
+  { mode: "light", label: "Light", icon: Sun },
+  { mode: "dark", label: "Dark", icon: Moon },
+];
+
+/** System / Light / Dark, as a segmented control like the run list's status filter. */
+function ThemePicker() {
+  const { mode, setMode } = useTheme();
+  return (
+    <div role="radiogroup" aria-label="Theme" className="flex rounded-lg bg-muted p-0.5">
+      {THEMES.map(({ mode: value, label, icon: Icon }) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={mode === value}
+          onClick={() => setMode(value)}
+          className={cn(
+            "flex h-6 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+            mode === value
+              ? "bg-card text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Icon className="size-3.5" />
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

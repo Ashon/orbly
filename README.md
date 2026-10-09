@@ -302,7 +302,7 @@ Layout:
   run search (Cmd+K focuses it, Esc clears it); the run list shows next to the overview and run details, while the bot and
   settings screens use the full width.
 - The status bar at the bottom holds status to glance at: bot connection status, reasoner backend, attached tools, startup check issues (when any),
-  requests in progress, last request time, and theme. Clicking the bot status item opens the Bot screen.
+  requests in progress, and last request time. Clicking the bot status item opens the Bot screen.
 
 Bot management:
 
@@ -400,7 +400,7 @@ Other:
 - App icon: `assets/verda-icon.svg` is the source. After editing it, `pnpm --filter @verda/desktop icon` (macOS swift) redraws
   the same shape on the macOS icon grid (an 824 body in 1024, shadow, highlight) as `assets/verda-icon.png`.
   Development runs use the PNG as the Dock icon as is, so this does the system's processing by hand.
-- `VERDA_DESKTOP_THEME=light|dark` pins the theme. (The default follows the system; it can also be changed at the right end of the status bar)
+- `VERDA_DESKTOP_THEME=light|dark` pins the theme. (The default follows the system; it can also be changed under "Theme" in the "App" section of Settings)
 - Build check: `VERDA_DESKTOP_CAPTURE=/tmp/verda.png pnpm --filter @verda/desktop start` saves the UI as a PNG without showing
   a window, then exits. (`VERDA_DESKTOP_CAPTURE_HASH=#/bot` picks the screen; the bot is not started in this mode)
 

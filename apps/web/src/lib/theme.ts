@@ -1,4 +1,11 @@
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type ThemeMode = "system" | "light" | "dark";
 const KEY = "verda.theme";
@@ -12,8 +19,15 @@ const readMode = (): ThemeMode => {
   }
 };
 
-/** Follows the system setting, and remembers the choice when picked manually. */
-export function useTheme() {
+const ThemeContext = createContext<
+  { mode: ThemeMode; setMode: (mode: ThemeMode) => void } | undefined
+>(undefined);
+
+/**
+ * Applies the theme to the whole app: follows the system setting, and remembers the choice made
+ * in Settings.
+ */
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>(readMode);
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -30,9 +44,12 @@ export function useTheme() {
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [mode]);
-  const next = () =>
-    setMode((current) =>
-      current === "system" ? "light" : current === "light" ? "dark" : "system"
-    );
-  return { mode, next };
+  return createElement(ThemeContext.Provider, { value: { mode, setMode } }, children);
+}
+
+/** The current theme choice and its setter. Use inside ThemeProvider. */
+export function useTheme() {
+  const theme = useContext(ThemeContext);
+  if (!theme) throw new Error("useTheme needs a ThemeProvider above it.");
+  return theme;
 }

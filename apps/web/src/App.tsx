@@ -75,15 +75,10 @@ export default function App() {
       <div className="flex h-full flex-col">
         {/* Three columns keep the search centered on the window; the left one clears the traffic lights. */}
         <header className="titlebar-drag grid h-11 shrink-0 grid-cols-[1fr_minmax(0,520px)_1fr] items-center gap-3 border-b border-sidebar-border bg-sidebar px-3">
+          {/* The left column clears the traffic lights; a run from the repository is labelled there. */}
           <div className={cn("flex items-center", isMacDesktop && "pl-[72px]")}>
-            <button type="button" onClick={() => select()} aria-label="Verda overview">
-              <span className="verda-gradient-text text-sm font-semibold tracking-tight">
-                Verda
-              </span>
-            </button>
-            {/* A run from the repository is labelled, so it is never mistaken for the installed app. */}
             {window.verdaDesktop?.dev && (
-              <span className="ml-2 rounded-md bg-status-interrupted/15 px-1.5 py-px text-[11px] font-semibold text-status-interrupted">
+              <span className="rounded-md bg-status-interrupted/15 px-1.5 py-px text-[11px] font-semibold text-status-interrupted">
                 Dev
               </span>
             )}
