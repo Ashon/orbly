@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "
 import path from "node:path";
 import { parseEnv } from "node:util";
 import { utilityProcess, type UtilityProcess } from "electron";
+import { RECHECK_SANDBOX } from "../../../src/runtime/sandbox-health.js";
 import { readRunningBot } from "../../../src/runtime/status.js";
 import { botLockDirs } from "../../../src/settings/legacy.js";
 import { setupProblem, startFailureProblem } from "./bot-readiness.js";
@@ -34,6 +35,11 @@ const MAX_RESTARTS = 3;
 const RESTART_WINDOW_MS = 10 * 60_000;
 
 export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
+  /** Asks the running bot to check the sandbox again now (after a sandbox job), so its status follows at once. */
+  recheckSandbox(): void {
+    this.child?.postMessage({ type: RECHECK_SANDBOX });
+  }
+
   private child?: UtilityProcess;
   private childStartedAt = 0;
   private stopRequested = false;

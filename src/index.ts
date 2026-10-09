@@ -9,6 +9,7 @@ import { MentionResponder } from "./mention/responder.js";
 import { DockerExecutor, HostExecutor } from "./reasoner/executor.js";
 import { createReasoner } from "./reasoner/index.js";
 import { DiagramRenderer } from "./render/diagrams.js";
+import { RECHECK_SANDBOX, SandboxHealth } from "./runtime/sandbox-health.js";
 import { BotStatusFile, LOG_FILE } from "./runtime/status.js";
 import { botLockDirs, warnOnce } from "./settings/legacy.js";
 import { loadEnv } from "./settings/load-env.js";
@@ -67,6 +68,13 @@ function socketModeReceiver(
     }
   );
   return receiver;
+}
+
+/** The channel to the desktop app when it runs the bot as an Electron utilityProcess; absent in a terminal */
+function parentPort():
+  | { on(event: "message", listener: (event: { data: unknown }) => void): void }
+  | undefined {
+  return (process as { parentPort?: ReturnType<typeof parentPort> }).parentPort;
 }
 
 /** Holds the logger once created, so startup failures also reach the log file. */
@@ -129,6 +137,7 @@ async function main(): Promise<void> {
   const auth = await app.client.auth.test();
   const botUserId = auth.user_id;
   if (!botUserId) throw new Error("Could not determine the bot user ID.");
+  /** Problems fixed for this process's life (diagram rendering); the sandbox's come from sandboxHealth */
   const problems: string[] = [];
 
   const executor = config.reasoner.sandbox
@@ -139,10 +148,18 @@ async function main(): Promise<void> {
       });
   const reasoner = createReasoner(config.reasoner, executor);
   // If the sandbox is not ready, reasoner calls fail. They do not fall back to the host.
-  for (const problem of await executor.verify()) {
-    log.error(`Sandbox: ${problem}`);
-    problems.push(`Sandbox: ${problem}`);
-  }
+  // The check repeats while the bot runs, and right away when the desktop app finishes a sandbox job, so the
+  // status (and the status bar) follows a proxy that is started or stopped later.
+  const allProblems = () => [
+    ...sandboxHealth.current.map((problem) => `Sandbox: ${problem}`),
+    ...problems,
+  ];
+  const sandboxHealth = new SandboxHealth(
+    () => executor.verify(),
+    () => status.update({ problems: allProblems() }),
+    log
+  );
+  await sandboxHealth.check();
   if (config.mention.workspace && !reasoner.canReadFiles) {
     log.warn(
       `${reasoner.backend} cannot read files in the ${executor.kind} sandbox, so MENTION_WORKSPACE is not used.`
@@ -210,10 +227,17 @@ async function main(): Promise<void> {
     mcp: reasoner.mcpServerNames,
     diagrams: renderer !== undefined,
     history: history !== undefined,
-    problems,
+    problems: allProblems(),
   });
   await app.start();
   status.update({ state: "running" });
+  if (executor.kind === "docker") {
+    sandboxHealth.start(30_000);
+    parentPort()?.on("message", (event) => {
+      if ((event.data as { type?: string } | undefined)?.type === RECHECK_SANDBOX)
+        void sandboxHealth.check();
+    });
+  }
   await responder.resumePending();
   const allowed = config.mention.allowedUserIds;
   log.info(

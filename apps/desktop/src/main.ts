@@ -452,9 +452,11 @@ function registerBotIpc(): void {
   ipcMain.handle("orbly:sandbox:claude-token-cancel", (event) => {
     if (fromMainWindow(event)) claudeToken.cancel();
   });
-  sandbox.on("job", (job) =>
-    mainWindow?.webContents.send("orbly:sandbox:job-changed", job)
-  );
+  sandbox.on("job", (job) => {
+    mainWindow?.webContents.send("orbly:sandbox:job-changed", job);
+    // A finished job may have started or stopped the proxy or the broker; the bot checks the sandbox again.
+    if (job.state !== "running") supervisor?.recheckSandbox();
+  });
   supervisor?.on("change", (state) => {
     mainWindow?.webContents.send("orbly:bot:changed", state);
     updateTray();
