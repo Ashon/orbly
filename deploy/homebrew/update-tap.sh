@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Renders the tap's Casks/verda.rb for a released tag: copies the template next to this script,
+# Renders the tap's Casks/orbly.rb for a released tag: copies the template next to this script,
 # fills in the version and the per-arch sha256 sums from the release's .sha256 sidecar files, and
 # fails if a placeholder or the template's own version survives. The release workflow's tap job runs
 # it; to run it by hand, use a checkout of the same tag so the template matches the release:
@@ -21,16 +21,16 @@ sha_of() { # asset name -> sha256 (the release publishes <asset>.sha256 sidecars
 }
 
 # Every sum is fetched before anything is written, so a missing asset leaves the tap untouched.
-arm=$(sha_of "Verda-${TAG}-macos-arm64.app.zip")
-x64=$(sha_of "Verda-${TAG}-macos-x64.app.zip")
+arm=$(sha_of "Orbly-${TAG}-macos-arm64.app.zip")
+x64=$(sha_of "Orbly-${TAG}-macos-x64.app.zip")
 
-CASK="${TAP_DIR}/Casks/verda.rb"
+CASK="${TAP_DIR}/Casks/orbly.rb"
 mkdir -p "${TAP_DIR}/Casks"
 # sed without -i writes to a new file, so BSD and GNU sed behave the same.
 sed -e "s/^  version \"[^\"]*\"$/  version \"${VERSION}\"/" \
   -e "s/REPLACE_SHA256_ARM64/${arm}/" \
   -e "s/REPLACE_SHA256_X64/${x64}/" \
-  "${HERE}/Casks/verda.rb" >"${CASK}"
+  "${HERE}/Casks/orbly.rb" >"${CASK}"
 
 if grep -n "REPLACE_" "$CASK"; then
   echo "a placeholder survived in ${CASK}" >&2

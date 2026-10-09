@@ -3,7 +3,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 // Exposes only the platform (window button placement), bot control, settings read/write, and sandbox management to the UI. History queries go through orbly://app/api.
 contextBridge.exposeInMainWorld("orblyDesktop", {
   platform: process.platform,
-  // Runs from the repository (Verda Dev), as opposed to the installed app.
+  // Runs from the repository (Orbly Dev), as opposed to the installed app.
   dev: process.argv.includes("--orbly-dev"),
   bot: {
     state: () => ipcRenderer.invoke("orbly:bot:state"),

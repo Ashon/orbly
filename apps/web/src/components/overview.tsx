@@ -15,7 +15,7 @@ import { useHealth, useStats } from "@/lib/api";
 import { useSupervisor } from "@/lib/desktop";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { VerdaMark } from "./logo";
+import { OrblyMark } from "./logo";
 
 /**
  * The first thing to do when the bot cannot start yet, usually connecting Slack on a first run. It names
@@ -79,10 +79,10 @@ export function Overview() {
     // tight for its content. Gaps are gap-4 both ways, and the chart and tools cards span 2 columns to line up.
     <div className="@container mx-auto max-w-4xl px-8 py-8">
       <div className="mb-6 flex items-center gap-3">
-        <VerdaMark className="size-10" />
+        <OrblyMark className="size-10" />
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            <span className="verda-gradient-text">Verda</span> run history
+            <span className="orbly-gradient-text">Orbly</span> run history
           </h1>
           <p className="text-sm text-muted-foreground">
             Browse requests handled from Slack mentions, with their tool calls, replies,
@@ -167,7 +167,7 @@ export function Overview() {
                   <div className="relative flex w-2 flex-1 flex-col justify-end overflow-hidden rounded-full bg-well">
                     {day.runs > 0 && (
                       <div
-                        className="verda-gradient relative w-full rounded-full"
+                        className="orbly-gradient relative w-full rounded-full"
                         style={{
                           height: `${Math.max(12, (day.runs / maxDaily) * 100)}%`,
                         }}
@@ -214,7 +214,7 @@ export function Overview() {
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-well">
                     <div
-                      className="verda-gradient h-full rounded-full"
+                      className="orbly-gradient h-full rounded-full"
                       style={{ width: `${(tool.calls / maxTool) * 100}%` }}
                     />
                   </div>

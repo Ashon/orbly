@@ -15,7 +15,7 @@ declare global {
     /** Present only in the desktop app (preload). */
     orblyDesktop?: {
       platform: string;
-      /** Runs from the repository (Verda Dev) rather than the installed app */
+      /** Runs from the repository (Orbly Dev) rather than the installed app */
       dev?: boolean;
       bot: {
         state(): Promise<SupervisorState | null>;

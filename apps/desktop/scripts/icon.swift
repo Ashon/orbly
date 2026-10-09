@@ -1,12 +1,12 @@
 import AppKit
 
-// Draws the colors and shapes of assets/verda-icon.svg as PNG.
+// Draws the colors and shapes of assets/orbly-icon.svg as PNG.
 // - Default: dock icon for dev runs (electron .). The dock uses the PNG as is, so this draws the treatment the system
 //   applies to packaged app icons (824 body out of 1024, rounded square, shadow, top highlight) by hand.
-//   verda-icon-dev.png adds an amber DEV tag, so a run from the repository never looks like the installed app.
+//   orbly-icon-dev.png adds an amber DEV tag, so a run from the repository never looks like the installed app.
 //   Usage: swift apps/desktop/scripts/icon.swift <assets directory>
 // - --iconset: macOS icon set for the packaged app (.icns). Draws the svg full bleed; the system applies the grid and effects.
-//   Usage: swift apps/desktop/scripts/icon.swift --iconset <Verda.iconset>
+//   Usage: swift apps/desktop/scripts/icon.swift --iconset <Orbly.iconset>
 let iconsetMode = CommandLine.arguments[1] == "--iconset"
 let destination = URL(fileURLWithPath: CommandLine.arguments[iconsetMode ? 2 : 1])
 
@@ -44,7 +44,7 @@ func render(pixels: Int, to name: String, dev: Bool = false) throws {
     let k = CGFloat(pixels) / 1024
     // Coordinates where y grows upward. The body is 824 from (100, 100) on the 1024 grid
     let body = CGRect(x: 100 * k, y: 100 * k, width: 824 * k, height: 824 * k)
-    let unit = body.width / 32 // one cell of the verda-icon.svg 32 grid
+    let unit = body.width / 32 // one cell of the orbly-icon.svg 32 grid
     let shape = squircle(body)
 
     // 1. Drop shadow
@@ -176,8 +176,8 @@ if iconsetMode {
     }
 } else {
     // Dock/window icon (1024) and README logo (256, shown at 128 on screen)
-    try render(pixels: 1024, to: "verda-icon.png")
-    try render(pixels: 256, to: "verda-icon-256.png")
-    // Dock/window icon for dev runs (Verda Dev)
-    try render(pixels: 1024, to: "verda-icon-dev.png", dev: true)
+    try render(pixels: 1024, to: "orbly-icon.png")
+    try render(pixels: 256, to: "orbly-icon-256.png")
+    // Dock/window icon for dev runs (Orbly Dev)
+    try render(pixels: 1024, to: "orbly-icon-dev.png", dev: true)
 }

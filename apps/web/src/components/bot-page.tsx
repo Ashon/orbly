@@ -54,7 +54,7 @@ export function BotPage() {
             </span>
             <div className="min-w-0 flex-1">
               <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-                Verda bot
+                Orbly bot
                 <span className={cn("text-sm font-medium", TONE_CLASS[tone].text)}>
                   {label}
                 </span>

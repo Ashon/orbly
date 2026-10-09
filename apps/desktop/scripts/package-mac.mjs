@@ -19,18 +19,18 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 /**
- * Builds the installable macOS app (Verda.app) and its release zip. (pnpm package:mac)
+ * Builds the installable macOS app (Orbly.app) and its release zip. (pnpm package:mac)
  *
  *   node apps/desktop/scripts/package-mac.mjs [--arch arm64|x64]
  *
  * The app carries the UI, the bot bundle, the sandbox job bundle and the sandbox/ files in
  * Contents/Resources/app, so it runs without the repository, Node or pnpm. Config and run history
- * stay outside the app (VERDA_HOME, default ~/.verda).
+ * stay outside the app (ORBLY_HOME, default ~/.orbly).
  *
- * Output: release/Verda-v<version>-macos-<arch>.app.zip with a .sha256 sidecar (the Homebrew cask's
+ * Output: release/Orbly-v<version>-macos-<arch>.app.zip with a .sha256 sidecar (the Homebrew cask's
  * source, deploy/homebrew; pnpm install:mac unpacks it). The app is assembled in
  * release/staging.noindex, which Spotlight does not index, and removed once zipped, so Spotlight and
- * Launchpad only list the installed Verda. The target arch defaults to this Mac's; the other arch's
+ * Launchpad only list the installed Orbly. The target arch defaults to this Mac's; the other arch's
  * Electron is downloaded, since the bundles themselves are plain JS.
  *
  * The app gets an ad-hoc signature, good for this Mac (pnpm install:mac).
@@ -52,11 +52,11 @@ const releaseDir = path.join(root, "release");
 // A ".noindex" directory keeps Spotlight (and so Launchpad) from listing the build as an app.
 const stagingDir = path.join(releaseDir, "staging.noindex");
 const outputDir = path.join(stagingDir, `mac-${arch}`);
-const appPath = path.join(outputDir, "Verda.app");
+const appPath = path.join(outputDir, "Orbly.app");
 const resourcesDir = path.join(appPath, "Contents/Resources");
 const appDir = path.join(resourcesDir, "app");
-const zipName = `Verda-v${version}-macos-${arch}.app.zip`;
-const bundleId = "io.github.ashon.verda";
+const zipName = `Orbly-v${version}-macos-${arch}.app.zip`;
+const bundleId = "io.github.ashon.orbly";
 const entitlements = path.join(desktopDir, "scripts/entitlements.plist");
 
 const run = (command, args, options = {}) =>
@@ -130,11 +130,11 @@ for (const [from, to] of Object.entries(inputs)) {
 }
 await writeFile(
   path.join(appDir, "package.json"),
-  `${JSON.stringify({ name: "verda", productName: "Verda", version, type: "module", main: "dist/main.js" }, null, 2)}\n`
+  `${JSON.stringify({ name: "orbly", productName: "Orbly", version, type: "module", main: "dist/main.js" }, null, 2)}\n`
 );
 
 // Icon: the full-bleed icon set drawn from the svg. The system applies the grid and effects.
-const iconset = path.join(outputDir, "Verda.iconset");
+const iconset = path.join(outputDir, "Orbly.iconset");
 run("/usr/bin/swift", [
   "-module-cache-path",
   path.join(releaseDir, ".swift-cache"),
@@ -147,17 +147,17 @@ run("/usr/bin/iconutil", [
   "icns",
   iconset,
   "-o",
-  path.join(resourcesDir, "verda.icns"),
+  path.join(resourcesDir, "orbly.icns"),
 ]);
 await rm(iconset, { recursive: true, force: true });
 
 const infoPlist = path.join(appPath, "Contents/Info.plist");
 plistSet(infoPlist, {
-  CFBundleDisplayName: "Verda",
-  CFBundleName: "Verda",
+  CFBundleDisplayName: "Orbly",
+  CFBundleName: "Orbly",
   CFBundleIdentifier: bundleId,
-  CFBundleExecutable: "Verda",
-  CFBundleIconFile: "verda.icns",
+  CFBundleExecutable: "Orbly",
+  CFBundleIconFile: "orbly.icns",
   CFBundleVersion: version,
   CFBundleShortVersionString: version,
   LSApplicationCategoryType: "public.app-category.developer-tools",
@@ -175,14 +175,14 @@ try {
 }
 await rename(
   path.join(appPath, "Contents/MacOS/Electron"),
-  path.join(appPath, "Contents/MacOS/Verda")
+  path.join(appPath, "Contents/MacOS/Orbly")
 );
 
 const frameworksDir = path.join(appPath, "Contents/Frameworks");
 for (const name of await readdir(frameworksDir)) {
   if (!name.startsWith("Electron Helper") || !name.endsWith(".app")) continue;
   const oldName = name.slice(0, -4);
-  const newName = oldName.replace("Electron", "Verda");
+  const newName = oldName.replace("Electron", "Orbly");
   const helperDir = path.join(frameworksDir, name);
   const suffix = oldName
     .replace("Electron Helper", "")
@@ -212,7 +212,7 @@ const sha256 = createHash("sha256")
   .update(await readFile(zipPath))
   .digest("hex");
 await writeFile(`${zipPath}.sha256`, `${sha256}  ${zipName}\n`);
-// Only the zip stays: an unpacked Verda.app here would show up next to the installed one.
+// Only the zip stays: an unpacked Orbly.app here would show up next to the installed one.
 await rm(outputDir, { recursive: true, force: true });
 if (extractedElectron) await rm(extractedElectron, { recursive: true, force: true });
 await rmdir(stagingDir).catch(() => {}); // still holds another arch's build in progress

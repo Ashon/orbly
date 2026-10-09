@@ -34,7 +34,7 @@ import { resolveAppPaths } from "./app-paths.js";
 import { SettingsStore } from "./settings.js";
 
 /**
- * Verda desktop app. Runs and manages the bot (Slack Socket Mode) as a child process and shows its status, logs, and run history.
+ * Orbly desktop app. Runs and manages the bot (Slack Socket Mode) as a child process and shows its status, logs, and run history.
  * - The UI (apps/web build) and the query API are served only over the orbly://app protocol, so no external port is opened.
  * - Bot control (start, stop, restart) goes only through the preload IPC.
  * - Closing the window hides it to the tray and the bot keeps running. Quitting the app lets the bot finish active requests and then stops it.
@@ -44,7 +44,7 @@ warnOnce(applyLegacyEnv(process.env), (message) =>
   console.warn(`[orbly-desktop] ${message}`)
 );
 const distDir = path.dirname(fileURLToPath(import.meta.url));
-/** Dev runs use the repository build output; the packaged app (Verda.app) uses the bundled files inside the app. */
+/** Dev runs use the repository build output; the packaged app (Orbly.app) uses the bundled files inside the app. */
 const paths = resolveAppPaths(distDir, app.isPackaged);
 const webDistDir = paths.webDist;
 /** The settings file lives outside the repository. (ORBLY_HOME, default ~/.orbly) */
@@ -62,10 +62,10 @@ const botSetting = process.env.ORBLY_DESKTOP_BOT;
 const manageBot = botSetting === "on" || (botSetting !== "off" && !captureFile);
 
 /**
- * Runs from the repository are "Verda Dev": their own name and user data folder give them their own
- * single-instance lock, so they start next to an installed Verda instead of handing over to it.
+ * Runs from the repository are "Orbly Dev": their own name and user data folder give them their own
+ * single-instance lock, so they start next to an installed Orbly instead of handing over to it.
  */
-const appName = app.isPackaged ? "Verda" : "Verda Dev";
+const appName = app.isPackaged ? "Orbly" : "Orbly Dev";
 /** Dock and window icon: dev runs get the one with the DEV tag. */
 const appIcon = path.join(distDir, app.isPackaged ? "icon.png" : "icon-dev.png");
 app.setName(appName);
@@ -274,7 +274,7 @@ function updateTray(): void {
   lastTrayKey = key;
   tray.setToolTip(`${appName} - Bot: ${summary.label}`);
   // Shows the number of active requests next to the menu bar icon. (macOS)
-  // Dev runs say so next to the tray icon, since the installed Verda may sit beside it.
+  // Dev runs say so next to the tray icon, since the installed Orbly may sit beside it.
   tray.setTitle(
     [app.isPackaged ? "" : "Dev", summary.active > 0 ? String(summary.active) : ""]
       .filter(Boolean)

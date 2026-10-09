@@ -77,7 +77,7 @@ const SECTION_INFO: Record<Section, { label: string; help: string; icon: LucideI
   ) as Record<SettingSection, { label: string; help: string; icon: LucideIcon }>),
   general: {
     label: "General",
-    help: "Preferences for this app, and where Verda keeps its settings and run history.",
+    help: "Preferences for this app, and where Orbly keeps its settings and run history.",
     icon: SlidersHorizontal,
   },
 };

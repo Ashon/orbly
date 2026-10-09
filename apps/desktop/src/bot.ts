@@ -203,7 +203,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       cwd: this.options.cwd,
       env,
       stdio: "pipe",
-      serviceName: "Verda bot",
+      serviceName: "Orbly bot",
     });
     this.child = child;
     this.childStartedAt = Date.now();
