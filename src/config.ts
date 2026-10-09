@@ -3,6 +3,7 @@ import { existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
+import { isSecureOrLocalUrl, slackApiBase } from "./messengers/slack/api.js";
 import { defaultHome } from "./settings/legacy.js";
 import { readCodexDefaults } from "./reasoner/codex-config.js";
 import type { DockerSandboxOptions } from "./reasoner/executor.js";
@@ -44,16 +45,17 @@ export const EnvSchema = z.object({
     .string()
     .startsWith("xapp-", "Must be an app token starting with xapp-")
     .optional(),
+  /** Slack's Web API base for your own app. Defaults to slack.com; GovSlack, or a local stand-in for tests */
+  SLACK_API_URL: z
+    .string()
+    .url()
+    .refine(isSecureOrLocalUrl, "Must be an https URL (http only for localhost)")
+    .optional(),
   /** The team hub (README "Team hub"). https, or http only for a hub on this computer */
   HUB_URL: z
     .string()
     .url()
-    .refine(
-      (value) =>
-        /^https:\/\//.test(value) ||
-        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(value),
-      "Must be an https URL (http only for localhost)"
-    )
+    .refine(isSecureOrLocalUrl, "Must be an https URL (http only for localhost)")
     .optional(),
   /** This desktop's token for the hub, set by pairing in Settings > Messengers > Slack */
   HUB_TOKEN: z
@@ -128,6 +130,8 @@ export interface Config {
         kind: "app";
         botToken: string;
         appToken: string;
+        /** Web API base, with a trailing slash */
+        apiUrl: string;
         socket: {
           clientPingTimeoutMs: number;
           serverPingTimeoutMs: number;
@@ -325,6 +329,7 @@ function slackConnection(e: z.infer<typeof EnvSchema>): Config["slack"] {
     kind: "app",
     botToken: e.SLACK_BOT_TOKEN,
     appToken: e.SLACK_APP_TOKEN,
+    apiUrl: slackApiBase(e.SLACK_API_URL),
     socket: {
       clientPingTimeoutMs: e.SOCKET_CLIENT_PING_TIMEOUT_MS,
       serverPingTimeoutMs: e.SOCKET_SERVER_PING_TIMEOUT_MS,

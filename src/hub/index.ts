@@ -1,6 +1,7 @@
 import path from "node:path";
 import { App, SocketModeReceiver } from "@slack/bolt";
 import { consoleSink, createLogger } from "../logger.js";
+import { slackFilesOrigin } from "../messengers/slack/api.js";
 import { slackLogger } from "../messengers/slack/logger.js";
 import { loadHubConfig } from "./config.js";
 import { slackGateway } from "./gateway.js";
@@ -16,14 +17,17 @@ import { DesktopStore } from "./store.js";
 async function main(): Promise<void> {
   const config = loadHubConfig(process.env);
   const log = createLogger(config.logLevel, "hub", [consoleSink]);
+  const clientOptions = { slackApiUrl: config.apiUrl };
   const receiver = new SocketModeReceiver({
     appToken: config.appToken,
     logger: slackLogger(log.child("socket"), config.logLevel),
+    installerOptions: { clientOptions },
   });
   const app = new App({
     token: config.botToken,
     receiver,
     logger: slackLogger(log.child("bolt"), config.logLevel),
+    clientOptions,
   });
   const auth = await app.client.auth.test();
   const team = { id: auth.team_id ?? "", name: auth.team ?? "" };
@@ -31,10 +35,11 @@ async function main(): Promise<void> {
   const hub = new HubServer({
     store: new DesktopStore(path.join(config.dataDir, "desktops.json")),
     pairings: new Pairings(),
-    slack: slackGateway(config.botToken, app.client),
+    slack: slackGateway(config.botToken, app.client, config.apiUrl),
     team,
     allowedUsers: config.allowedUsers,
     publicUrl: config.publicUrl,
+    filesOrigin: slackFilesOrigin(config.apiUrl),
     log,
   });
   app.event("app_mention", async ({ body }) => {

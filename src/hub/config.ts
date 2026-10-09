@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSecureOrLocalUrl, slackApiBase } from "../messengers/slack/api.js";
 import type { LogLevel } from "../logger.js";
 
 const userIds = z
@@ -22,7 +23,14 @@ const HubEnvSchema = z.object({
   SLACK_APP_TOKEN: z
     .string()
     .startsWith("xapp-", "Must be an app token starting with xapp-"),
-  HUB_PORT: z.coerce.number().int().min(1).max(65_535).default(8790),
+  /** Slack's Web API base. Defaults to slack.com; GovSlack, or a local stand-in for tests */
+  SLACK_API_URL: z
+    .string()
+    .url()
+    .refine(isSecureOrLocalUrl, "Must be an https URL (http only for localhost)")
+    .optional(),
+  /** 0 picks a free port (the log says which) */
+  HUB_PORT: z.coerce.number().int().min(0).max(65_535).default(8790),
   HUB_HOST: z.string().default("0.0.0.0"),
   /** Paired desktops (desktops.json). A volume in the container */
   HUB_DATA_DIR: z.string().default("/data"),
@@ -36,6 +44,8 @@ const HubEnvSchema = z.object({
 export interface HubConfig {
   botToken: string;
   appToken: string;
+  /** Web API base, with a trailing slash */
+  apiUrl: string;
   port: number;
   host: string;
   dataDir: string;
@@ -58,6 +68,7 @@ export function loadHubConfig(env: NodeJS.ProcessEnv): HubConfig {
   const e = parsed.data;
   return {
     botToken: e.SLACK_BOT_TOKEN,
+    apiUrl: slackApiBase(e.SLACK_API_URL),
     appToken: e.SLACK_APP_TOKEN,
     port: e.HUB_PORT,
     host: e.HUB_HOST,

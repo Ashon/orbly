@@ -39,6 +39,8 @@ function socketModeReceiver(
   const receiver = new SocketModeReceiver({
     appToken: slack.appToken,
     logger: slackLogger(socketLog, level),
+    // apps.connections.open, which hands out the WebSocket URL, goes to the same Web API as everything else.
+    installerOptions: { clientOptions: { slackApiUrl: slack.apiUrl } },
     clientPingTimeout: slack.socket.clientPingTimeoutMs,
     serverPingTimeout: slack.socket.serverPingTimeoutMs,
     pingPongLoggingEnabled: slack.socket.pingPongLogging,
@@ -106,9 +108,10 @@ export async function connectSlack(
     token: slack.kind === "hub" ? slack.hubToken : slack.botToken,
     receiver,
     logger: slackLogger(log.child("bolt"), config.logLevel),
-    ...(slack.kind === "hub"
-      ? { clientOptions: { slackApiUrl: `${slack.hubUrl}${HUB_PATHS.api}` } }
-      : {}),
+    clientOptions: {
+      slackApiUrl:
+        slack.kind === "hub" ? `${slack.hubUrl}${HUB_PATHS.api}` : slack.apiUrl,
+    },
   });
   const auth = await app.client.auth.test();
   const botUserId = auth.user_id;

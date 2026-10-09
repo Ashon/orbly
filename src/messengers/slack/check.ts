@@ -1,3 +1,5 @@
+import { slackApiBase } from "./api.js";
+
 /** Must match oauth_config.scopes.bot in slack-app-manifest.yaml. (tests/slack-check.test.ts) */
 export const REQUIRED_BOT_SCOPES = [
   "app_mentions:read",
@@ -27,11 +29,12 @@ interface SlackResponse {
 
 async function call(
   fetchImpl: typeof fetch,
+  base: string,
   method: string,
   token: string,
   params: Record<string, string> = {}
 ): Promise<{ body: SlackResponse; headers: Headers }> {
-  const res = await fetchImpl(`https://slack.com/api/${method}`, {
+  const res = await fetchImpl(`${base}${method}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -50,11 +53,12 @@ async function call(
  * apps.connections.open only obtains a connection URL and does not connect. (the URL is discarded)
  */
 export async function checkSlackTokens(
-  tokens: { botToken?: string; appToken?: string },
+  tokens: { botToken?: string; appToken?: string; apiUrl?: string },
   fetchImpl: typeof fetch = fetch
 ): Promise<SlackCheckItem[]> {
   const items: SlackCheckItem[] = [];
   const { botToken, appToken } = tokens;
+  const base = slackApiBase(tokens.apiUrl);
   if (!botToken || !appToken) {
     return [
       {
@@ -68,7 +72,7 @@ export async function checkSlackTokens(
 
   let botId: string | undefined;
   try {
-    const { body, headers } = await call(fetchImpl, "auth.test", botToken);
+    const { body, headers } = await call(fetchImpl, base, "auth.test", botToken);
     if (!body.ok) {
       items.push({ label: "Bot token", ok: false, detail: body.error });
     } else {
@@ -96,7 +100,7 @@ export async function checkSlackTokens(
   const appIdFromToken = appToken.split("-")[2];
   if (botId) {
     try {
-      const { body } = await call(fetchImpl, "bots.info", botToken, { bot: botId });
+      const { body } = await call(fetchImpl, base, "bots.info", botToken, { bot: botId });
       const appId = (body.bot as { app_id?: string } | undefined)?.app_id;
       items.push({
         label: "Same app",
@@ -109,7 +113,7 @@ export async function checkSlackTokens(
   }
 
   try {
-    const { body } = await call(fetchImpl, "apps.connections.open", appToken);
+    const { body } = await call(fetchImpl, base, "apps.connections.open", appToken);
     items.push({
       label: "Socket Mode",
       ok: body.ok,

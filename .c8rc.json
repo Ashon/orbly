@@ -1,0 +1,32 @@
+{
+  "include": [
+    "src/index.ts",
+    "src/config.ts",
+    "src/logger.ts",
+    "src/history/**/*.ts",
+    "src/hub/**/*.ts",
+    "src/mention/**/*.ts",
+    "src/messengers/**/*.ts",
+    "src/reasoner/**/*.ts",
+    "src/render/**/*.ts",
+    "src/runtime/**/*.ts",
+    "src/settings/legacy.ts",
+    "src/settings/load-env.ts"
+  ],
+  "exclude": [
+    "src/history/reader.ts",
+    "src/hub/client.ts",
+    "src/messengers/slack/check.ts",
+    "src/runtime/logs.ts",
+    "src/runtime/types.ts"
+  ],
+  "all": true,
+  "reporter": [
+    "text",
+    "html",
+    "lcov",
+    "json-summary"
+  ],
+  "reports-dir": "coverage/e2e",
+  "temp-directory": "coverage/e2e/.v8"
+}

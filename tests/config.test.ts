@@ -101,6 +101,25 @@ describe("loadConfig", () => {
   });
 });
 
+describe("Slack API URL", () => {
+  it("defaults to slack.com and accepts https or a server on this computer", () => {
+    const app = (extra: Record<string, string> = {}) => {
+      const slack = loadConfig({ ...env, ...extra }).slack;
+      return slack.kind === "app" ? slack.apiUrl : undefined;
+    };
+    expect(app()).toBe("https://slack.com/api/");
+    expect(app({ SLACK_API_URL: "https://slack-gov.com/api" })).toBe(
+      "https://slack-gov.com/api/"
+    );
+    expect(app({ SLACK_API_URL: "http://127.0.0.1:4100/api/" })).toBe(
+      "http://127.0.0.1:4100/api/"
+    );
+    expect(() =>
+      loadConfig({ ...env, SLACK_API_URL: "http://slack.example/api/" })
+    ).toThrow(/SLACK_API_URL/);
+  });
+});
+
 describe("checkConfig", () => {
   it("marks settings that are only missing, and still checks the rules behind them", () => {
     expect(

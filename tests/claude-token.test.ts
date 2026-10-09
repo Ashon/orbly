@@ -25,7 +25,7 @@ describe("claude setup-token for the sandbox", () => {
       toolPath: () => process.env.PATH ?? "",
       save,
       platform: "darwin",
-      command: ["/bin/sh", ["-c", `printf 'token:\\n${TOKEN}\\n'; sleep 30`]],
+      command: ["/bin/sh", ["-c", `printf 'token:\\n${TOKEN}\\n'; exec sleep 30`]],
     });
     expect(await setup.run()).toEqual({ ok: true });
     expect(save).toHaveBeenCalledWith(TOKEN);
@@ -49,7 +49,10 @@ describe("claude setup-token for the sandbox", () => {
       toolPath: () => process.env.PATH ?? "",
       save,
       platform: "darwin",
-      command: ["/bin/sh", ["-c", "printf 'Opening browser to sign in\\n'; sleep 30"]],
+      command: [
+        "/bin/sh",
+        ["-c", "printf 'Opening browser to sign in\\n'; exec sleep 30"],
+      ],
     });
     const run = waiting.run();
     await vi.waitFor(() => expect(waiting.running).toBe(true));

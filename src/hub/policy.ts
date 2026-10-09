@@ -46,7 +46,11 @@ export class Grants {
   /** File ids from files.getUploadURLExternal that the desktop may complete */
   private uploads = new Set<string>();
 
-  constructor(private readonly now: () => number = Date.now) {}
+  constructor(
+    private readonly now: () => number = Date.now,
+    /** Where Slack serves files (slackFilesOrigin); downloads elsewhere are refused */
+    private readonly filesOrigin = SLACK_FILES_ORIGIN
+  ) {}
 
   /** Grants the thread of a mention routed to this desktop (or extends the grant it already has). */
   add(event: MentionEvent): Grant {
@@ -86,7 +90,7 @@ export class Grants {
 
   /** Whether the desktop may download this file (url_private or url_private_download) */
   canDownload(url: string): boolean {
-    const id = fileIdOf(url);
+    const id = fileIdOf(url, this.filesOrigin);
     return Boolean(id && this.live().some((g) => g.files.has(id)));
   }
 
@@ -192,12 +196,16 @@ export class Grants {
   }
 }
 
+const SLACK_FILES_ORIGIN = "https://files.slack.com";
+
 /** The file id in a Slack file URL: https://files.slack.com/files-pri/T123-F456/download/name.png -> F456 */
-export function fileIdOf(url: string): string | undefined {
+export function fileIdOf(
+  url: string,
+  filesOrigin = SLACK_FILES_ORIGIN
+): string | undefined {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== "https:" || parsed.hostname !== "files.slack.com")
-      return undefined;
+    if (parsed.origin !== filesOrigin) return undefined;
     return /^\/files-pri\/[A-Z0-9]+-([A-Z0-9]+)\//.exec(parsed.pathname)?.[1];
   } catch {
     return undefined;

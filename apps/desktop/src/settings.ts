@@ -101,6 +101,7 @@ export class SettingsStore {
     return checkSlackTokens({
       botToken: env.SLACK_BOT_TOKEN,
       appToken: env.SLACK_APP_TOKEN,
+      apiUrl: env.SLACK_API_URL,
     });
   }
 

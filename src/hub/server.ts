@@ -53,6 +53,8 @@ export interface HubOptions {
   allowedUsers?: readonly string[];
   /** The URL desktops reach the hub at, for rewritten upload URLs. Else taken from the request (X-Forwarded-*). */
   publicUrl?: string;
+  /** Where Slack serves files (slackFilesOrigin of SLACK_API_URL). Default https://files.slack.com */
+  filesOrigin?: string;
   log: Logger;
 }
 
@@ -167,7 +169,11 @@ export class HubServer {
 
   private grantsOf(desktopId: string): Grants {
     let grants = this.grants.get(desktopId);
-    if (!grants) this.grants.set(desktopId, (grants = new Grants()));
+    if (!grants)
+      this.grants.set(
+        desktopId,
+        (grants = new Grants(Date.now, this.options.filesOrigin))
+      );
     return grants;
   }
 

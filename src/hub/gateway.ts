@@ -1,16 +1,18 @@
 import type { WebClient } from "@slack/web-api";
+import { DEFAULT_SLACK_API_URL } from "../messengers/slack/api.js";
 import type { SlackGateway } from "./server.js";
 
 /** The hub's Slack calls, made with the bot token. The token never leaves this process. */
 export function slackGateway(
   botToken: string,
   client: WebClient,
+  apiUrl = DEFAULT_SLACK_API_URL,
   fetchImpl: typeof fetch = fetch
 ): SlackGateway {
   const auth = { Authorization: `Bearer ${botToken}` };
   return {
     async call(method, body, contentType) {
-      const res = await fetchImpl(`https://slack.com/api/${method}`, {
+      const res = await fetchImpl(`${apiUrl}${method}`, {
         method: "POST",
         headers: { ...auth, "Content-Type": contentType },
         body,

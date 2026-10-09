@@ -4,6 +4,9 @@
 
 # Orbly
 
+[![ci](https://github.com/Ashon/orbly/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ashon/orbly/actions/workflows/ci.yml)
+[![e2e coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FAshon%2Forbly%2Fbadges%2Fe2e-coverage.json)](https://github.com/Ashon/orbly/actions/workflows/ci.yml)
+
 Your orbiting assistant. (Formerly Verda: see [Migrating from Verda](#migrating-from-verda))
 
 A Slack bot that, when mentioned in a public channel, collects the thread context, hands the
@@ -250,7 +253,8 @@ Running the hub (on a server of its own, with Docker):
 | `SLACK_APP_TOKEN`, `SLACK_BOT_TOKEN` | The Slack app's tokens (required) |
 | `HUB_PUBLIC_URL` | The HTTPS URL members use; upload URLs handed to desktops are built from it |
 | `HUB_ALLOWED_USERS` | Comma-separated Slack user IDs who may pair and use the hub. Empty: everyone |
-| `HUB_PORT`, `HUB_HOST`, `HUB_DATA_DIR` | Listen port (8790), address (0.0.0.0) and data folder (`/data`) |
+| `HUB_PORT`, `HUB_HOST`, `HUB_DATA_DIR` | Listen port (8790, 0 for any free one), address (0.0.0.0) and data folder (`/data`) |
+| `SLACK_API_URL` | Slack's Web API (default `https://slack.com/api/`): `https://slack-gov.com/api/` for GovSlack. The hub fetches files only from that Slack's file host |
 | `LOG_LEVEL` | debug, info (default), warn, error |
 
 ## Installation
@@ -424,6 +428,8 @@ Settings:
 - A field also set in the app's environment variables takes precedence over `.env`, so the UI marks it.
 - Socket Mode keepalive values: `SOCKET_CLIENT_PING_TIMEOUT_MS` (default 5000), `SOCKET_SERVER_PING_TIMEOUT_MS` (default 30000),
   `SOCKET_PING_PONG_LOG` (default off, visible with `LOG_LEVEL=debug`)
+- `SLACK_API_URL` (not on the screen): your own app's Slack Web API, default `https://slack.com/api/`; `https://slack-gov.com/api/`
+  for GovSlack. http is accepted only for this computer, which is how the end-to-end tests point the bot at a fake Slack.
 - Settings are read and written only over the app's internal IPC, like bot control. The query API and the browser dev server cannot change settings.
 
 Sandbox (the "Sandbox" and "Ops tools" sections of Settings):
@@ -525,9 +531,45 @@ To migrate by hand:
 ## Development
 
 ```sh
-pnpm check   # typecheck (bot, UI, app) + lint + format:check + test
+pnpm check          # typecheck (bot, UI, app) + lint + format:check + test
 pnpm test
+pnpm test:e2e       # end-to-end: the bot and the hub against a fake Slack and a fake claude (about 15 s)
+pnpm test:e2e:coverage  # the same, with the bot's and the hub's coverage (coverage/e2e/index.html)
+pnpm test:e2e:app   # end-to-end through the desktop app's window (builds first; opens a window)
 ```
+
+### End-to-end tests
+
+`tests/e2e` runs Orbly the way it runs for real, on this computer and without network access: the bot (and the
+team hub) as their own processes, a Slack workspace stand-in they reach through `SLACK_API_URL`, and a stand-in
+for the claude CLI. Each test gets its own workspace, data folder and `HOME`, so a real Orbly running on the same
+Mac is never touched.
+
+| Piece | What it is |
+| --- | --- |
+| `support/fake-slack.ts` | Web API, Socket Mode (events as acked envelopes), file downloads (Slack's login page without access) and uploads, with channels, users and threads behind them |
+| `support/fake-claude.mjs` | Answers by rules matched on the request: an answer, a delay, a failure, tool steps. Records each call's prompt, system prompt and images |
+| `support/world.ts` | One test's workspace (#ops public, #secret private, alice, bob), the fake claude's rules, and the bot's environment, status and run history |
+| `support/processes.ts` | The bot and the hub as processes (from source with tsx; `E2E_BOT=bundle` runs the bot's bundle after `pnpm bundle`) |
+
+| File | Cases |
+| --- | --- |
+| `bot.e2e.ts` | Answers in a thread and outside one (context, mrkdwn, run history, permalink), long answers, tool steps, the allowlist, private channels, failures, attachments (text, image, files.info lookups, no access), redelivered events, finishing on SIGTERM, resuming after a crash, a rejected token |
+| `hub.e2e.ts` | Pairing with a code sent in Slack, a member's mention answered on their desktop through the hub (files included, no Slack token on the desktop), a member without a desktop, a disconnected desktop |
+| `app.e2e.ts` | The desktop app (Playwright for Electron): first run, Slack tokens saved from Settings, the connection check, starting the bot, the answered mention in the run history |
+
+`E2E_VERBOSE=1` prints the processes' logs as they run. A failed app test leaves a screenshot in `test-results/`.
+
+Coverage (`pnpm test:e2e:coverage`) is measured with c8 in the bot and hub processes themselves (each writes its V8
+coverage, mapped back to the TypeScript through tsx's source maps), over the code those processes run: the bot, the
+hub, the messengers, the mention pipeline, the reasoners, history and runtime (`.c8rc.json`). The ops-broker, the
+sandbox jobs and the desktop app's own code (the history reader, the connection check, hub pairing) are left out,
+since this suite does not run them in those processes; a process killed on purpose (the crash test) leaves no coverage. The report is in `coverage/e2e/` (`index.html`, `lcov.info`).
+
+CI (`.github/workflows/ci.yml`) runs `pnpm check` and `pnpm test:e2e:coverage` on every push to main and pull
+request, puts the coverage per folder in the job summary, and keeps the report as the `e2e-coverage` artifact. On
+main it also updates the coverage badge above (the `badges` branch). The app test runs on a macOS runner when the
+workflow is started by hand.
 
 ### Adding a messenger
 

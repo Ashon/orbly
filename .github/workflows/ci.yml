@@ -1,0 +1,101 @@
+name: ci
+
+# Every push to main and every pull request: the checks, then the end-to-end tests (tests/e2e), which run the bot
+# and the team hub as real processes against a fake Slack and a fake claude on the runner, with their coverage
+# (job summary and the e2e-coverage artifact). On main, the coverage badge in the README is updated from it. The
+# desktop app's UI test opens a window, so it runs on a macOS runner when started by hand (Actions > ci > Run workflow).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Read-only by default; only the badge job writes, to the badges branch. Every checkout drops the token it would
+# leave in .git/config.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: typecheck, lint, test, e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: install pnpm
+        # The exact version package.json pins.
+        run: npm install --global "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")" # zizmor: ignore[adhoc-packages]
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test:e2e:coverage
+      - name: coverage summary
+        if: always()
+        run: test -f coverage/e2e/coverage-summary.json && node scripts/coverage-badge.mjs >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: e2e-coverage
+          # The HTML report (index.html), lcov.info, and the badge
+          path: |
+            coverage/e2e/
+            !coverage/e2e/.v8/
+          if-no-files-found: ignore
+
+  # The README's coverage badge reads badges/e2e-coverage.json through shields.io. The branch holds only that
+  # file, in a single commit replaced on each push to main.
+  badge:
+    name: update the coverage badge
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: e2e-coverage
+          path: coverage
+      - name: push badges/e2e-coverage.json
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir badges && cp coverage/badge.json badges/e2e-coverage.json && cd badges
+          git init -q -b badges
+          git add e2e-coverage.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "e2e coverage for ${GITHUB_SHA::7}"
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges
+
+  app-e2e:
+    name: desktop app e2e
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: install pnpm
+        run: npm install --global "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")" # zizmor: ignore[adhoc-packages]
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:e2e:app
+      # A failed step leaves a screenshot of the window in test-results/.
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: app-e2e-screenshots
+          path: test-results/
+          if-no-files-found: ignore

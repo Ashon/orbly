@@ -22,6 +22,8 @@ function parentPort():
 
 /** Holds the logger once created, so startup failures also reach the log file. */
 let startupLog: Logger | undefined;
+/** Set once the bot receives mentions; failures before that are startup failures */
+let running = false;
 
 async function main(): Promise<void> {
   // The settings file and the names from before the rename (VERDA_*, ~/.verda); warnings go to the log below.
@@ -138,6 +140,7 @@ async function main(): Promise<void> {
   });
   await connection.start((mention) => responder.handle(mention));
   status.update({ state: "running" });
+  running = true;
   if (executor.kind === "docker") {
     sandboxHealth.start(30_000);
     parentPort()?.on("message", (event) => {
@@ -174,9 +177,16 @@ async function main(): Promise<void> {
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
 }
 
-main().catch((err: unknown) => {
+const fail = (err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
-  if (startupLog) startupLog.error(`Startup failed: ${message}`);
-  else console.error(message);
+  const text = running
+    ? `Stopped on an unhandled error: ${message}`
+    : `Startup failed: ${message}`;
+  if (startupLog) startupLog.error(text);
+  else console.error(text);
   process.exit(1);
-});
+};
+// Bolt checks the token on its own as well, and a rejected token fails that check outside main(). It should end the
+// bot with a message in the log (which the desktop app reads for "Setup needed"), not a stack dump.
+process.on("unhandledRejection", fail);
+main().catch(fail);

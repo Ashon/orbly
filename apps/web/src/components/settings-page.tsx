@@ -1649,7 +1649,10 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-4 px-4 py-3 @max-[36rem]/content:flex-col @max-[36rem]/content:gap-2">
+    <div
+      data-setting={sub}
+      className="flex items-start gap-4 px-4 py-3 @max-[36rem]/content:flex-col @max-[36rem]/content:gap-2"
+    >
       <div className="min-w-0 flex-1 @max-[36rem]/content:w-full">
         <div className="text-sm font-medium">{label}</div>
         {sub && (

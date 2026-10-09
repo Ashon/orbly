@@ -71,8 +71,12 @@ const appName = app.isPackaged ? "Orbly" : "Orbly Dev";
 /** Dock and window icon: dev runs get the one with the DEV tag. */
 const appIcon = path.join(distDir, app.isPackaged ? "icon.png" : "icon-dev.png");
 app.setName(appName);
-// Screen captures use a separate user data folder so they do not hit the running app's single-instance lock.
-if (captureFile) app.setPath("userData", path.join(tmpdir(), "orbly-desktop-capture"));
+// Screen captures and end-to-end tests (ORBLY_DESKTOP_USER_DATA) use a user data folder of their own, so they do
+// not hit the running app's single-instance lock.
+const userData =
+  process.env.ORBLY_DESKTOP_USER_DATA ||
+  (captureFile ? path.join(tmpdir(), "orbly-desktop-capture") : undefined);
+if (userData) app.setPath("userData", userData);
 else if (!app.isPackaged)
   app.setPath("userData", path.join(app.getPath("appData"), appName));
 // UI theme: system (default), light, dark

@@ -10,6 +10,7 @@ import { checkHub, HubClient, newHubToken } from "../src/hub/client.js";
 import { createLogger } from "../src/logger.js";
 import { normalizeCode, Pairings, PAIRING_TTL_MS } from "../src/hub/pairing.js";
 import { fileIdOf, Grants } from "../src/hub/policy.js";
+import { slackFilesOrigin } from "../src/messengers/slack/api.js";
 import { HUB_CLOSE, type HubMessage } from "../src/hub/protocol.js";
 import { HubServer, type SlackGateway } from "../src/hub/server.js";
 import { DesktopStore } from "../src/hub/store.js";
@@ -157,6 +158,22 @@ describe("hub policy", () => {
       fileIdOf("https://evil.example/files-pri/T1-F0AB/download/x.pdf")
     ).toBeUndefined();
     expect(fileIdOf("not a url")).toBeUndefined();
+  });
+
+  it("downloads files only from where the configured Slack serves them", () => {
+    const local = "http://127.0.0.1:4100/files-pri/T1-F0AB/download/x.pdf";
+    expect(fileIdOf(local)).toBeUndefined();
+    expect(fileIdOf(local, slackFilesOrigin("http://127.0.0.1:4100/api/"))).toBe("F0AB");
+    expect(slackFilesOrigin()).toBe("https://files.slack.com");
+    expect(slackFilesOrigin("https://slack-gov.com/api/")).toBe(
+      "https://files.slack-gov.com"
+    );
+    const grants = new Grants(Date.now, slackFilesOrigin("http://127.0.0.1:4100/api/"));
+    grants.add({ channel: "C1", ts: "1.0", user: "U1", files: [{ id: "F0AB" }] });
+    expect(grants.canDownload(local)).toBe(true);
+    expect(
+      grants.canDownload("https://files.slack.com/files-pri/T1-F0AB/download/x.pdf")
+    ).toBe(false);
   });
 });
 
