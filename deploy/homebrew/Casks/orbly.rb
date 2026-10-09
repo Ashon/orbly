@@ -9,10 +9,10 @@ cask "orbly" do
   sha256 arm:   "REPLACE_SHA256_ARM64",
          intel: "REPLACE_SHA256_X64"
 
-  url "https://github.com/Ashon/verda/releases/download/v#{version}/Orbly-v#{version}-macos-#{arch}.app.zip"
+  url "https://github.com/Ashon/orbly/releases/download/v#{version}/Orbly-v#{version}-macos-#{arch}.app.zip"
   name "Orbly"
   desc "Slack bot that answers mentions with local claude or codex CLIs in a sandbox"
-  homepage "https://github.com/Ashon/verda"
+  homepage "https://github.com/Ashon/orbly"
 
   # Electron 38 and later need macOS 12.
   depends_on macos: :monterey

@@ -479,8 +479,9 @@ Other:
 
 ## Migrating from Verda
 
-The project was renamed from Verda to Orbly. An existing Verda setup keeps working, with warnings in the bot log and the
-terminal:
+The project was renamed from Verda to Orbly, and the repository moved to [Ashon/orbly](https://github.com/Ashon/orbly)
+(old links redirect; for a clone, `git remote set-url origin git@github.com:Ashon/orbly.git`). The Homebrew cask is now
+`orbly`. An existing Verda setup keeps working, with warnings in the bot log and the terminal:
 
 - `VERDA_*` environment variables (in the environment or in `.env`) are read as their `ORBLY_*` names when those are not set.
 - When `~/.orbly` does not exist and `~/.verda` does, Orbly uses `~/.verda`. User data is never moved or copied.
@@ -499,8 +500,9 @@ To migrate by hand:
    explicit `SANDBOX_IMAGE=verda-reasoner:latest`, `SANDBOX_NETWORK=verda-sandbox` or `RENDERER_IMAGE=verda-renderer:latest`
    lines so the new `orbly-*` defaults apply, then rebuild the images (Settings > Sandbox, or `pnpm sandbox:build` and
    `pnpm sandbox:up`; `pnpm sandbox:ops-up` for the broker).
-4. With Homebrew, replace the cask: `brew uninstall --cask verda && brew install --cask orbly`. Otherwise remove
-   `/Applications/Verda.app` and install Orbly.app.
+4. With Homebrew, `brew update && brew upgrade` moves the `verda` cask to `orbly` (the tap renames it) and replaces
+   Verda.app with Orbly.app. If brew keeps listing `verda`, run `brew uninstall --cask verda && brew install --cask orbly`.
+   Without Homebrew, remove `/Applications/Verda.app` and install Orbly.app.
 5. Start Orbly. Old `verda-*` images, the `verda-sandbox` containers and network can then be removed
    (`docker compose -p verda-sandbox down`, `docker image rm verda-reasoner verda-renderer verda-egress-proxy verda-ops-broker`).
 

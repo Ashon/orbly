@@ -9,6 +9,8 @@ repository, which it shares with supragnosis. The tap holds rendered output: eve
   Electron's Node, so nothing else needs installing (and no bottle or Xcode check is involved). The
   app is tray-resident, so the cask's `uninstall quit:` quits it around an upgrade (the bot finishes
   its requests first) and brew reopens it afterwards.
+- The cask was `verda` until v0.1.2. Since v0.2.0 the tap has `Casks/orbly.rb` and a `cask_renames.json`
+  (`{"verda": "orbly"}`), so `brew upgrade` moves existing installs to `orbly`; `Casks/verda.rb` is gone.
 - `update-tap.sh` - after a release, renders the cask into a tap checkout: copies the template, fills
   in the version and both sha256 sums from the release's `.sha256` sidecar files, and fails if a
   placeholder or the template's own version survives. Every sum is fetched before anything is

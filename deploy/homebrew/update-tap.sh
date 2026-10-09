@@ -11,7 +11,7 @@ TAP_DIR="${2:-.}"
 VERSION="${TAG#v}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # RELEASE_BASE overrides where the sidecars come from (a local copy when testing the script).
-BASE="${RELEASE_BASE:-https://github.com/Ashon/verda/releases/download/${TAG}}"
+BASE="${RELEASE_BASE:-https://github.com/Ashon/orbly/releases/download/${TAG}}"
 
 sha_of() { # asset name -> sha256 (the release publishes <asset>.sha256 sidecars)
   local sum
