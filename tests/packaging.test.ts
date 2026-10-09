@@ -10,8 +10,8 @@ import { jobEnv, planJob } from "../src/tools/sandbox-job.js";
 const root = mkdtempSync(path.join(tmpdir(), "verda-packaging-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
-describe("앱 경로", () => {
-  it("개발 실행은 저장소의 빌드 결과를, 패키지 앱은 앱 안의 묶음을 쓴다", () => {
+describe("app paths", () => {
+  it("a dev run uses the repository build outputs, the packaged app its bundled copies", () => {
     expect(resolveAppPaths("/repo/apps/desktop/dist", false)).toEqual({
       packaged: false,
       webDist: "/repo/apps/web/dist",
@@ -31,11 +31,11 @@ describe("앱 경로", () => {
   });
 });
 
-describe("샌드박스 작업", () => {
+describe("sandbox jobs", () => {
   const ctx = { sandboxDir: "/app/sandbox", envFile: "/home/me/.verda/.env" };
   const compose = ["compose", "-f", "/app/sandbox/compose.yaml"];
 
-  it("작업마다 같은 compose 프로젝트로 정해진 단계를 밟는다", () => {
+  it("each job runs its fixed steps against the same compose project", () => {
     expect(planJob("images", ctx)).toEqual([
       { kind: "compose", args: [...compose, "--profile", "build", "build"] },
     ]);
@@ -68,14 +68,14 @@ describe("샌드박스 작업", () => {
         "ops-broker",
       ],
     });
-    // 설정 파일이 없으면 --env-file 을 넘기지 않는다.
+    // Without a config file, --env-file is not passed.
     expect(planJob("broker", { sandboxDir: "/app/sandbox" }).at(-1)).toMatchObject({
       args: expect.not.arrayContaining(["--env-file"]),
     });
     expect(planJob("kubeconfig", ctx)).toEqual([{ kind: "kubeconfig" }]);
   });
 
-  it("설정 파일 위에 환경 변수를 덮고, compose 가 볼 VERDA_HOME 을 펼친다", () => {
+  it("layers the environment over the config file and expands VERDA_HOME for compose", () => {
     const envFile = path.join(root, ".env");
     writeFileSync(envFile, "OPS_SSH_USER=from-file\nOPS_FS_ROOT=/from/file\n");
     const env = jobEnv({ OPS_SSH_USER: "from-env", HOME: "/home/me" }, envFile);
@@ -86,7 +86,7 @@ describe("샌드박스 작업", () => {
     });
   });
 
-  it("허용 도메인 목록은 VERDA_HOME 에 두고, 없을 때만 기본 목록으로 만든다", () => {
+  it("keeps the allowlist in VERDA_HOME and seeds it from the default only when missing", () => {
     const template = path.join(root, "allowed-domains.txt");
     writeFileSync(template, "api.anthropic.com\n");
     const file = allowlistPath({ VERDA_HOME: path.join(root, "home") });
@@ -96,5 +96,31 @@ describe("샌드박스 작업", () => {
     writeFileSync(file, "edited.example.com\n");
     ensureAllowlistFile(file, template);
     expect(readFileSync(file, "utf8")).toBe("edited.example.com\n");
+  });
+});
+
+describe("release", () => {
+  const version = (file: string) =>
+    (
+      JSON.parse(readFileSync(path.join(import.meta.dirname, "..", file), "utf8")) as {
+        version: string;
+      }
+    ).version;
+
+  it("the packages share one version (the release workflow holds it equal to the tag)", () => {
+    const shared = version("package.json");
+    expect(version("apps/desktop/package.json")).toBe(shared);
+    expect(version("apps/web/package.json")).toBe(shared);
+  });
+
+  it("the cask template keeps the placeholders update-tap.sh fills in", () => {
+    const cask = readFileSync(
+      path.join(import.meta.dirname, "../deploy/homebrew/Casks/verda.rb"),
+      "utf8"
+    );
+    expect(cask).toMatch(/^ {2}version "[^"]+"$/m);
+    expect(cask).toContain("REPLACE_SHA256_ARM64");
+    expect(cask).toContain("REPLACE_SHA256_X64");
+    expect(cask).toContain("Verda-v#{version}-macos-#{arch}.app.zip");
   });
 });

@@ -2,7 +2,7 @@
   "name": "verda",
   "version": "0.1.0",
   "private": true,
-  "description": "Verda: 공개 채널 멘션에 로컬 claude/codex CLI 로 답하는 Slack 운영 봇 (Socket Mode)",
+  "description": "Verda: a Slack ops bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)",
   "type": "module",
   "packageManager": "pnpm@11.4.0",
   "engines": {

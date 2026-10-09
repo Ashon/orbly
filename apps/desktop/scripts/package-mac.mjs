@@ -1,57 +1,86 @@
 import { execFileSync } from "node:child_process";
+import { createHash, randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import {
-  cp,
-  mkdir,
-  readFile,
-  readdir,
-  rename,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
 /**
- * 설치해서 쓰는 macOS 앱(Verda.app)과 설치 파일(.dmg, .zip)을 만든다. (pnpm package:mac)
- * 앱 안(Contents/Resources/app)에 화면, 봇 묶음, 샌드박스 작업 묶음, sandbox 파일을 넣어서 저장소와 pnpm 없이 동작한다.
- * 설정과 기록은 앱 밖(VERDA_HOME, 기본 ~/.verda)에 있다.
- * 서명은 이 컴퓨터용 ad-hoc 이다. 다른 사람에게 배포하려면 Developer ID 서명과 공증이 필요하다.
+ * Builds the installable macOS app (Verda.app) and its release zip. (pnpm package:mac)
+ *
+ *   node apps/desktop/scripts/package-mac.mjs [--arch arm64|x64]
+ *
+ * The app carries the UI, the bot bundle, the sandbox job bundle and the sandbox/ files in
+ * Contents/Resources/app, so it runs without the repository, Node or pnpm. Config and run history
+ * stay outside the app (VERDA_HOME, default ~/.verda).
+ *
+ * Output: release/mac-<arch>/Verda.app and release/Verda-v<version>-macos-<arch>.app.zip with a
+ * .sha256 sidecar (the Homebrew cask's source, deploy/homebrew). The target arch defaults to this
+ * Mac's; the other arch's Electron is downloaded, since the bundles themselves are plain JS.
+ *
+ * The app gets an ad-hoc signature, good for this Mac (pnpm install:mac).
  */
 if (process.platform !== "darwin")
-  throw new Error("macOS 패키지는 Mac 에서만 만들 수 있습니다.");
+  throw new Error("The macOS app can only be built on a Mac.");
+
+const { values: flags } = parseArgs({
+  options: { arch: { type: "string", default: process.arch } },
+});
+const arch = flags.arch;
+if (arch !== "arm64" && arch !== "x64") throw new Error(`Unsupported arch: ${arch}`);
 
 const desktopDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const root = path.resolve(desktopDir, "../..");
 const require = createRequire(path.join(desktopDir, "package.json"));
-const electronApp = path.resolve(require("electron"), "../../..");
 const { version } = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const releaseDir = path.join(root, "release");
-const outputDir = path.join(releaseDir, `mac-${process.arch}`);
+const outputDir = path.join(releaseDir, `mac-${arch}`);
 const appPath = path.join(outputDir, "Verda.app");
 const resourcesDir = path.join(appPath, "Contents/Resources");
 const appDir = path.join(resourcesDir, "app");
-const stem = `Verda-${version}-mac-${process.arch}`;
+const zipName = `Verda-v${version}-macos-${arch}.app.zip`;
 const bundleId = "io.github.ashon.verda";
+const entitlements = path.join(desktopDir, "scripts/entitlements.plist");
 
-const run = (command, args) => execFileSync(command, args, { stdio: "inherit" });
+const run = (command, args, options = {}) =>
+  execFileSync(command, args, { stdio: "inherit", ...options });
 const plistSet = (file, values) => {
   for (const [key, value] of Object.entries(values)) {
-    // 미리 만든 Helper 번들에는 없는 키도 있어서 지우고 다시 넣는다.
+    // Some prebuilt helper bundles lack a key, so delete and add rather than set.
     try {
       execFileSync("/usr/libexec/PlistBuddy", ["-c", `Delete :${key}`, file], {
         stdio: "ignore",
       });
     } catch {
-      // 없는 키
+      // The key was not there.
     }
     run("/usr/libexec/PlistBuddy", ["-c", `Add :${key} string ${value}`, file]);
   }
 };
 
-// pnpm desktop:build 결과 (package:mac 이 먼저 부른다)
+/** Electron.app for the target arch: this install's own, or the release zip for the other arch. */
+async function electronApp() {
+  const binary = require("electron");
+  if (arch === process.arch) return path.resolve(binary, "../../..");
+  // @electron/get is electron's own downloader (checksum-verified, cached).
+  const electronRequire = createRequire(require.resolve("electron"));
+  const { downloadArtifact } = electronRequire("@electron/get");
+  const { version: electronVersion } = electronRequire("./package.json");
+  const zip = await downloadArtifact({
+    version: electronVersion,
+    platform: "darwin",
+    arch,
+    artifactName: "electron",
+  });
+  const dir = path.join(releaseDir, `.electron-${electronVersion}-${arch}`);
+  await rm(dir, { recursive: true, force: true });
+  run("/usr/bin/ditto", ["-x", "-k", zip, dir]);
+  return path.join(dir, "Electron.app");
+}
+
+// Outputs of pnpm desktop:build (package:mac runs it first)
 const inputs = {
   "apps/desktop/dist": "dist",
   "apps/web/dist": "web",
@@ -68,12 +97,12 @@ const required = [
 ];
 for (const file of required) {
   if (!existsSync(path.join(root, file)))
-    throw new Error(`${file} 가 없습니다. pnpm desktop:build 를 먼저 실행하세요.`);
+    throw new Error(`${file} is missing. Run pnpm desktop:build first.`);
 }
 
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
-run("/usr/bin/ditto", [electronApp, appPath]);
+run("/usr/bin/ditto", [await electronApp(), appPath]);
 await rm(path.join(resourcesDir, "default_app.asar"), { force: true });
 await rm(path.join(resourcesDir, "electron.icns"), { force: true });
 await mkdir(appDir, { recursive: true });
@@ -85,7 +114,7 @@ await writeFile(
   `${JSON.stringify({ name: "verda", productName: "Verda", version, type: "module", main: "dist/main.js" }, null, 2)}\n`
 );
 
-// 아이콘: svg 와 같은 꽉 찬 아이콘 세트. 격자와 효과는 시스템이 입힌다.
+// Icon: the full-bleed icon set drawn from the svg. The system applies the grid and effects.
 const iconset = path.join(outputDir, "Verda.iconset");
 run("/usr/bin/swift", [
   "-module-cache-path",
@@ -123,7 +152,7 @@ try {
     }
   );
 } catch {
-  // 없는 키
+  // The key was not there.
 }
 await rename(
   path.join(appPath, "Contents/MacOS/Electron"),
@@ -156,34 +185,12 @@ for (const name of await readdir(frameworksDir)) {
 run("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", appPath]);
 run("/usr/bin/codesign", ["--verify", "--deep", "--strict", appPath]);
 
-await rm(path.join(releaseDir, `${stem}.zip`), { force: true });
-run("/usr/bin/ditto", [
-  "-c",
-  "-k",
-  "--sequesterRsrc",
-  "--keepParent",
-  appPath,
-  path.join(releaseDir, `${stem}.zip`),
-]);
-const stagingDir = path.join(outputDir, "dmg");
-await mkdir(stagingDir, { recursive: true });
-run("/usr/bin/ditto", [appPath, path.join(stagingDir, "Verda.app")]);
-await symlink("/Applications", path.join(stagingDir, "Applications"));
-try {
-  run("/usr/bin/hdiutil", [
-    "create",
-    "-volname",
-    "Verda",
-    "-srcfolder",
-    stagingDir,
-    "-ov",
-    "-format",
-    "UDZO",
-    path.join(releaseDir, `${stem}.dmg`),
-  ]);
-} finally {
-  await rm(stagingDir, { recursive: true, force: true });
-}
-console.log(
-  `\n앱: ${appPath}\n설치 파일: ${releaseDir}/${stem}.{dmg,zip}\n설치: pnpm install:mac (또는 dmg 를 열어 Applications 로 끌어 넣기)`
-);
+// ditto rather than zip: it keeps the signature and the notarization staple intact.
+const zipPath = path.join(releaseDir, zipName);
+await rm(zipPath, { force: true });
+run("/usr/bin/ditto", ["-c", "-k", "--sequesterRsrc", "--keepParent", appPath, zipPath]);
+const sha256 = createHash("sha256")
+  .update(await readFile(zipPath))
+  .digest("hex");
+await writeFile(`${zipPath}.sha256`, `${sha256}  ${zipName}\n`);
+console.log(`\nApp: ${appPath}\nZip: ${zipPath}\nInstall locally: pnpm install:mac`);
