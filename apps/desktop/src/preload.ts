@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 // Exposes only the platform (window button placement), bot control, settings read/write, and sandbox management to the UI. History queries go through verda://app/api.
 contextBridge.exposeInMainWorld("verdaDesktop", {
   platform: process.platform,
+  // Runs from the repository (Verda Dev), as opposed to the installed app.
+  dev: process.argv.includes("--verda-dev"),
   bot: {
     state: () => ipcRenderer.invoke("verda:bot:state"),
     start: () => ipcRenderer.invoke("verda:bot:start"),

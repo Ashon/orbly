@@ -3,6 +3,7 @@ import AppKit
 // Draws the colors and shapes of assets/verda-icon.svg as PNG.
 // - Default: dock icon for dev runs (electron .). The dock uses the PNG as is, so this draws the treatment the system
 //   applies to packaged app icons (824 body out of 1024, rounded square, shadow, top highlight) by hand.
+//   verda-icon-dev.png adds an amber DEV tag, so a run from the repository never looks like the installed app.
 //   Usage: swift apps/desktop/scripts/icon.swift <assets directory>
 // - --iconset: macOS icon set for the packaged app (.icns). Draws the svg full bleed; the system applies the grid and effects.
 //   Usage: swift apps/desktop/scripts/icon.swift --iconset <Verda.iconset>
@@ -12,6 +13,8 @@ let destination = URL(fileURLWithPath: CommandLine.arguments[iconsetMode ? 2 : 1
 let emerald = CGColor(red: 0x01 / 255, green: 0xab / 255, blue: 0x78 / 255, alpha: 1)
 let green = CGColor(red: 0x1f / 255, green: 0xc2 / 255, blue: 0x89 / 255, alpha: 1)
 let mint = CGColor(red: 0x48 / 255, green: 0xc8 / 255, blue: 0x9c / 255, alpha: 1)
+// The UI's Dev badge color (status-interrupted)
+let amber = CGColor(red: 0xd0 / 255, green: 0x84 / 255, blue: 0x1e / 255, alpha: 1)
 let space = CGColorSpaceCreateDeviceRGB()
 
 /// Superellipse (n=5) close to the macOS icon outline
@@ -33,7 +36,7 @@ func gradient(_ colors: [CGColor], _ locations: [CGFloat]) -> CGGradient {
     CGGradient(colorsSpace: space, colors: colors as CFArray, locations: locations)!
 }
 
-func render(pixels: Int, to name: String) throws {
+func render(pixels: Int, to name: String, dev: Bool = false) throws {
     let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
@@ -107,6 +110,34 @@ func render(pixels: Int, to name: String) throws {
         end: CGPoint(x: body.midX, y: body.minY), options: [])
     context.restoreGState()
 
+    // 6. Dev tag: an amber pill under the ring, clear of it (the ring ends 23.5% above the body bottom)
+    if dev {
+        let h = body.height * 0.16, w = body.width * 0.5
+        let pill = CGRect(x: body.midX - w / 2, y: body.minY + body.height * 0.02, width: w, height: h)
+        context.saveGState()
+        context.setShadow(offset: CGSize(width: 0, height: -4 * k), blur: 10 * k,
+            color: CGColor(gray: 0, alpha: 0.3))
+        context.addPath(CGPath(roundedRect: pill, cornerWidth: h / 2, cornerHeight: h / 2, transform: nil))
+        context.setFillColor(amber)
+        context.fillPath()
+        context.restoreGState()
+        let font = NSFont.systemFont(ofSize: h * 0.6, weight: .heavy)
+        let text = NSAttributedString(string: "DEV", attributes: [
+            NSAttributedString.Key(kCTFontAttributeName as String): font,
+            NSAttributedString.Key(kCTForegroundColorFromContextAttributeName as String): true,
+            NSAttributedString.Key(kCTKernAttributeName as String): h * 0.06,
+        ])
+        let line = CTLineCreateWithAttributedString(text)
+        let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+        context.saveGState()
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.textMatrix = .identity
+        context.textPosition = CGPoint(x: pill.midX - bounds.width / 2 - bounds.minX,
+            y: pill.midY - bounds.height / 2 - bounds.minY)
+        CTLineDraw(line, context)
+        context.restoreGState()
+    }
+
     try bitmap.representation(using: .png, properties: [:])!
         .write(to: destination.appendingPathComponent(name))
 }
@@ -147,4 +178,6 @@ if iconsetMode {
     // Dock/window icon (1024) and README logo (256, shown at 128 on screen)
     try render(pixels: 1024, to: "verda-icon.png")
     try render(pixels: 256, to: "verda-icon-256.png")
+    // Dock/window icon for dev runs (Verda Dev)
+    try render(pixels: 1024, to: "verda-icon-dev.png", dev: true)
 }

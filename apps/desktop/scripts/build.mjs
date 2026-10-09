@@ -29,3 +29,5 @@ await build({
 await cp(path.join(assetsDir, "verda-tray.png"), path.join(distDir, "tray.png"));
 await cp(path.join(assetsDir, "verda-tray@2x.png"), path.join(distDir, "tray@2x.png"));
 await cp(path.join(assetsDir, "verda-icon.png"), path.join(distDir, "icon.png"));
+// Dev runs (Verda Dev) use the same icon with a DEV tag
+await cp(path.join(assetsDir, "verda-icon-dev.png"), path.join(distDir, "icon-dev.png"));

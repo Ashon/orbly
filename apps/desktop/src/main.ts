@@ -50,9 +50,18 @@ const reader = new HistoryReader(dataDir);
 const botSetting = process.env.VERDA_DESKTOP_BOT;
 const manageBot = botSetting === "on" || (botSetting !== "off" && !captureFile);
 
-app.setName("Verda");
+/**
+ * Runs from the repository are "Verda Dev": their own name and user data folder give them their own
+ * single-instance lock, so they start next to an installed Verda instead of handing over to it.
+ */
+const appName = app.isPackaged ? "Verda" : "Verda Dev";
+/** Dock and window icon: dev runs get the one with the DEV tag. */
+const appIcon = path.join(distDir, app.isPackaged ? "icon.png" : "icon-dev.png");
+app.setName(appName);
 // Screen captures use a separate user data folder so they do not hit the running app's single-instance lock.
 if (captureFile) app.setPath("userData", path.join(tmpdir(), "verda-desktop-capture"));
+else if (!app.isPackaged)
+  app.setPath("userData", path.join(app.getPath("appData"), appName));
 // UI theme: system (default), light, dark
 const themeSource = process.env.VERDA_DESKTOP_THEME;
 if (themeSource === "light" || themeSource === "dark")
@@ -234,9 +243,14 @@ function updateTray(): void {
   const key = JSON.stringify([summary, phase]);
   if (key === lastTrayKey) return;
   lastTrayKey = key;
-  tray.setToolTip(`Verda - Bot: ${summary.label}`);
+  tray.setToolTip(`${appName} - Bot: ${summary.label}`);
   // Shows the number of active requests next to the menu bar icon. (macOS)
-  tray.setTitle(summary.active > 0 ? String(summary.active) : "");
+  // Dev runs say so next to the tray icon, since the installed Verda may sit beside it.
+  tray.setTitle(
+    [app.isPackaged ? "" : "Dev", summary.active > 0 ? String(summary.active) : ""]
+      .filter(Boolean)
+      .join(" ")
+  );
   // The tray holds only the status and quick actions. Bot control is on the Bot screen; app settings (start automatically, run history folder) are on the Settings screen.
   const live = phase === "running" || phase === "starting";
   const controls: MenuItemConstructorOptions[] = supervisor
@@ -264,9 +278,9 @@ function updateTray(): void {
         : []),
       { type: "separator" },
       ...controls,
-      { label: "Open Verda", click: showMainWindow },
+      { label: `Open ${appName}`, click: showMainWindow },
       { type: "separator" },
-      { label: "Quit Verda", click: () => app.quit() },
+      { label: `Quit ${appName}`, click: () => app.quit() },
     ])
   );
 }
@@ -366,8 +380,8 @@ async function createWindow(): Promise<void> {
     minWidth: 960,
     minHeight: 600,
     show: false,
-    title: "Verda",
-    icon: path.join(distDir, "icon.png"),
+    title: appName,
+    icon: appIcon,
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#0f1714" : "#fafdfb",
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 16, y: 15 },
@@ -376,6 +390,8 @@ async function createWindow(): Promise<void> {
       nodeIntegration: false,
       sandbox: true,
       preload: path.join(distDir, "preload.cjs"),
+      // Tells the UI it runs from the repository (preload reads it from argv).
+      additionalArguments: app.isPackaged ? [] : ["--verda-dev"],
     },
   });
   mainWindow = window;
@@ -433,7 +449,7 @@ async function capture(window: BrowserWindow, file: string): Promise<void> {
 function reportStartupError(error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
   console.error(message);
-  dialog.showErrorBox("Verda could not start", message);
+  dialog.showErrorBox(`${appName} could not start`, message);
   app.quit();
 }
 
@@ -447,7 +463,7 @@ if (!app.requestSingleInstanceLock()) {
       registerAppProtocol();
       registerBotIpc();
       if (process.platform === "darwin" && !app.isPackaged) {
-        app.dock?.setIcon(nativeImage.createFromPath(path.join(distDir, "icon.png")));
+        app.dock?.setIcon(nativeImage.createFromPath(appIcon));
       }
       if (!captureFile) createTray();
       // The bot starts independently of the window and does not wait for it.
@@ -466,7 +482,7 @@ app.on("before-quit", (event) => {
   // A bot started by the app finishes active requests before it stops. (up to 30 seconds)
   if (supervisor?.managing && !botStopped) {
     event.preventDefault();
-    tray?.setToolTip("Verda - Bot: Stopping");
+    tray?.setToolTip(`${appName} - Bot: Stopping`);
     void supervisor.stop().finally(() => {
       botStopped = true;
       supervisor.dispose();
