@@ -1,6 +1,6 @@
 {
   "name": "verda",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Verda: a Slack ops bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)",
   "type": "module",
