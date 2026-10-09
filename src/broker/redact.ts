@@ -12,6 +12,8 @@ const PATTERNS: [RegExp, string][] = [
   [/\bsk-ant-[A-Za-z0-9_-]{10,}/g, "[REDACTED ANTHROPIC KEY]"],
   [/\bsk-[A-Za-z0-9_-]{20,}/g, "[REDACTED API KEY]"],
   [/\bgh[pousr]_[A-Za-z0-9]{20,}/g, "[REDACTED GITHUB TOKEN]"],
+  // fine-grained PAT (github_pat_<22자>_<59자>)
+  [/\bgithub_pat_[A-Za-z0-9_]{20,}/g, "[REDACTED GITHUB TOKEN]"],
   [/\bglpat-[A-Za-z0-9_-]{20,}/g, "[REDACTED GITLAB TOKEN]"],
   [/\bATATT[A-Za-z0-9_=-]{20,}/g, "[REDACTED ATLASSIAN TOKEN]"],
   [/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED AWS KEY]"],

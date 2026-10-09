@@ -43,21 +43,56 @@ export function isDenied(relativePath: string): boolean {
   return DENY_FILES.some((pattern) => pattern.test(base));
 }
 
-/** ripgrep 에 넘길 제외 glob 목록 (isDenied 와 같은 규칙) */
+/**
+ * ripgrep 에 넘길 제외 glob 목록 (isDenied 와 같은 규칙, 대소문자 구분 없이 --iglob 으로 쓴다).
+ * glob 과 정규식은 완전히 같을 수 없어서, 검색 결과는 filterRgOutput 이 isDenied 로 한 번 더 거른다.
+ */
 export const RG_EXCLUDE_GLOBS = [
   ...[...DENY_DIRS].map((dir) => `!**/${dir}/**`),
   "!**/.env",
   "!**/.env.*",
-  "!**/*.{pem,key,p12,pfx,jks,keystore,kdbx,tfstate,token}",
-  "!**/id_rsa*",
-  "!**/id_ed25519*",
-  "!**/id_ecdsa*",
+  "!**/*.{pem,key,p12,pfx,jks,keystore,kdbx,tfstate,tfstate.backup,token}",
+  "!**/id_{rsa,dsa,ecdsa,ed25519}*",
   "!**/*kubeconfig*",
   "!**/*admin.conf",
+  "!**/{credentials,netrc,npmrc,pypirc}",
+  "!**/.{credentials,netrc,npmrc,pypirc}",
   "!**/*secret*",
   "!**/*vault*.y*ml",
-  "!**/credentials",
 ];
+
+/**
+ * ripgrep 파일 필터 인자. ripgrep 은 뒤에 오는 glob 이 앞의 glob 을 이기므로, 요청한 glob 을 먼저 두고
+ * 제외 glob 을 뒤에 둔다. (--iglob 은 명령줄 순서와 관계없이 --glob 뒤에 적용된다)
+ * 요청한 glob 이 제외 glob 을 풀지 못하게 한다. (예: glob 이 **\/.env 여도 .env 는 검색되지 않는다)
+ */
+export function rgFilterArgs(glob?: string): string[] {
+  const include = glob?.replace(/^!+/, "");
+  return [
+    ...(include ? ["--glob", include] : []),
+    ...RG_EXCLUDE_GLOBS.flatMap((exclude) => ["--iglob", exclude]),
+  ];
+}
+
+/**
+ * ripgrep 출력에서 제외 대상 파일의 줄을 빼고 경로를 root 기준 상대 경로로 바꾼다.
+ * 검색 결과는 --null 형식(경로\0줄:내용), 파일 목록(--files)은 한 줄에 경로 하나다.
+ * 경로가 아닌 줄(종료 코드, 오류 메시지)은 그대로 둔다.
+ */
+export function filterRgOutput(output: string, root: string): string {
+  const prefix = `${root.replace(/\/+$/, "")}/`;
+  return output
+    .split("\n")
+    .flatMap((line) => {
+      const nul = line.indexOf("\0");
+      const file = nul >= 0 ? line.slice(0, nul) : line;
+      if (nul < 0 && !file.startsWith(prefix)) return [line];
+      const rel = file.startsWith(prefix) ? file.slice(prefix.length) : file;
+      if (isDenied(rel)) return [];
+      return [nul >= 0 ? `${rel}:${line.slice(nul + 1)}` : rel];
+    })
+    .join("\n");
+}
 
 /**
  * 모델이 준 경로를 루트 안의 실제 경로로 바꾼다. 절대 경로, 상위 이동, 루트 밖을 가리키는

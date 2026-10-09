@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chunkText,
+  escapeSlackText,
   extractUserIds,
   renderSlackText,
   toSlackMrkdwn,
@@ -34,6 +35,37 @@ describe("toSlackMrkdwn", () => {
   it("코드 블록 안은 건드리지 않는다", () => {
     const input = "```\n**raw**\n```";
     expect(toSlackMrkdwn(input)).toBe(input);
+  });
+
+  it("모델 답의 멘션, 알림 표기는 글자 그대로 보이게 하고 웹 링크와 인용은 남긴다", () => {
+    const input = [
+      "<!channel> <!here|here> <@U123> <#C1|ops> <!subteam^S1>",
+      "a & b, List<String>",
+      "> 인용",
+      "<https://x.io/a?b=1&c=2|문서> <https://x.io>",
+      "[PR](https://x.io/pr?a=1&b=2)",
+      "```",
+      "<!channel> if (a < b && c > d)",
+      "```",
+    ].join("\n");
+    expect(toSlackMrkdwn(input)).toBe(
+      [
+        "&lt;!channel> &lt;!here|here> &lt;@U123> &lt;#C1|ops> &lt;!subteam^S1>",
+        "a &amp; b, List&lt;String>",
+        "> 인용",
+        "<https://x.io/a?b=1&amp;c=2|문서> <https://x.io>",
+        "<https://x.io/pr?a=1&amp;b=2|PR>",
+        "```",
+        "&lt;!channel> if (a &lt; b &amp;&amp; c > d)",
+        "```",
+      ].join("\n")
+    );
+  });
+
+  it("링크 주소나 이름에 섞인 제어 표기도 무력화한다", () => {
+    expect(toSlackMrkdwn("[x](https://a.io/><!channel>)")).not.toContain("<!channel>");
+    expect(toSlackMrkdwn("<https://a.io|<!channel>>")).not.toContain("<!channel>");
+    expect(escapeSlackText("<@U1> & <!here>")).toBe("&lt;@U1> &amp; &lt;!here>");
   });
 });
 

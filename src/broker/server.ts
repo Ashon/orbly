@@ -6,11 +6,12 @@ import { z } from "zod";
 import { ProcessExitError, runProcess } from "../reasoner/process.js";
 import { CHECK_NAMES, CHECKS, buildCheckCommand, type CheckName } from "./checks.js";
 import {
+  filterRgOutput,
   listDir,
   MAX_READ_LINES,
   readText,
   resolveInRoot,
-  RG_EXCLUDE_GLOBS,
+  rgFilterArgs,
 } from "./fs.js";
 import { GitWorkspaces } from "./git.js";
 import { GitHubReader } from "./github.js";
@@ -152,13 +153,18 @@ const jira =
 
 let running = 0;
 
+/**
+ * 외부 명령(ssh, kubectl, rg)의 환경 변수. broker 환경에는 GH_TOKEN, JIRA_TOKEN 같은 자격 증명이
+ * 있으므로 물려주지 않는다.
+ */
+const TOOL_ENV: NodeJS.ProcessEnv = { PATH: process.env.PATH, HOME: "/tmp" };
+
 /** 외부 명령을 실행한다. 0 이 아닌 종료도 결과로 돌려주고, 출력은 비밀 값을 가리고 자른다. */
 async function exec(
   tool: string,
   command: string,
   args: string[],
-  meta: Record<string, unknown>,
-  envOverride?: NodeJS.ProcessEnv
+  meta: Record<string, unknown>
 ): Promise<string> {
   if (running >= env.MAX_CONCURRENT)
     throw new Error("동시 요청이 많습니다. 잠시 후 다시 시도하세요.");
@@ -171,7 +177,7 @@ async function exec(
       cwd: "/tmp",
       input: "",
       timeoutMs: env.COMMAND_TIMEOUT_SEC * 1000,
-      env: envOverride,
+      env: TOOL_ENV,
     });
     output = result.stdout + result.stderr;
   } catch (err) {
@@ -197,10 +203,7 @@ function finish(output: string): string {
 }
 
 const kubectl = (tool: string, args: string[], meta: Record<string, unknown>) =>
-  exec(tool, "kubectl", ["--kubeconfig", env.KUBECONFIG_FILE, ...args], meta, {
-    PATH: process.env.PATH,
-    HOME: "/tmp",
-  });
+  exec(tool, "kubectl", ["--kubeconfig", env.KUBECONFIG_FILE, ...args], meta);
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 async function respond(run: () => Promise<string>): Promise<ToolResult> {
@@ -483,19 +486,19 @@ function registerFsTools(server: McpServer): void {
         const args = [
           "--line-number",
           "--no-heading",
+          "--null",
           "--color",
           "never",
           "--max-count",
           "20",
         ];
         args.push("--max-filesize", "1M", "--max-columns", "300");
-        for (const exclude of RG_EXCLUDE_GLOBS) args.push("--glob", exclude);
-        if (glob) args.push("--glob", glob.startsWith("!") ? glob.slice(1) : glob);
+        args.push(...rgFilterArgs(glob));
         if (fixed_strings) args.push("--fixed-strings");
         args.push("--", pattern, target);
         const output = await exec("fs_search", "rg", args, { pattern, path, glob });
-        const lines = output.split("\n");
-        const shown = lines.slice(0, 201).join("\n").replaceAll(`${root}/`, "");
+        const lines = filterRgOutput(output, root).split("\n");
+        const shown = lines.slice(0, 201).join("\n");
         return lines.length > 201
           ? `${shown}\n... (${lines.length - 201}줄 더, path/glob 으로 좁히세요)`
           : shown;
@@ -515,11 +518,9 @@ function registerFsTools(server: McpServer): void {
     async ({ glob, path }) =>
       respond(async () => {
         const target = await resolveInRoot(root, requireScope(path));
-        const args = ["--files", "--color", "never"];
-        for (const exclude of RG_EXCLUDE_GLOBS) args.push("--glob", exclude);
-        args.push("--glob", glob.startsWith("!") ? glob.slice(1) : glob, target);
+        const args = ["--files", "--color", "never", ...rgFilterArgs(glob), target];
         const output = await exec("fs_find", "rg", args, { glob, path });
-        const lines = output.replaceAll(`${root}/`, "").split("\n");
+        const lines = filterRgOutput(output, root).split("\n");
         return lines.length > 201
           ? `${lines.slice(0, 201).join("\n")}\n... (${lines.length - 201}개 더)`
           : lines.join("\n");
@@ -617,21 +618,20 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
         const args = [
           "--line-number",
           "--no-heading",
+          "--null",
           "--color",
           "never",
           "--max-count",
           "20",
         ];
-        for (const exclude of RG_EXCLUDE_GLOBS) args.push("--glob", exclude);
-        if (a.glob)
-          args.push("--glob", a.glob.startsWith("!") ? a.glob.slice(1) : a.glob);
+        args.push(...rgFilterArgs(a.glob));
         if (a.fixed_strings) args.push("--fixed-strings");
         args.push("--", a.pattern, target);
         const output = await exec("ws_search", "rg", args, {
           ws: a.ws,
           pattern: a.pattern,
         });
-        return output.replaceAll(`${dir}/`, "").split("\n").slice(0, 201).join("\n");
+        return filterRgOutput(output, dir).split("\n").slice(0, 201).join("\n");
       })
   );
 
@@ -998,7 +998,7 @@ async function start(): Promise<void> {
         cwd: "/tmp",
         input: "",
         timeoutMs: 10_000,
-        env: { PATH: process.env.PATH, HOME: "/tmp" },
+        env: TOOL_ENV,
       }
     );
     clusters = stdout

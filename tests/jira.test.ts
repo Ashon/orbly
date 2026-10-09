@@ -23,6 +23,32 @@ describe("Jira 범위 제한", () => {
     );
   });
 
+  it("조건이 감싼 괄호를 닫고 나가는 JQL 은 거부한다", () => {
+    for (const jql of [
+      "x = 1) OR (project = OTHER",
+      "x = 1 ORDER BY created) OR (project = OTHER",
+      ") OR project = OTHER OR (x = 1",
+      "x = 1 OR (project = OTHER",
+    ]) {
+      expect(() => scopeJql(jql, PROJECTS), jql).toThrow(/괄호/);
+    }
+    expect(() => scopeJql('summary ~ "x) OR (project = OTHER', PROJECTS)).toThrow(
+      /따옴표/
+    );
+  });
+
+  it("문자열 안의 괄호와 order by 는 조건으로 보지 않는다", () => {
+    expect(scopeJql('summary ~ "a) order by (b" ORDER BY created', PROJECTS)).toBe(
+      'project in ("PROJ", "OPS") AND (summary ~ "a) order by (b") ORDER BY created'
+    );
+    expect(scopeJql("summary ~ 'it\\'s (x)' AND status = Done", PROJECTS)).toBe(
+      `project in ("PROJ", "OPS") AND (summary ~ 'it\\'s (x)' AND status = Done) ORDER BY updated DESC`
+    );
+    expect(scopeJql("reorder = 1 ORDER BY rank", PROJECTS)).toBe(
+      'project in ("PROJ", "OPS") AND (reorder = 1) ORDER BY rank'
+    );
+  });
+
   it("이슈 키와 URL 을 읽고 허용되지 않은 프로젝트는 거부한다", () => {
     expect(parseIssueKey("proj-12", PROJECTS)).toBe("PROJ-12");
     expect(

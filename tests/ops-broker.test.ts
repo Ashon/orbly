@@ -1,8 +1,16 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { isDenied, listDir, readText, resolveInRoot } from "../src/broker/fs.js";
+import {
+  filterRgOutput,
+  isDenied,
+  listDir,
+  readText,
+  resolveInRoot,
+  rgFilterArgs,
+} from "../src/broker/fs.js";
 import {
   describeArgs,
   eventsArgs,
@@ -146,6 +154,99 @@ describe("fs", () => {
   });
 });
 
+describe("ripgrep 제외 규칙", () => {
+  /** isDenied 가 막는 파일. 대소문자와 위치를 섞는다. */
+  const SECRET_FILES = [
+    ".env",
+    ".env.production",
+    "Secrets.yaml",
+    "k8s/Secrets.yaml",
+    "KUBECONFIG",
+    "netrc",
+    ".netrc",
+    "a.tfstate.backup",
+    "id_dsa",
+    "tls.KEY",
+    "vault-prod.yml",
+    ".git/config",
+  ];
+
+  it("요청한 glob 을 먼저, 제외 glob 을 --iglob 으로 뒤에 둔다", () => {
+    expect(rgFilterArgs("!**/.env").slice(0, 3)).toEqual([
+      "--glob",
+      "**/.env",
+      "--iglob",
+    ]);
+    expect(rgFilterArgs()[0]).toBe("--iglob");
+  });
+
+  it("검색 결과에서 제외 대상 파일을 빼고 상대 경로로 바꾼다", () => {
+    const output = [
+      "(exit 0, 3ms)",
+      "/workspace/repo/README.md\u00002:token here",
+      "/workspace/repo/.env\u00001:API_KEY=x",
+      "/workspace/repo/k8s/Secrets.yaml\u00004:data",
+      "rg: /workspace/repo/broken: Permission denied",
+    ].join("\n");
+    expect(filterRgOutput(output, "/workspace")).toBe(
+      [
+        "(exit 0, 3ms)",
+        "repo/README.md:2:token here",
+        "rg: /workspace/repo/broken: Permission denied",
+      ].join("\n")
+    );
+    const files = ["(exit 0, 1ms)", "/w/r/a.ts", "/w/r/netrc", "/w/r/id_DSA"].join("\n");
+    expect(filterRgOutput(files, "/w/")).toBe("(exit 0, 1ms)\nr/a.ts");
+  });
+
+  const hasRg = spawnSync("rg", ["--version"]).status === 0;
+  it.skipIf(!hasRg)(
+    "glob 으로 제외 규칙을 풀 수 없고, 제외 glob 은 isDenied 와 같다",
+    () => {
+      const repo = mkdtempSync(path.join(tmpdir(), "ops-rg-"));
+      try {
+        for (const file of [...SECRET_FILES, "README.md", "src/app.ts"]) {
+          mkdirSync(path.dirname(path.join(repo, file)), { recursive: true });
+          writeFileSync(path.join(repo, file), "API_KEY=supersecretvalue\n");
+        }
+        for (const file of SECRET_FILES) expect(isDenied(file), file).toBe(true);
+        // fs_search 와 같은 인자. 후처리(filterRgOutput) 없이 glob 만으로 걸러지는지 본다.
+        const search = (glob?: string) =>
+          spawnSync(
+            "rg",
+            [
+              "--files-with-matches",
+              "--hidden",
+              ...rgFilterArgs(glob),
+              "--",
+              "supersecret",
+              repo,
+            ],
+            { encoding: "utf8" }
+          )
+            .stdout.split("\n")
+            .filter(Boolean)
+            .map((file) => path.relative(repo, file))
+            .sort();
+        for (const glob of [
+          undefined,
+          "**/*",
+          "**/.env",
+          "!**/.env",
+          "**/*secret*",
+          "KUBECONFIG",
+        ]) {
+          expect(search(glob), String(glob)).toEqual(
+            glob === undefined || glob === "**/*" ? ["README.md", "src/app.ts"] : []
+          );
+        }
+      } finally {
+        rmSync(repo, { recursive: true, force: true });
+      }
+    }
+  );
+});
+
 describe("redactSecrets", () => {
   it("대표적인 비밀 값 형식을 가린다", () => {
     const text = [
@@ -153,11 +254,13 @@ describe("redactSecrets", () => {
       "SLACK=xoxb-1234567890-abcdefghij",
       "-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----",
       "client-key-data: LS0tLS1CRUdJTiBSU0E=",
+      `GH=github_pat_11ABCDEFG0123456789abc_${"x".repeat(59)}`,
       "normal line",
     ].join("\n");
     const out = redactSecrets(text);
     expect(out).not.toContain("abcdefghijklmnop");
     expect(out).not.toContain("xoxb-1234567890");
+    expect(out).not.toContain("github_pat_");
     expect(out).not.toContain("AAAA");
     expect(out).not.toContain("LS0tLS1CRUdJTiBSU0E=");
     expect(out).toContain("normal line");

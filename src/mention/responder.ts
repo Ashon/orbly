@@ -25,6 +25,7 @@ import {
 import type { Directory } from "../slack/directory.js";
 import {
   chunkText,
+  escapeSlackText,
   extractUserIds,
   formatTime,
   renderSlackText,
@@ -725,7 +726,7 @@ export class MentionResponder {
       log.error("이미지 업로드 실패 (files:write 확인)", err);
       const sources = uploads
         .filter((upload) => upload.raw)
-        .map((upload) => `${upload.title} 원문:\n${upload.raw}`)
+        .map((upload) => `${upload.title} 원문:\n${escapeSlackText(upload.raw!)}`)
         .join("\n\n");
       await client.chat
         .postMessage({

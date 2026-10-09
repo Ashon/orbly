@@ -41,14 +41,50 @@ export function parseIssueKey(input: string, projects: readonly string[]): strin
 /**
  * JQL 의 범위를 허용된 프로젝트로 고정한다. 조건은 괄호로 감싸 AND 로 묶고, ORDER BY 는 뒤로 뺀다.
  * 조건이 다른 프로젝트를 가리켜도 결과는 허용된 프로젝트 안에서만 나온다.
+ * 조건이 감싼 괄호를 닫고 나가지 못하도록 괄호가 맞지 않거나 따옴표가 닫히지 않은 JQL 은 거부한다.
+ * (예: "x = 1) OR (project = OTHER")
  */
 export function scopeJql(jql: string, projects: readonly string[]): string {
   const text = jql.trim();
-  const orderAt = text.search(/\border\s+by\b/i);
+  const orderAt = findOrderBy(text);
   const where = (orderAt >= 0 ? text.slice(0, orderAt) : text).trim();
   const order = orderAt >= 0 ? text.slice(orderAt).trim() : "ORDER BY updated DESC";
   const scope = `project in (${projects.map((p) => `"${p}"`).join(", ")})`;
   return `${where ? `${scope} AND (${where})` : scope} ${order}`;
+}
+
+const ORDER_BY = /order\s+by\b/iy;
+
+/**
+ * 문자열 밖의 괄호 짝과 따옴표를 검사하고, 괄호와 문자열 밖에 있는 첫 ORDER BY 의 위치를 돌려준다.
+ * 없으면 -1. 문자열 안의 괄호나 "order by" 는 세지 않는다.
+ */
+function findOrderBy(text: string): number {
+  let depth = 0;
+  let quote: string | undefined;
+  let orderAt = -1;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text.charAt(i);
+    if (quote) {
+      if (ch === "\\") i += 1;
+      else if (ch === quote) quote = undefined;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === "(") {
+      depth += 1;
+    } else if (ch === ")") {
+      depth -= 1;
+      if (depth < 0) throw new Error("JQL 의 괄호 짝이 맞지 않습니다.");
+    } else if (orderAt < 0 && depth === 0 && !/\w/.test(text.charAt(i - 1))) {
+      ORDER_BY.lastIndex = i;
+      if (ORDER_BY.test(text)) orderAt = i;
+    }
+  }
+  if (quote) throw new Error("JQL 의 따옴표가 닫히지 않았습니다.");
+  if (depth !== 0) throw new Error("JQL 의 괄호 짝이 맞지 않습니다.");
+  return orderAt;
 }
 
 interface AdfNode {
