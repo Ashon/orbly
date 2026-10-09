@@ -395,8 +395,8 @@ async function createWindow(route = ""): Promise<void> {
     return;
   }
   const window = new BrowserWindow({
-    width: 1360,
-    // For captures the height can be changed to fit long screens.
+    // For captures the size can be changed: a narrow width for tight layouts, a tall height for long screens.
+    width: (captureFile && Number(process.env.VERDA_DESKTOP_CAPTURE_WIDTH)) || 1360,
     height: (captureFile && Number(process.env.VERDA_DESKTOP_CAPTURE_HEIGHT)) || 880,
     minWidth: 960,
     minHeight: 600,

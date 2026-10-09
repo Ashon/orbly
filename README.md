@@ -424,7 +424,8 @@ Other:
   Development runs use the PNG as the Dock icon as is, so this does the system's processing by hand.
 - `VERDA_DESKTOP_THEME=light|dark` pins the theme. (The default follows the system; it can also be changed under "Theme" in Settings > General)
 - Build check: `VERDA_DESKTOP_CAPTURE=/tmp/verda.png pnpm --filter @verda/desktop start` saves the UI as a PNG without showing
-  a window, then exits. (`VERDA_DESKTOP_CAPTURE_HASH=#/bot` picks the screen; the bot is not started in this mode)
+  a window, then exits. (`VERDA_DESKTOP_CAPTURE_HASH=#/bot` picks the screen, and `VERDA_DESKTOP_CAPTURE_WIDTH` and
+  `VERDA_DESKTOP_CAPTURE_HEIGHT` the window size; the bot is not started in this mode)
 
 ## Development
 

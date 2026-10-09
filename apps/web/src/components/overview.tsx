@@ -75,8 +75,9 @@ export function Overview() {
   const running = data?.byStatus.running ?? 0;
 
   return (
-    // All cards sit in one 4-column grid. Horizontal and vertical gaps are both gap-4, and the bottom row spans 2 columns each to line up with the cards above.
-    <div className="mx-auto max-w-4xl px-8 py-8">
+    // All cards sit in one grid: 4 columns, or 2 when the overview is narrow (a wide run list), so no card gets too
+    // tight for its content. Gaps are gap-4 both ways, and the chart and tools cards span 2 columns to line up.
+    <div className="@container mx-auto max-w-4xl px-8 py-8">
       <div className="mb-6 flex items-center gap-3">
         <VerdaMark className="size-10" />
         <div>
@@ -94,7 +95,7 @@ export function Overview() {
         <SetupCard message={supervisor.message} issues={supervisor.issues} />
       )}
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 @min-[50rem]:grid-cols-4">
         <StatCard
           icon={<Activity className="text-primary" />}
           label="Total runs"
@@ -150,12 +151,14 @@ export function Overview() {
                 {recentFailed > 0 ? `${recentFailed} failed` : "No failures"}
               </p>
             </div>
-            {/* Pill-shaped bars: filled over the background (well) by run count, with failures painted red at the top. */}
-            <div className="flex min-w-0 flex-1 items-end justify-between gap-1">
-              {daily.map((day) => (
+            {/* Pill-shaped bars: filled over the background (well) by run count, with failures painted red at the top.
+                The columns share the width, so the chart never grows past its card; when they get too narrow for
+                every date, every other date (counting back from today) is hidden. */}
+            <div className="@container/bars flex min-w-0 flex-1 items-end gap-1">
+              {daily.map((day, index) => (
                 <div
                   key={day.day}
-                  className="group flex h-full flex-col items-center justify-end gap-1.5"
+                  className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5"
                   title={`${day.day}: ${day.runs} ${day.runs === 1 ? "run" : "runs"}${day.failed ? `, ${day.failed} failed` : ""}`}
                 >
                   <span className="text-[10px] text-muted-foreground tabular-nums opacity-0 transition-opacity group-hover:opacity-100">
@@ -178,7 +181,13 @@ export function Overview() {
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                  <span
+                    className={cn(
+                      "text-[10px] text-muted-foreground tabular-nums",
+                      (daily.length - 1 - index) % 2 === 1 &&
+                        "@max-[16rem]/bars:invisible"
+                    )}
+                  >
                     {day.day.slice(8)}
                   </span>
                 </div>
