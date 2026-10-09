@@ -30,7 +30,8 @@ repository, which it shares with supragnosis. The tap holds rendered output: eve
      notarizes, staples and zips (`Orbly-v<version>-macos-<arch>.app.zip` + `.sha256`);
    - `publish`: one GitHub Release with both zips;
    - `tap`: `update-tap.sh` renders `Casks/orbly.rb` into the tap and pushes `orbly v<version>`
-     (only that file, rebasing if a supragnosis release pushed first).
+     (only that file, rebasing if a supragnosis release pushed first). If the tap already has that
+     version, for example after a hand update or on a re-run, the job ends successfully without a push.
 
 If the tap job fails or the token is missing, render it by hand from a checkout of the same tag:
 
