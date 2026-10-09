@@ -92,7 +92,7 @@ export function renderArgs(
     "--pids-limit",
     "256",
     "--label",
-    "verda.role=renderer",
+    "orbly.role=renderer",
     "-v",
     `${dir}:/io`,
     image,

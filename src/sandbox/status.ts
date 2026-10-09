@@ -17,14 +17,14 @@ import type {
 } from "./types.js";
 
 export const SANDBOX_IMAGES = [
-  { name: "verda-reasoner:latest", purpose: "Reasoning (runs per request)" },
-  { name: "verda-renderer:latest", purpose: "Diagram rendering" },
-  { name: "verda-egress-proxy:latest", purpose: "Egress proxy" },
-  { name: "verda-ops-broker:latest", purpose: "Ops tools broker" },
+  { name: "orbly-reasoner:latest", purpose: "Reasoning (runs per request)" },
+  { name: "orbly-renderer:latest", purpose: "Diagram rendering" },
+  { name: "orbly-egress-proxy:latest", purpose: "Egress proxy" },
+  { name: "orbly-ops-broker:latest", purpose: "Ops tools broker" },
 ];
 const CONTAINERS = {
-  "egress-proxy": "verda-sandbox-egress-proxy-1",
-  "ops-broker": "verda-sandbox-ops-broker-1",
+  "egress-proxy": "orbly-sandbox-egress-proxy-1",
+  "ops-broker": "orbly-sandbox-ops-broker-1",
 } as const;
 /** Reads only the broker environment variables used for comparison. (GH_TOKEN and the like are not read) */
 const BROKER_ENV_KEYS = [
@@ -484,7 +484,7 @@ export async function collectSandboxStatus(options: {
   // Needs apply
   const bot = readBotStatus(options.dataDir);
   status.activeRequests = bot.alive ? (bot.status?.requests.active ?? 0) : 0;
-  const brokerImage = images.get("verda-ops-broker:latest");
+  const brokerImage = images.get("orbly-ops-broker:latest");
   status.pending = computePending({
     bot: bot.alive
       ? { configHash: bot.status?.configHash, expectedHash: configFingerprint(values) }

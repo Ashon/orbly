@@ -13,7 +13,16 @@ import { redactSecrets } from "./redact.js";
  * - The GitHub token lives only in this process's environment variables and is never exposed to the model.
  */
 
-export const BRANCH_PREFIX = "verda/";
+export const BRANCH_PREFIX = "orbly/";
+/** Branches made before the rename (Verda). Still recognized as the agent's own, but never created. */
+export const LEGACY_BRANCH_PREFIXES = ["verda/"];
+
+/** Whether a branch is one the agent made: orbly/*, or verda/* from before the rename */
+export function isAgentBranch(branch: string): boolean {
+  return [BRANCH_PREFIX, ...LEGACY_BRANCH_PREFIXES].some((prefix) =>
+    branch.startsWith(prefix)
+  );
+}
 const MAX_WRITE_BYTES = 512 * 1024;
 const MAX_CHANGED_FILES = 50;
 const MAX_CHANGED_LINES = 3_000;
@@ -307,8 +316,7 @@ export class GitWorkspaces {
       throw new Error(`Cannot create the PR:\n- ${problems.join("\n- ")}`);
 
     await this.git(["commit", "--quiet", "-m", title.trim()], workspace.dir);
-    if (!workspace.branch.startsWith(BRANCH_PREFIX))
-      throw new Error("Not an agent branch.");
+    if (!isAgentBranch(workspace.branch)) throw new Error("Not an agent branch.");
     await this.git(
       ["push", "origin", `HEAD:refs/heads/${workspace.branch}`],
       workspace.dir
@@ -327,7 +335,7 @@ export class GitWorkspaces {
           title: title.trim(),
           head: workspace.branch,
           base: workspace.base,
-          body: `${body.trim()}\n\n---\n_This draft PR was written by Verda from a Slack request. It needs review before merging._`,
+          body: `${body.trim()}\n\n---\n_This draft PR was written by Orbly from a Slack request. It needs review before merging._`,
           draft: true,
         }),
       }

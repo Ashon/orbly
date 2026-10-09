@@ -103,7 +103,7 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
                   title={image.purpose}
                 >
                   <Dot ok={image.present} />
-                  {image.name.replace(/^verda-|:latest$/g, "")}
+                  {image.name.replace(/^orbly-|:latest$/g, "")}
                   {image.createdAt && (
                     <span className="text-muted-foreground">
                       (built {formatRelative(image.createdAt)})

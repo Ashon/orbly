@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
+import { BRANCH_PREFIX, isAgentBranch } from "../src/broker/git.js";
 import { HistoryReader } from "../src/history/reader.js";
 import { handleLocalApi } from "../src/local-api.js";
 import {
@@ -19,6 +20,7 @@ import {
   warnOnce,
 } from "../src/settings/legacy.js";
 import { loadEnv } from "../src/settings/load-env.js";
+import { loadBrokerEnv } from "../src/sandbox/env.js";
 import { orblyHome } from "../src/settings/paths.js";
 import { jobEnv } from "../src/tools/sandbox-job.js";
 
@@ -191,5 +193,25 @@ describe("names from before the rename (Verda)", () => {
       request: "Why did the nightly backup job fail?",
       answer: "The backup volume was full.",
     });
+  });
+});
+
+describe("sandbox names from before the rename (Verda)", () => {
+  it("creates orbly/* branches and still recognizes verda/* ones as the agent's", () => {
+    expect(BRANCH_PREFIX).toBe("orbly/");
+    expect(isAgentBranch("orbly/20261009-1a2b3c4d")).toBe(true);
+    expect(isAgentBranch("verda/20261001-1a2b3c4d")).toBe(true);
+    expect(isAgentBranch("main")).toBe(false);
+    expect(isAgentBranch("feature/verda/x")).toBe(false);
+  });
+
+  it("defaults to the orbly-ro account and keeps verda-ro when it is set", () => {
+    expect(loadBrokerEnv({})).toMatchObject({
+      OPS_K8S_SA: "orbly-ro",
+      OPS_K8S_SA_NAMESPACE: "orbly",
+    });
+    expect(
+      loadBrokerEnv({ OPS_K8S_SA: "verda-ro", OPS_K8S_SA_NAMESPACE: "verda" })
+    ).toMatchObject({ OPS_K8S_SA: "verda-ro", OPS_K8S_SA_NAMESPACE: "verda" });
   });
 });

@@ -567,7 +567,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
     {
       description: [
         "Creates a workspace for code changes. Finds the GitHub remote from the local repository name (a top-level directory in fs_list)",
-        "and creates a new verda/ branch from the remote default branch (or base). The user's local working tree is not changed.",
+        "and creates a new orbly/ branch from the remote default branch (or base). The user's local working tree is not changed.",
       ].join(" "),
       inputSchema: {
         repo: z.string().describe("Local repository directory name (e.g. my-repo)"),
@@ -710,7 +710,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
     "ws_create_pr",
     {
       description: [
-        "Commits the changes, pushes them to the verda/ branch, and opens a draft PR.",
+        "Commits the changes, pushes them to the orbly/ branch, and opens a draft PR.",
         "Use only when the user asked for a PR. The title follows the repository's commit message convention (e.g. feat: ..., fix: ...).",
         "Changes that touch protected paths (such as .github/workflows) or contain secrets are rejected.",
       ].join(" "),

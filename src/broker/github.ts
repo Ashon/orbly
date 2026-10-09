@@ -371,7 +371,7 @@ export class GitHubReader {
         Authorization: `Bearer ${this.options.token}`,
         Accept: accept,
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "verda-ops-broker",
+        "User-Agent": "orbly-ops-broker",
       },
       signal: AbortSignal.timeout(this.options.timeoutMs ?? 20_000),
     });

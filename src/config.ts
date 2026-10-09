@@ -66,8 +66,8 @@ export const EnvSchema = z.object({
   CODEX_BIN: z.string().default("codex"),
   REASONER_SANDBOX: z.enum(["none", "docker"]).default("none"),
   DOCKER_BIN: z.string().default("docker"),
-  SANDBOX_IMAGE: z.string().default("verda-reasoner:latest"),
-  SANDBOX_NETWORK: z.string().default("verda-sandbox"),
+  SANDBOX_IMAGE: z.string().default("orbly-reasoner:latest"),
+  SANDBOX_NETWORK: z.string().default("orbly-sandbox"),
   SANDBOX_PROXY_URL: z.string().url().default("http://egress-proxy:8888"),
   SANDBOX_MEMORY: z
     .string()
@@ -85,7 +85,7 @@ export const EnvSchema = z.object({
   OPS_BROKER_URL: z.string().url().default("http://ops-broker:8080/mcp"),
 
   RENDER_DIAGRAMS: z.enum(["on", "off"]).default("on"),
-  RENDERER_IMAGE: z.string().default("verda-renderer:latest"),
+  RENDERER_IMAGE: z.string().default("orbly-renderer:latest"),
   /** Max px of a generated image's long side. 0 keeps the original size */
   GENERATED_IMAGE_MAX_PX: z.coerce.number().int().min(0).max(4096).default(512),
 
