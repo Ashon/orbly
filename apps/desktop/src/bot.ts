@@ -159,7 +159,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
 
   /** pnpm build (tsc). Output is kept in output. Called only in dev runs. */
   private build(): Promise<boolean> {
-    this.set({ phase: "building", message: "Building the bot (pnpm build)", output: [] });
+    this.set({ phase: "building", message: "Building Pacey (pnpm build)", output: [] });
     return new Promise((resolve) => {
       execFile(
         "pnpm",
@@ -209,7 +209,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       cwd: this.options.cwd,
       env,
       stdio: "pipe",
-      serviceName: "Orbly bot",
+      serviceName: "Pacey",
     });
     this.child = child;
     this.childStartedAt = Date.now();
@@ -249,7 +249,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         phase: "crashed",
         pid: undefined,
         restarts: this.restartTimes.length,
-        message: `The bot exited (code ${code}). Restarting in 3 seconds.`,
+        message: `Pacey exited (code ${code}). Restarting in 3 seconds.`,
       });
       setTimeout(() => void this.start(), 3_000);
       return;
@@ -264,7 +264,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
               phase: "failed",
               pid: undefined,
               message:
-                `The bot stopped right after starting (code ${code}). ${last}`.trim(),
+                `Pacey stopped right after starting (code ${code}). ${last}`.trim(),
             }
       );
       return;
@@ -272,13 +272,13 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     this.set({
       phase: "crashed",
       pid: undefined,
-      message: `The bot keeps exiting and will not be restarted (code ${code}).`,
+      message: `Pacey keeps exiting and will not be restarted (code ${code}).`,
     });
   }
 
   /** Syncs phase with bot.json. A bot started here is running; one started elsewhere is external */
   private refreshExternal(): void {
-    // A bot in the other default home (an old Verda, or an Orbly before migrating) also counts as running elsewhere.
+    // A bot in the other default home (an old Verda or Orbly, before migrating) also counts as running elsewhere.
     const view = readRunningBot(botLockDirs(this.options.dataDir));
     if (this.child) {
       const ours = view.alive && view.status?.pid === this.child.pid;
@@ -292,10 +292,14 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         phase: "external",
         pid: externalPid,
         message:
-          "This bot is running elsewhere, such as a terminal. Stop that bot to manage it here.",
+          "Pacey is running elsewhere, such as a terminal. Stop it there to manage it here.",
       });
     } else if (!externalPid && this.state.phase === "external") {
-      this.set({ phase: "idle", pid: undefined, message: "The external bot stopped." });
+      this.set({
+        phase: "idle",
+        pid: undefined,
+        message: "Pacey stopped running elsewhere.",
+      });
       if (this.state.autoStart) void this.start();
     }
   }

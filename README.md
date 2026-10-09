@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/orbly-icon-256.png" alt="Orbly" width="96" height="96">
+  <img src="assets/pacenote-icon-256.png" alt="Pacenote" width="96" height="96">
 </p>
 
 # Orbly

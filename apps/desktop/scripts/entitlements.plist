@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Hardened runtime entitlements for Orbly.app and its plain helper (the bot runs there as an Electron
+  Hardened runtime entitlements for Pacenote.app and its plain helper (the bot runs there as an Electron
   utility process, and sandbox jobs run the main binary as Node). V8 needs JIT; nothing else is
   requested. The GPU, renderer and plugin helpers keep @electron/osx-sign's defaults.
 -->

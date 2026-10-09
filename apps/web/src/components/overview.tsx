@@ -15,7 +15,7 @@ import { useHealth, useStats } from "@/lib/api";
 import { useSupervisor } from "@/lib/desktop";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { OrblyMark } from "./logo";
+import { PacenoteMark } from "./logo";
 
 /**
  * The first thing to do when the bot cannot start yet, usually connecting Slack on a first run. It names
@@ -31,9 +31,9 @@ function SetupCard({
   return (
     <div className="surface-card mb-4 flex items-center gap-4 px-5 py-4">
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold">Set up the bot</h2>
+        <h2 className="text-sm font-semibold">Set up Pacey</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {message ?? "Some settings are missing before the bot can start."}
+          {message ?? "Some settings are missing before Pacey can start."}
         </p>
       </div>
       <Button
@@ -79,14 +79,13 @@ export function Overview() {
     // tight for its content. Gaps are gap-4 both ways, and the chart and tools cards span 2 columns to line up.
     <div className="@container mx-auto max-w-4xl px-8 py-8">
       <div className="mb-6 flex items-center gap-3">
-        <OrblyMark className="size-10" />
+        <PacenoteMark className="size-10" />
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            <span className="orbly-gradient-text">Orbly</span> run history
+            <span className="pacenote-gradient-text">Pacenote</span> run history
           </h1>
           <p className="text-sm text-muted-foreground">
-            Browse requests handled from Slack mentions, with their tool calls, replies,
-            and outputs.
+            The Slack mentions Pacey answered, with its tool calls, replies, and outputs.
           </p>
         </div>
       </div>
@@ -167,7 +166,7 @@ export function Overview() {
                   <div className="relative flex w-2 flex-1 flex-col justify-end overflow-hidden rounded-full bg-well">
                     {day.runs > 0 && (
                       <div
-                        className="orbly-gradient relative w-full rounded-full"
+                        className="pacenote-gradient relative w-full rounded-full"
                         style={{
                           height: `${Math.max(12, (day.runs / maxDaily) * 100)}%`,
                         }}
@@ -214,7 +213,7 @@ export function Overview() {
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-well">
                     <div
-                      className="orbly-gradient h-full rounded-full"
+                      className="pacenote-gradient h-full rounded-full"
                       style={{ width: `${(tool.calls / maxTool) * 100}%` }}
                     />
                   </div>

@@ -16,17 +16,17 @@ export const SETTING_SECTIONS: { id: SettingSection; label: string; help: string
   {
     id: "messengers",
     label: "Messengers",
-    help: "The chat apps the bot answers in, and who can ask there. Changes apply when the bot restarts.",
+    help: "The chat apps Pacey answers in, and who can ask there. Changes apply when Pacey restarts.",
   },
   {
     id: "answers",
     label: "Answers",
-    help: "The CLI that writes answers and how requests are handled. Changes apply when the bot restarts.",
+    help: "The CLI that writes answers and how requests are handled. Changes apply when Pacey restarts.",
   },
   {
     id: "sandbox",
     label: "Sandbox",
-    help: "Where the reasoner CLI runs for each request. Allowed domains apply when the proxy restarts, everything else when the bot restarts.",
+    help: "Where the reasoner CLI runs for each request. Allowed domains apply when the proxy restarts, everything else when Pacey restarts.",
   },
   {
     id: "ops",
@@ -36,7 +36,7 @@ export const SETTING_SECTIONS: { id: SettingSection; label: string; help: string
   {
     id: "logs",
     label: "History & logs",
-    help: "What the bot keeps after answering. Changes apply when the bot restarts.",
+    help: "What Pacey keeps after answering. Changes apply when Pacey restarts.",
   },
 ];
 
@@ -141,7 +141,7 @@ export const SETTING_GROUPS: SettingGroupInfo[] = [
     id: "ops",
     section: "ops",
     label: "Ops tools",
-    help: "Turning them on or off applies when the bot restarts.",
+    help: "Turning them on or off applies when Pacey restarts.",
   },
   {
     id: "files",
@@ -188,7 +188,7 @@ export const SETTING_GROUPS: SettingGroupInfo[] = [
     id: "logs",
     section: "logs",
     label: "Logs",
-    help: "What the bot writes to its log.",
+    help: "What Pacey writes to its log.",
   },
 ];
 
@@ -222,7 +222,7 @@ export const SETTING_FIELDS: SettingField[] = [
       {
         value: "app",
         label: "Your own Slack app",
-        help: "Socket Mode with the app token and bot token of a Slack app you created. For using Orbly on your own.",
+        help: "Socket Mode with the app token and bot token of a Slack app you created. For using Pacenote on your own.",
       },
     ],
     default: "app",
@@ -266,7 +266,7 @@ export const SETTING_FIELDS: SettingField[] = [
     key: "SOCKET_CLIENT_PING_TIMEOUT_MS",
     group: "slack",
     label: "Client ping timeout (ms)",
-    help: "Reconnects if a ping sent by the bot gets no reply within this time. (1000 to 60000)",
+    help: "Reconnects if a ping sent by Pacey gets no reply within this time. (1000 to 60000)",
     type: "number",
     default: "5000",
     advanced: true,

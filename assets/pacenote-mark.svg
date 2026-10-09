@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="48 48 416 416" width="416" height="416">
+  <title>Pacenote</title>
+  <defs>
+    <!-- Same emerald to mint gradient as the previous mark (16 deg, bottom-left to top-right) -->
+    <linearGradient id="pacenote-gradient" gradientUnits="userSpaceOnUse" x1="54" y1="314" x2="458" y2="198">
+      <stop offset="0" stop-color="#01ab78"/>
+      <stop offset="0.46" stop-color="#1fc289"/>
+      <stop offset="1" stop-color="#48c89c"/>
+    </linearGradient>
+  </defs>
+  <!-- The track: the previous ring, opened at the upper right like a curve ahead -->
+  <path d="M273.1 92.9A164 164 0 1 0 419.1 238.9" fill="none" stroke="url(#pacenote-gradient)" stroke-width="84" stroke-linecap="round"/>
+  <!-- Pacey: the co-driver, one step ahead on the same line -->
+  <circle cx="372" cy="140" r="42" fill="url(#pacenote-gradient)"/>
+</svg>

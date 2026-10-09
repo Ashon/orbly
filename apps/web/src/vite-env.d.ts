@@ -16,7 +16,7 @@ declare global {
     /** Present only in the desktop app (preload). */
     pacenoteDesktop?: {
       platform: string;
-      /** Runs from the repository (Orbly Dev) rather than the installed app */
+      /** Runs from the repository (Pacenote Dev) rather than the installed app */
       dev?: boolean;
       bot: {
         state(): Promise<SupervisorState | null>;

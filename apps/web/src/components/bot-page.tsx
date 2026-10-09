@@ -54,7 +54,7 @@ export function BotPage() {
             </span>
             <div className="min-w-0 flex-1">
               <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-                Orbly bot
+                Pacey
                 <span className={cn("text-sm font-medium", TONE_CLASS[tone].text)}>
                   {label}
                 </span>
@@ -191,7 +191,7 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
   if (!control || !supervisor) {
     return (
       <p className="shrink-0 text-right text-xs text-muted-foreground">
-        Start and stop the bot
+        Start and stop Pacey
         <br />
         from the desktop app.
       </p>

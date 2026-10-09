@@ -97,7 +97,7 @@ describe.runIf(process.env.E2E_APP)("desktop app", () => {
     const page = await launch(world);
 
     // A first run has no Slack tokens: the bot waits for setup and the status bar says so.
-    await page.getByText("Bot: Setup needed").waitFor();
+    await page.getByText("Pacey: Setup needed").waitFor();
     await page.getByRole("button", { name: "Open Settings" }).first().click();
     await page.getByRole("heading", { name: "Messengers" }).waitFor();
 
@@ -105,7 +105,7 @@ describe.runIf(process.env.E2E_APP)("desktop app", () => {
     await enterSecret(page, "SLACK_APP_TOKEN", slack.appToken, "enter");
     await page.getByText("Saved the app token. Enter the bot token next.").waitFor();
     await enterSecret(page, "SLACK_BOT_TOKEN", slack.botToken, "click");
-    await page.getByText("Saved the bot token. Start the bot to use it.").waitFor();
+    await page.getByText("Saved the bot token. Start Pacey to use it.").waitFor();
     expect(
       await page.locator('[data-setting="SLACK_BOT_TOKEN"]').textContent()
     ).toContain("xoxb-...-bot");
@@ -114,8 +114,8 @@ describe.runIf(process.env.E2E_APP)("desktop app", () => {
     await page.getByRole("button", { name: "Check connection" }).click();
     await page.getByText("Socket Mode", { exact: true }).waitFor();
 
-    await page.getByRole("button", { name: "Start bot" }).click();
-    await page.getByText(/Bot: Connected/).waitFor({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Start Pacey" }).click();
+    await page.getByText(/Pacey: Connected/).waitFor({ timeout: 30_000 });
 
     const ts = await slack.mention({
       channel: ops.id,

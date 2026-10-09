@@ -23,7 +23,7 @@ const SLACK_NEEDS = {
   hub: {
     keys: ["HUB_URL", "HUB_TOKEN"],
     message:
-      "This desktop is not paired with the team hub yet. Connect it in Settings > Messengers > Slack to start the bot.",
+      "This desktop is not paired with the team hub yet. Connect it in Settings > Messengers > Slack to start Pacey.",
   },
 };
 
@@ -39,7 +39,7 @@ export function setupProblem(
     return { kind: "slack", message: needs.message, issues: [] };
   return {
     kind: "config",
-    message: "Some settings need fixing before the bot can start.",
+    message: "Some settings need fixing before Pacey can start.",
     issues,
   };
 }
@@ -68,7 +68,7 @@ export function startFailureProblem(output: readonly string[]): SetupProblem | u
     if (code) {
       return {
         kind: "slack",
-        message: `Slack rejected the tokens (${code}). Check them with "Check connection" in Settings, then save to start the bot.`,
+        message: `Slack rejected the tokens (${code}). Check them with "Check connection" in Settings, then save to start Pacey.`,
         issues: [],
       };
     }

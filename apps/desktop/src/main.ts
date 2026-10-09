@@ -37,7 +37,7 @@ import { HubPairing } from "./hub-pairing.js";
 import { SettingsStore } from "./settings.js";
 
 /**
- * Orbly desktop app. Runs and manages the bot (Slack Socket Mode) as a child process and shows its status, logs, and run history.
+ * Pacenote desktop app. Runs and manages Pacey (the bot) (Slack Socket Mode) as a child process and shows its status, logs, and run history.
  * - The UI (apps/web build) and the query API are served only over the pacenote://app protocol, so no external port is opened.
  * - Bot control (start, stop, restart) goes only through the preload IPC.
  * - Closing the window hides it to the tray and the bot keeps running. Quitting the app lets the bot finish active requests and then stops it.
@@ -47,7 +47,7 @@ warnOnce(applyLegacyEnv(process.env), (message) =>
   console.warn(`[pacenote-desktop] ${message}`)
 );
 const distDir = path.dirname(fileURLToPath(import.meta.url));
-/** Dev runs use the repository build output; the packaged app (Orbly.app) uses the bundled files inside the app. */
+/** Dev runs use the repository build output; the packaged app (Pacenote.app) uses the bundled files inside the app. */
 const paths = resolveAppPaths(distDir, app.isPackaged);
 const webDistDir = paths.webDist;
 /** The settings file lives outside the repository. (PACENOTE_HOME, default ~/.pacenote) */
@@ -65,10 +65,10 @@ const botSetting = process.env.PACENOTE_DESKTOP_BOT;
 const manageBot = botSetting === "on" || (botSetting !== "off" && !captureFile);
 
 /**
- * Runs from the repository are "Orbly Dev": their own name and user data folder give them their own
- * single-instance lock, so they start next to an installed Orbly instead of handing over to it.
+ * Runs from the repository are "Pacenote Dev": their own name and user data folder give them their own
+ * single-instance lock, so they start next to an installed Pacenote instead of handing over to it.
  */
-const appName = app.isPackaged ? "Orbly" : "Orbly Dev";
+const appName = app.isPackaged ? "Pacenote" : "Pacenote Dev";
 /** Dock and window icon: dev runs get the one with the DEV tag. */
 const appIcon = path.join(distDir, app.isPackaged ? "icon.png" : "icon-dev.png");
 app.setName(appName);
@@ -285,9 +285,9 @@ function updateTray(): void {
   const key = JSON.stringify([summary, phase]);
   if (key === lastTrayKey) return;
   lastTrayKey = key;
-  tray.setToolTip(`${appName} - Bot: ${summary.label}`);
+  tray.setToolTip(`${appName} - Pacey: ${summary.label}`);
   // Shows the number of active requests next to the menu bar icon. (macOS)
-  // Dev runs say so next to the tray icon, since the installed Orbly may sit beside it.
+  // Dev runs say so next to the tray icon, since the installed Pacenote may sit beside it.
   tray.setTitle(
     [app.isPackaged ? "" : "Dev", summary.active > 0 ? String(summary.active) : ""]
       .filter(Boolean)
@@ -299,7 +299,7 @@ function updateTray(): void {
   const controls: MenuItemConstructorOptions[] = supervisor
     ? [
         live
-          ? { label: "Restart bot", click: () => void supervisor.restart() }
+          ? { label: "Restart Pacey", click: () => void supervisor.restart() }
           : phase === "setup"
             ? {
                 label: "Open Settings...",
@@ -307,7 +307,7 @@ function updateTray(): void {
                   showMainWindow(setupSettingsRoute(supervisor?.current.issues)),
               }
             : {
-                label: "Start bot",
+                label: "Start Pacey",
                 enabled: phase === "idle" || phase === "failed" || phase === "crashed",
                 click: () => void supervisor.start(),
               },
@@ -317,7 +317,7 @@ function updateTray(): void {
     Menu.buildFromTemplate([
       { label: `Open ${appName}`, click: () => showMainWindow() },
       { type: "separator" },
-      { label: `Bot: ${summary.label}`, enabled: false },
+      { label: `Pacey: ${summary.label}`, enabled: false },
       ...(summary.active > 0
         ? [
             {
@@ -581,7 +581,7 @@ app.on("before-quit", (event) => {
   // A bot started by the app finishes active requests before it stops. (up to 30 seconds)
   if (supervisor?.managing && !botStopped) {
     event.preventDefault();
-    tray?.setToolTip(`${appName} - Bot: Stopping`);
+    tray?.setToolTip(`${appName} - Pacey: Stopping`);
     void supervisor.stop().finally(() => {
       botStopped = true;
       supervisor.dispose();

@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
-export function OrblyMark({ className }: { className?: string }) {
+export function PacenoteMark({ className }: { className?: string }) {
   return (
     <img
-      src="/orbly.svg"
+      src="/pacenote.svg"
       alt=""
       className={cn("size-6 select-none", className)}
       draggable={false}

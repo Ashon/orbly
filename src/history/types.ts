@@ -1,7 +1,7 @@
 import type { MessengerId } from "../messengers/ids.js";
 
 /**
- * Orbly run history format. The bot writes it and the desktop app reads it. (apps/web imports only the types)
+ * Pacenote run history format. The bot writes it and the desktop app reads it. (apps/web imports only the types)
  * Location: <PACENOTE_DATA_DIR>/runs/<YYYY-MM-DD>/<run id>/run.json, outputs in artifacts/ in the same directory
  * Version 2 records where a request came from as origin; version 1 (Slack only) had a slack field, which
  * normalizeRunRecord turns into origin when reading.

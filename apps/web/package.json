@@ -2,7 +2,7 @@
   "name": "@pacenote/web",
   "version": "0.2.2",
   "private": true,
-  "description": "Orbly UI for status, settings and run history (bundled into the desktop app)",
+  "description": "Pacenote UI for status, settings and run history (bundled into the desktop app)",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit && vite build",

@@ -3,7 +3,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 // Exposes only the platform (window button placement), bot control, settings read/write, and sandbox management to the UI. History queries go through pacenote://app/api.
 contextBridge.exposeInMainWorld("pacenoteDesktop", {
   platform: process.platform,
-  // Runs from the repository (Orbly Dev), as opposed to the installed app.
+  // Runs from the repository (Pacenote Dev), as opposed to the installed app.
   dev: process.argv.includes("--pacenote-dev"),
   bot: {
     state: () => ipcRenderer.invoke("pacenote:bot:state"),

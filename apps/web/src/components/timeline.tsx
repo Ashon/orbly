@@ -26,7 +26,7 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "./code-block";
-import { OrblyMark } from "./logo";
+import { PacenoteMark } from "./logo";
 import { Markdown } from "./markdown";
 
 /** Shows the request -> steps -> reply -> outputs in order. */
@@ -99,8 +99,8 @@ export function Timeline({ run }: { run: RunRecord }) {
 
       {answer && (
         <Bubble
-          avatar={<OrblyMark className="size-7" />}
-          title="Orbly"
+          avatar={<PacenoteMark className="size-7" />}
+          title="Pacey"
           meta={run.finishedAt ? formatDateTime(run.finishedAt) : undefined}
           accent
         >

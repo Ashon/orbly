@@ -67,17 +67,18 @@ const sha256 = (text: string) => createHash("sha256").update(text).digest("hex")
 
 const NOTICES = {
   notPaired:
-    "This Slack workspace answers through each member's own Orbly desktop app, and yours is not connected yet. " +
-    "In Orbly, open Settings > Messengers > Slack, choose the team hub and connect, then send me the code it shows.",
+    "This Slack workspace answers through each member's own Pacenote desktop app, and yours is not connected yet. " +
+    "In Pacenote, open Settings > Messengers > Slack, choose the team hub and connect, then send me the code it shows.",
   offline:
-    "Your Orbly desktop is not connected to the hub right now. Open Orbly on your computer and mention me again.",
+    "Your Pacenote desktop is not connected to the hub right now. Open Pacenote on your computer and mention me again.",
   notAllowed:
-    "You are not on the list of members who can use Orbly here. Ask the hub's admin.",
+    "You are not on the list of members who can use Pacenote here. Ask the hub's admin.",
   paired: (label: string) =>
-    `Code accepted for "${label}". Confirm the pairing in your Orbly app to finish.`,
+    `Code accepted for "${label}". Confirm the pairing in your Pacenote app to finish.`,
   unknownCode:
-    "That code is not valid or has expired. Start again in Orbly (Settings > Messengers > Slack) for a new one.",
-  takenCode: "Someone else already sent that code. Start again in Orbly for a new one.",
+    "That code is not valid or has expired. Start again in Pacenote (Settings > Messengers > Slack) for a new one.",
+  takenCode:
+    "Someone else already sent that code. Start again in Pacenote for a new one.",
 };
 
 /**
@@ -187,7 +188,7 @@ export class HubServer {
     if (req.method === "POST" && url.pathname === HUB_PATHS.pairStart) {
       const body = await readJson(req);
       const tokenHash = String(body?.tokenHash ?? "");
-      const label = String(body?.label ?? "").slice(0, 100) || "Orbly desktop";
+      const label = String(body?.label ?? "").slice(0, 100) || "Pacenote desktop";
       if (!HEX64.test(tokenHash)) return json(res, 400, { error: "invalid_request" });
       return json(res, 200, pairings.start(tokenHash, label));
     }

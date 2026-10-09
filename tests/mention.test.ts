@@ -42,7 +42,9 @@ describe("systemPrompt", () => {
   });
 
   it("describes the messenger the mention came from", () => {
-    expect(systemPrompt(slack)).toContain("answers mentions in Slack public channels.");
+    expect(systemPrompt(slack)).toContain(
+      "You are Pacey, a work assistant that answers mentions in Slack public channels."
+    );
     expect(systemPrompt(slack)).toContain("Use Slack mrkdwn");
     expect(systemPrompt(slack)).toContain("do not put secrets");
     expect(systemPrompt({ ...slack, public: false })).not.toContain("do not put secrets");

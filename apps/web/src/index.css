@@ -53,7 +53,7 @@
 }
 
 /*
- * Colors are taken from the emerald -> mint gradient of the logo (assets/orbly.svg).
+ * Colors are taken from the emerald -> mint gradient of the logo (assets/pacenote.svg).
  *   Logo #01ab78 -> #1fc289 -> #48c89c, ring edge mint #a8e7d3
  *   Text contrast: white on light primary #007c5c 5.2:1, #04281d on dark primary #3ccb96 7.7:1
  *   The running status uses teal to stand apart from succeeded (green).
@@ -66,7 +66,7 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  --orbly-gradient: linear-gradient(74deg, #01ab78 0%, #1fc289 46%, #48c89c 100%);
+  --pacenote-gradient: linear-gradient(74deg, #01ab78 0%, #1fc289 46%, #48c89c 100%);
   --background: oklch(0.99 0.004 165);
   --foreground: oklch(0.23 0.025 172);
   --canvas: oklch(0.98 0.006 168);
@@ -207,11 +207,11 @@
   .titlebar-drag :is(a, button, input, select, textarea, [role="button"]) {
     -webkit-app-region: no-drag;
   }
-  .orbly-gradient {
-    background: var(--orbly-gradient);
+  .pacenote-gradient {
+    background: var(--pacenote-gradient);
   }
-  .orbly-gradient-text {
-    background: var(--orbly-gradient);
+  .pacenote-gradient-text {
+    background: var(--pacenote-gradient);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

@@ -248,7 +248,7 @@ describe("answering through any messenger", () => {
     const responder = base(messenger, "a".repeat(45));
     await responder.handle(ask("hi"));
     expect(await responder.drain(5_000)).toBe(true);
-    expect(messenger.posts[0]).toMatch(/^Working on an answe/);
+    expect(messenger.posts[0]).toMatch(/^Working on it\.\.\./);
     expect(messenger.updates).toEqual(["a".repeat(20)]);
     expect(messenger.posts.slice(1)).toEqual(["a".repeat(20), "aaaaa"]);
   });
@@ -256,7 +256,7 @@ describe("answering through any messenger", () => {
   it("tells the asker when they are not allowed or the venue is not answered", async () => {
     const closed = new MemoryMessenger(["u2"]);
     await base(closed).handle(ask("hi"));
-    expect(closed.notices[0]).toMatch(/^This bot is only ava/);
+    expect(closed.notices[0]).toMatch(/^I only answer specif/);
 
     const elsewhere = new MemoryMessenger();
     elsewhere.answerable = false;

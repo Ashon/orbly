@@ -107,7 +107,9 @@ export function RunList({
           ))}
           {runs.data && runs.data.length === 0 && (
             <p className="px-3 py-10 text-center text-sm text-muted-foreground">
-              {q || status ? "No runs match the filters." : "No runs yet."}
+              {q || status
+                ? "No runs match the filters."
+                : "Pacey has not answered any mentions yet."}
             </p>
           )}
           {runs.isError && (

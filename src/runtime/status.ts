@@ -45,7 +45,7 @@ export class BotAlreadyRunningError extends Error {
     managedBy: string
   ) {
     super(
-      `Another Orbly bot is running (pid ${pid}, ${managedBy === "desktop" ? "desktop app" : "terminal"}). ` +
+      `Pacey is already running (pid ${pid}, ${managedBy === "desktop" ? "desktop app" : "terminal"}). ` +
         "Running two with the same app token makes Slack split events between them, so only one runs."
     );
   }
@@ -61,7 +61,7 @@ export class BotStatusFile {
   /**
    * If another bot is alive, waits up to waitMs for it to exit. (Time for the previous process to finish in-progress requests on a pnpm dev restart)
    * If it is still alive, throws BotAlreadyRunningError. otherDirs are also checked for a running bot (both default homes,
-   * so an old Verda and a new Orbly never connect at the same time), but the status file is written only to dataDir.
+   * so an old Verda or Orbly and a new Pacenote never connect at the same time), but the status file is written only to dataDir.
    */
   static async acquire(
     dataDir: string,

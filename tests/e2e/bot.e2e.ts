@@ -39,7 +39,7 @@ describe("bot on its own Slack app", () => {
     const [reply] = await world.answered(ops.id, root);
 
     // The placeholder is edited into the answer, in Slack mrkdwn.
-    expect(reply!.edits).toEqual(["Working on an answer... (`claude@host`)"]);
+    expect(reply!.edits).toEqual(["Working on it... (`claude@host`)"]);
     expect(reply!.text).toBe("*Healthy*. See <https://runbook.example.com|the runbook>.");
     const [call] = world.claudeCalls();
     expect(call!.request).toBe("check web-01");
@@ -164,7 +164,7 @@ describe("bot on its own Slack app", () => {
       {
         channel: ops.id,
         user: bob.id,
-        text: "This bot is only available to specific users.",
+        text: "I only answer specific people here.",
         thread_ts: undefined,
       },
     ]);
@@ -186,7 +186,7 @@ describe("bot on its own Slack app", () => {
     await eventually("the notice", () => slack.ephemerals.length > 0);
     expect(slack.ephemerals[0]).toMatchObject({
       user: alice.id,
-      text: "This bot only answers in public channels.",
+      text: "I only answer in public channels.",
     });
     expect(slack.replies(secret.id, ts)).toEqual([]);
     expect(world.claudeCalls()).toEqual([]);
@@ -206,10 +206,10 @@ describe("bot on its own Slack app", () => {
     });
     const [reply] = await eventually("the failure message", () => {
       const replies = slack.replies(ops.id, ts);
-      return replies[0]?.text.startsWith("Couldn't") ? replies : undefined;
+      return replies[0]?.text.startsWith("I couldn't") ? replies : undefined;
     });
     expect(reply!.text).toBe(
-      "Couldn't produce an answer. An error occurred while processing the request."
+      "I couldn't produce an answer. An error occurred while processing the request."
     );
     const run = await eventually("the failed run", () =>
       world!.runs().find((r) => r.status === "failed")
@@ -324,8 +324,8 @@ describe("bot on its own Slack app", () => {
     const [reply] = await world.answered(ops.id, ts);
     expect(reply!.text).toBe("Survived.");
     expect(reply!.edits).toEqual([
-      "Working on an answer... (`claude@host`)",
-      "The bot restarted. Resuming the answer... (`claude@host`)",
+      "Working on it... (`claude@host`)",
+      "I restarted, so I'm picking this up again... (`claude@host`)",
     ]);
     const run = await eventually("the resumed run", () =>
       world!.runs().find((r) => r.status === "succeeded")

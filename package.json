@@ -1,8 +1,8 @@
 {
-  "name": "orbly",
+  "name": "pacenote",
   "version": "0.2.2",
   "private": true,
-  "description": "Orbly: a Slack ops bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)",
+  "description": "Pacenote: a Slack ops bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)",
   "type": "module",
   "packageManager": "pnpm@11.4.0",
   "engines": {

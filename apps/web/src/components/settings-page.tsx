@@ -81,7 +81,7 @@ const SECTION_INFO: Record<Section, { label: string; help: string; icon: LucideI
   ) as Record<SettingSection, { label: string; help: string; icon: LucideIcon }>),
   general: {
     label: "General",
-    help: "Preferences for this app, and where Orbly keeps its settings and run history.",
+    help: "Preferences for this app, and where Pacenote keeps its settings and run history.",
     icon: SlidersHorizontal,
   },
 };
@@ -89,7 +89,7 @@ const SECTION_INFO: Record<Section, { label: string; help: string; icon: LucideI
 /** The app's own preferences first, then the bot's settings (as macOS lists General first) */
 const NAV: { label: string; items: Section[] }[] = [
   { label: "App", items: ["general"] },
-  { label: "Bot", items: SETTING_SECTIONS.map((info) => info.id) },
+  { label: "Pacey", items: SETTING_SECTIONS.map((info) => info.id) },
 ];
 
 const GROUP = Object.fromEntries(SETTING_GROUPS.map((info) => [info.id, info])) as Record<
@@ -262,11 +262,11 @@ export function SettingsPage() {
           restarted || !botChanged
             ? {
                 tone: brokerChanged ? "warn" : "ok",
-                text: `${restarted ? (botLive ? "Saved and restarted the bot." : "Saved and started the bot.") : "Saved."}${brokerNote}`,
+                text: `${restarted ? (botLive ? "Saved and restarted Pacey." : "Saved and started Pacey.") : "Saved."}${brokerNote}`,
               }
             : {
                 tone: "warn",
-                text: `Saved. Restart the bot to apply.${brokerNote}`,
+                text: `Saved. Restart Pacey to apply.${brokerNote}`,
                 restart: Boolean(supervisor),
               }
         );
@@ -306,7 +306,7 @@ export function SettingsPage() {
                 }
               : {
                   tone: "warn",
-                  text: `Saved the ${label}. ${botLive ? "Restart" : "Start"} the bot to use it.`,
+                  text: `Saved the ${label}. ${botLive ? "Restart" : "Start"} Pacey to use it.`,
                   restart: true,
                 }
         );
@@ -496,7 +496,7 @@ export function SettingsPage() {
                     load();
                     setNotice({
                       tone: "warn",
-                      text: "Saved a new claude token. Restart the bot to use it.",
+                      text: "Saved a new claude token. Restart Pacey to use it.",
                       restart: true,
                     });
                   }}
@@ -588,8 +588,8 @@ export function SettingsPage() {
             </Row>
             {supervisor && (
               <Row
-                label="Start the bot when the app opens"
-                help="When off, start the bot from the Bot screen or the menu bar."
+                label="Start Pacey when the app opens"
+                help="When off, start Pacey from its screen or the menu bar."
               >
                 <Switch
                   checked={supervisor.autoStart}
@@ -602,15 +602,15 @@ export function SettingsPage() {
         <section className="surface-card overflow-hidden">
           <CardHeader
             title="Files"
-            help="The bot reads its settings from a file outside the repository. Runs from the app and the terminal share it."
+            help="Pacey reads its settings from a file outside the repository. Runs from the app and the terminal share it."
           />
           <div className="divide-y divide-canvas">
             <Row
               label="Settings file"
               help={
                 view.exists
-                  ? "Everything under Bot is saved here."
-                  : "Does not exist yet. Saving any bot setting creates it."
+                  ? "Everything under Pacey is saved here."
+                  : "Does not exist yet. Saving any of Pacey's settings creates it."
               }
             >
               <PathControl
@@ -713,11 +713,11 @@ export function SettingsPage() {
                       void (botLive ? control?.restart() : control?.start());
                       setNotice({
                         tone: "ok",
-                        text: botLive ? "Restarting the bot." : "Starting the bot.",
+                        text: botLive ? "Restarting Pacey." : "Starting Pacey.",
                       });
                     }}
                   >
-                    {botLive ? "Restart now" : "Start bot"}
+                    {botLive ? "Restart now" : "Start Pacey"}
                   </Button>
                 )}
               </div>
@@ -772,7 +772,7 @@ export function SettingsPage() {
                     disabled={saving || issues.length > 0}
                   >
                     {saving ? <LoaderCircle className="animate-spin" /> : <Save />}
-                    {botLive ? "Save and restart bot" : "Save and start bot"}
+                    {botLive ? "Save and restart Pacey" : "Save and start Pacey"}
                   </Button>
                 )}
               </div>
@@ -1147,7 +1147,7 @@ type PairState =
   | { step: "error"; message: string };
 
 /**
- * Pairs this desktop with the team hub: get a code, send "@orbly connect <code>" in Slack, then confirm the Slack
+ * Pairs this desktop with the team hub: get a code, send "@Pacey connect <code>" in Slack, then confirm the Slack
  * member who sent it. Confirming is what makes it count, so a code someone else saw and sent first is turned down here.
  */
 function HubPairing({
@@ -1211,7 +1211,7 @@ function HubPairing({
         });
       setState({ step: "idle" });
       onPaired(
-        `Paired with the hub as ${res.user.name} @ ${res.team.name}.${res.started ? " Started the bot." : ""}`
+        `Paired with the hub as ${res.user.name} @ ${res.team.name}.${res.started ? " Started Pacey." : ""}`
       );
     });
   };
@@ -1246,7 +1246,7 @@ function HubPairing({
               <p className="text-sm font-medium">Pair this desktop</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {state.note ??
-                  "You get a code to send to Orbly in Slack. Mentions you make then come to this desktop."}
+                  "You get a code to send to Pacey in Slack. Mentions you make then come to this desktop."}
               </p>
             </div>
             <Button size="sm" onClick={start} disabled={!hubUrl}>
@@ -1266,11 +1266,11 @@ function HubPairing({
         return (
           <div className="space-y-2.5">
             <p className="text-sm">
-              In Slack, mention Orbly with this code in any channel it is in:
+              In Slack, mention Pacey with this code in any channel it is in:
             </p>
             <div className="flex items-center gap-3">
               <code className="rounded-lg bg-card px-3 py-2 font-mono text-base font-semibold tracking-wide shadow-xs select-all">
-                @orbly connect {state.code}
+                @Pacey connect {state.code}
               </code>
               <Button size="sm" variant="ghost" onClick={() => cancel()}>
                 Cancel

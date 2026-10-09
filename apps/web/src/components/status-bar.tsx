@@ -30,12 +30,12 @@ export function StatusBar({
 
   return (
     <footer className="surface-bar flex h-7 shrink-0 items-center gap-1 overflow-hidden border-t border-sidebar-border bg-sidebar px-2 text-[11px] whitespace-nowrap text-muted-foreground">
-      {/* When setup is needed, the bot status goes straight to Settings, where it is fixed. */}
+      {/* When setup is needed, Pacey's status goes straight to Settings, where it is fixed. */}
       <Item
         tip={
           supervisor?.phase === "setup"
-            ? "Open Settings to set up the bot"
-            : "Bot status and logs"
+            ? "Open Settings to set up Pacey"
+            : "Pacey's status and logs"
         }
         onClick={
           supervisor?.phase === "setup"
@@ -54,7 +54,7 @@ export function StatusBar({
           )}
           <span className={cn("relative size-2 rounded-full", TONE_CLASS[tone].dot)} />
         </span>
-        <span className={cn("font-medium", TONE_CLASS[tone].text)}>Bot: {label}</span>
+        <span className={cn("font-medium", TONE_CLASS[tone].text)}>Pacey: {label}</span>
       </Item>
       {status?.reasoner && (
         <Item tip="Reasoner backend" onClick={onOpenBot}>
@@ -91,7 +91,7 @@ export function StatusBar({
           </Item>
         )}
         {status?.requests.lastAt && (
-          <Item tip={`${status.requests.handled} handled since the bot started`}>
+          <Item tip={`${status.requests.handled} handled since Pacey started`}>
             <Clock />
             Last request {formatRelative(status.requests.lastAt)}
           </Item>

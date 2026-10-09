@@ -1,12 +1,13 @@
 import AppKit
 
-// Draws the colors and shapes of assets/orbly-icon.svg as PNG.
-// - Default: dock icon for dev runs (electron .). The dock uses the PNG as is, so this draws the treatment the system
-//   applies to packaged app icons (824 body out of 1024, rounded square, shadow, top highlight) by hand.
-//   orbly-icon-dev.png adds an amber DEV tag, so a run from the repository never looks like the installed app.
+// Draws the colors and shapes of assets/pacenote-icon.svg and assets/pacenote.svg as PNG.
+// - Default: the dock icon for dev runs (electron .), the README logo and the menu bar icon, into the assets directory.
+//   The dock uses the PNG as is, so the icon gets the treatment the system applies to packaged app icons (824 body out
+//   of 1024, rounded square, shadow, top highlight) by hand. pacenote-icon-dev.png adds an amber DEV tag, so a run
+//   from the repository never looks like the installed app. The menu bar icon is the mark alone, in its gradient.
 //   Usage: swift apps/desktop/scripts/icon.swift <assets directory>
 // - --iconset: macOS icon set for the packaged app (.icns). Draws the svg full bleed; the system applies the grid and effects.
-//   Usage: swift apps/desktop/scripts/icon.swift --iconset <Orbly.iconset>
+//   Usage: swift apps/desktop/scripts/icon.swift --iconset <Pacenote.iconset>
 let iconsetMode = CommandLine.arguments[1] == "--iconset"
 let destination = URL(fileURLWithPath: CommandLine.arguments[iconsetMode ? 2 : 1])
 
@@ -36,6 +37,27 @@ func gradient(_ colors: [CGColor], _ locations: [CGFloat]) -> CGGradient {
     CGGradient(colorsSpace: space, colors: colors as CFArray, locations: locations)!
 }
 
+/// The mark as one filled outline, from assets/pacenote.svg (512 grid): the track, a ring of radius 164 and width 84
+/// opened at the upper right, and Pacey, a dot of radius 42 on the same circle one step ahead. `scale` maps svg units
+/// to pixels around `center`. y grows upward here, so the svg's angles flip sign.
+func mark(center: CGPoint, scale: CGFloat) -> CGPath {
+    let start = atan2(256 - 92.9, 273.1 - 256) // svg (273.1, 92.9): the top, just right of center
+    let end = atan2(256 - 238.9, 419.1 - 256) // svg (419.1, 238.9): the right, just above center
+    let track = CGMutablePath()
+    track.addArc(center: center, radius: 164 * scale, startAngle: start, endAngle: end + 2 * .pi,
+        clockwise: false)
+    let path = CGMutablePath()
+    path.addPath(track.copy(strokingWithWidth: 84 * scale, lineCap: .round, lineJoin: .round,
+        miterLimit: 10))
+    // svg (372, 140): 116 right of and 116 above the center
+    path.addEllipse(in: CGRect(x: center.x + (116 - 42) * scale, y: center.y + (116 - 42) * scale,
+        width: 84 * scale, height: 84 * scale))
+    return path
+}
+
+/// The icon svgs draw the mark at 0.04126 of its 512 grid per cell of their 32 grid (an outer diameter of 17 cells).
+let markPerCell: CGFloat = 0.04126
+
 func render(pixels: Int, to name: String, dev: Bool = false) throws {
     let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
@@ -44,7 +66,7 @@ func render(pixels: Int, to name: String, dev: Bool = false) throws {
     let k = CGFloat(pixels) / 1024
     // Coordinates where y grows upward. The body is 824 from (100, 100) on the 1024 grid
     let body = CGRect(x: 100 * k, y: 100 * k, width: 824 * k, height: 824 * k)
-    let unit = body.width / 32 // one cell of the orbly-icon.svg 32 grid
+    let unit = body.width / 32 // one cell of the pacenote-icon.svg 32 grid
     let shape = squircle(body)
 
     // 1. Drop shadow
@@ -71,23 +93,19 @@ func render(pixels: Int, to name: String, dev: Bool = false) throws {
         start: CGPoint(x: body.midX, y: body.maxY),
         end: CGPoint(x: body.midX, y: body.midY), options: [])
 
-    // 4. Ring (svg: center (16, 16), outer 8.5, inner 3.25). A shadow makes it look slightly raised.
+    // 4. The mark (svg: centered at (16, 16), outer diameter 17). A shadow makes it look slightly raised.
     let center = CGPoint(x: body.midX, y: body.midY)
-    let ring = CGMutablePath()
-    ring.addEllipse(in: CGRect(x: center.x - 8.5 * unit, y: center.y - 8.5 * unit,
-        width: 17 * unit, height: 17 * unit))
-    ring.addEllipse(in: CGRect(x: center.x - 3.25 * unit, y: center.y - 3.25 * unit,
-        width: 6.5 * unit, height: 6.5 * unit))
+    let shapeOfMark = mark(center: center, scale: markPerCell * unit)
     context.saveGState()
     context.setShadow(offset: CGSize(width: 0, height: -6 * k), blur: 16 * k,
         color: CGColor(red: 0, green: 0.25, blue: 0.16, alpha: 0.3))
-    context.addPath(ring)
+    context.addPath(shapeOfMark)
     context.setFillColor(CGColor(gray: 1, alpha: 1))
-    context.fillPath(using: .evenOdd)
+    context.fillPath()
     context.restoreGState()
     context.saveGState()
-    context.addPath(ring)
-    context.clip(using: .evenOdd)
+    context.addPath(shapeOfMark)
+    context.clip()
     context.drawLinearGradient(
         gradient([CGColor(gray: 1, alpha: 1),
                   CGColor(red: 0.91, green: 0.98, blue: 0.95, alpha: 1)], [0, 1]),
@@ -110,7 +128,7 @@ func render(pixels: Int, to name: String, dev: Bool = false) throws {
         end: CGPoint(x: body.midX, y: body.minY), options: [])
     context.restoreGState()
 
-    // 6. Dev tag: an amber pill under the ring, clear of it (the ring ends 23.5% above the body bottom)
+    // 6. Dev tag: an amber pill under the mark, clear of it (the mark ends 23.5% above the body bottom)
     if dev {
         let h = body.height * 0.16, w = body.width * 0.5
         let pill = CGRect(x: body.midX - w / 2, y: body.minY + body.height * 0.02, width: w, height: h)
@@ -142,7 +160,7 @@ func render(pixels: Int, to name: String, dev: Bool = false) throws {
         .write(to: destination.appendingPathComponent(name))
 }
 
-/// Full-bleed icon matching the svg: 32 grid, corner 8, diagonal gradient, white ring
+/// Full-bleed icon matching the svg: 32 grid, corner 8, diagonal gradient, white mark
 func renderFlat(pixels: Int, to name: String) throws {
     let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
@@ -156,12 +174,29 @@ func renderFlat(pixels: Int, to name: String) throws {
     context.drawLinearGradient(gradient([emerald, mint], [0, 1]),
         start: CGPoint(x: 4 * unit, y: 4 * unit), end: CGPoint(x: 28 * unit, y: 28 * unit),
         options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
-    let ring = CGMutablePath()
-    ring.addEllipse(in: CGRect(x: 7.5 * unit, y: 7.5 * unit, width: 17 * unit, height: 17 * unit))
-    ring.addEllipse(in: CGRect(x: 12.75 * unit, y: 12.75 * unit, width: 6.5 * unit, height: 6.5 * unit))
-    context.addPath(ring)
+    context.addPath(mark(center: CGPoint(x: 16 * unit, y: 16 * unit), scale: markPerCell * unit))
     context.setFillColor(CGColor(gray: 1, alpha: 1))
-    context.fillPath(using: .evenOdd)
+    context.fillPath()
+    try bitmap.representation(using: .png, properties: [:])!
+        .write(to: destination.appendingPathComponent(name))
+}
+
+/// The menu bar icon: the mark alone on transparent, fitted to the square, in the logo's gradient
+/// (svg: (54, 314) -> (458, 198), emerald -> mint)
+func renderTray(pixels: Int, to name: String) throws {
+    let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+    let context = NSGraphicsContext(bitmapImageRep: bitmap)!.cgContext
+    let side = CGFloat(pixels)
+    let scale = side / 412 // the mark's outer diameter is 412 svg units
+    let center = CGPoint(x: side / 2, y: side / 2)
+    context.addPath(mark(center: center, scale: scale))
+    context.clip()
+    context.drawLinearGradient(gradient([emerald, green, mint], [0, 0.46, 1]),
+        start: CGPoint(x: center.x - 202 * scale, y: center.y - 58 * scale),
+        end: CGPoint(x: center.x + 202 * scale, y: center.y + 58 * scale),
+        options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
     try bitmap.representation(using: .png, properties: [:])!
         .write(to: destination.appendingPathComponent(name))
 }
@@ -176,8 +211,11 @@ if iconsetMode {
     }
 } else {
     // Dock/window icon (1024) and README logo (256, shown at 128 on screen)
-    try render(pixels: 1024, to: "orbly-icon.png")
-    try render(pixels: 256, to: "orbly-icon-256.png")
-    // Dock/window icon for dev runs (Orbly Dev)
-    try render(pixels: 1024, to: "orbly-icon-dev.png", dev: true)
+    try render(pixels: 1024, to: "pacenote-icon.png")
+    try render(pixels: 256, to: "pacenote-icon-256.png")
+    // Dock/window icon for dev runs (Pacenote Dev)
+    try render(pixels: 1024, to: "pacenote-icon-dev.png", dev: true)
+    // Menu bar icon (18pt, and @2x for Retina)
+    try renderTray(pixels: 18, to: "pacenote-tray.png")
+    try renderTray(pixels: 36, to: "pacenote-tray@2x.png")
 }

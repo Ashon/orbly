@@ -20,7 +20,7 @@ export function parseLogLine(raw: string): LogLine {
 export interface LogQuery {
   /** Max number of lines (from the end) */
   lines?: number;
-  /** Scope prefix (e.g. orbly:socket) */
+  /** Scope prefix (e.g. pacenote:socket) */
   scope?: string;
   /** Only this level and above */
   minLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";

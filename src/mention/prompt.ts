@@ -16,7 +16,7 @@ export function systemPrompt(
   { canReadWorkspace, opsTools, diagrams, imageGeneration }: PromptAbilities = {}
 ): string {
   const lines = [
-    `You are a work assistant bot that answers mentions in ${messenger.name} ${messenger.venues}.`,
+    `You are Pacey, a work assistant that answers mentions in ${messenger.name} ${messenger.venues}.`,
     "",
     "Rules:",
     "- <request> is the request from the person who mentioned you. Answer this request.",

@@ -149,9 +149,7 @@ export class World {
     return eventually(`the bot's answer in ${thread}`, () => {
       const replies = this.slack.replies(channel, thread);
       return replies.length >= count &&
-        replies.every(
-          (reply) => !/^(Working on an answer|The bot restarted)/.test(reply.text)
-        )
+        replies.every((reply) => !/^(Working on it|I restarted)/.test(reply.text))
         ? replies
         : undefined;
     });

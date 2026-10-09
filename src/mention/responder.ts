@@ -118,18 +118,12 @@ export class MentionResponder {
       log.info(
         `Ignoring mention from a user not on the allowlist: ${mention.userId} in ${mention.conversation}`
       );
-      await messenger.notice(
-        mention,
-        say("This bot is only available to specific users.")
-      );
+      await messenger.notice(mention, say("I only answer specific people here."));
       return;
     }
     const venue = await messenger.venue(mention);
     if (!venue.answerable) {
-      await messenger.notice(
-        mention,
-        say(venue.refusal ?? "This bot does not answer here.")
-      );
+      await messenger.notice(mention, say(venue.refusal ?? "I don't answer here."));
       return;
     }
 
@@ -139,7 +133,7 @@ export class MentionResponder {
     if (!accepted) {
       await messenger.post(
         mention,
-        say("Too many requests right now. Please mention me again in a moment.")
+        say("I have too many requests right now. Please mention me again in a moment.")
       );
     }
   }
@@ -160,14 +154,11 @@ export class MentionResponder {
         .update(
           mention,
           placeholder,
-          say(`The bot restarted. Resuming the answer... (\`${where}\`)`)
+          say(`I restarted, so I'm picking this up again... (\`${where}\`)`)
         )
         .catch(() => undefined);
     } else {
-      placeholder = await messenger.post(
-        mention,
-        say(`Working on an answer... (\`${where}\`)`)
-      );
+      placeholder = await messenger.post(mention, say(`Working on it... (\`${where}\`)`));
     }
     const key = mentionKey(mention);
     this.requests.active += 1;
@@ -287,7 +278,7 @@ export class MentionResponder {
         ? "The request timed out."
         : "An error occurred while processing the request.";
       await messenger
-        .update(mention, placeholder, say(`Couldn't produce an answer. ${reason}`))
+        .update(mention, placeholder, say(`I couldn't produce an answer. ${reason}`))
         .catch(() => undefined);
     } finally {
       inflight?.remove(key);
@@ -343,7 +334,7 @@ export class MentionResponder {
             entry.mention,
             entry.placeholder,
             messenger.render(
-              "Couldn't produce an answer. The bot restarted and the request was interrupted. Please mention me again."
+              "I couldn't finish this: I restarted and the request was cut off. Please mention me again."
             )[0] ?? ""
           )
           .catch(() => undefined);
@@ -513,7 +504,7 @@ export class MentionResponder {
         .map((upload) => `${upload.title} source:\n\`\`\`\n${upload.raw}\n\`\`\``)
         .join("\n\n");
       for (const chunk of messenger.render(
-        `Couldn't upload the images.${sources ? `\n${sources}` : ""}`
+        `I couldn't upload the images.${sources ? `\n${sources}` : ""}`
       )) {
         await messenger.post(mention, chunk).catch(() => undefined);
       }

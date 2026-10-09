@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Pacenote</title>
+  <defs>
+    <linearGradient id="pacenote-icon-gradient" x1="4" y1="28" x2="28" y2="4" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#01ab78"/>
+      <stop offset="1" stop-color="#48c89c"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#pacenote-icon-gradient)"/>
+  <!-- Same mark as pacenote.svg, scaled to an outer diameter of 17 -->
+  <g transform="translate(16 16) scale(0.04126) translate(-256 -256)" fill="#ffffff">
+    <path d="M273.1 92.9A164 164 0 1 0 419.1 238.9" fill="none" stroke="#ffffff" stroke-width="84" stroke-linecap="round"/>
+    <circle cx="372" cy="140" r="42"/>
+  </g>
+</svg>

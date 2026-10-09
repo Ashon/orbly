@@ -86,7 +86,7 @@ export class SlackMessenger implements Messenger {
       : {
           label: channel.label,
           answerable: false,
-          refusal: "This bot only answers in public channels.",
+          refusal: "I only answer in public channels.",
         };
   }
 

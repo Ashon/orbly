@@ -6,7 +6,7 @@ export type Section = "overview" | "bot" | "settings";
 
 const TOP: { section: Section; label: string; icon: LucideIcon }[] = [
   { section: "overview", label: "Overview", icon: LayoutDashboard },
-  { section: "bot", label: "Bot", icon: Bot },
+  { section: "bot", label: "Pacey", icon: Bot },
 ];
 const BOTTOM: { section: Section; label: string; icon: LucideIcon } = {
   section: "settings",
@@ -34,9 +34,9 @@ export function NavRail({
           active === section && "bg-card text-foreground shadow-xs hover:bg-card"
         )}
       >
-        {/* The active section is marked with the Orbly gradient at the rail's edge. */}
+        {/* The active section is marked with the Pacenote gradient at the rail's edge. */}
         {active === section && (
-          <span className="orbly-gradient absolute top-1/2 -left-2.5 h-5 w-[3px] -translate-y-1/2 rounded-r-full" />
+          <span className="pacenote-gradient absolute top-1/2 -left-2.5 h-5 w-[3px] -translate-y-1/2 rounded-r-full" />
         )}
         <Icon className="size-[18px]" strokeWidth={1.75} />
       </button>

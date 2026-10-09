@@ -20,7 +20,7 @@ describe("app paths", () => {
       jobRunner: "/repo/build/tools/sandbox-job.mjs",
       repoRoot: "/repo",
     });
-    const app = "/Applications/Orbly.app/Contents/Resources/app";
+    const app = "/Applications/Pacenote.app/Contents/Resources/app";
     expect(resolveAppPaths(`${app}/dist`, true)).toEqual({
       packaged: true,
       webDist: `${app}/web`,
@@ -115,12 +115,12 @@ describe("release", () => {
 
   it("the cask template keeps the placeholders update-tap.sh fills in", () => {
     const cask = readFileSync(
-      path.join(import.meta.dirname, "../deploy/homebrew/Casks/orbly.rb"),
+      path.join(import.meta.dirname, "../deploy/homebrew/Casks/pacenote.rb"),
       "utf8"
     );
     expect(cask).toMatch(/^ {2}version "[^"]+"$/m);
     expect(cask).toContain("REPLACE_SHA256_ARM64");
     expect(cask).toContain("REPLACE_SHA256_X64");
-    expect(cask).toContain("Orbly-v#{version}-macos-#{arch}.app.zip");
+    expect(cask).toContain("Pacenote-v#{version}-macos-#{arch}.app.zip");
   });
 });
