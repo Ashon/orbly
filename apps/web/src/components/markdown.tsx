@@ -39,7 +39,7 @@ export function Markdown({
   return (
     <div
       className={cn(
-        "prose prose-sm max-w-none text-foreground dark:prose-invert",
+        "prose prose-sm max-w-none text-foreground select-text dark:prose-invert",
         "prose-headings:font-semibold prose-headings:text-foreground prose-p:leading-relaxed",
         "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
         // Code background is --code-bg (default well). Inside mint replies it switches to the card surface so gray and green do not mix.

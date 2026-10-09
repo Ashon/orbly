@@ -171,7 +171,7 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
                 <CircleX className="size-3.5 shrink-0 text-status-failed" />
               )}
               <span className={cn("break-all", !check.ok && "text-status-failed")}>
-                {check.detail}
+                <span className="select-text">{check.detail}</span>
               </span>
             </Line>
           ))}
@@ -312,7 +312,7 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
             const issue = issues.find((item) => item.domain === domain);
             return (
               <li key={domain} className="flex items-center gap-2 px-3 py-1.5 text-xs">
-                <span className="font-mono">{domain}</span>
+                <span className="font-mono select-text">{domain}</span>
                 {isRequired && (
                   <span className="flex items-center gap-1 rounded bg-muted px-1.5 text-[10px] text-muted-foreground">
                     <Lock className="size-2.5" />
@@ -474,7 +474,7 @@ function JobOutput({
       </div>
       <pre
         ref={outputRef}
-        className="max-h-64 overflow-auto rounded-lg bg-well px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words"
+        className="select-text max-h-64 overflow-auto rounded-lg bg-well px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words"
       >
         {job.output.join("\n")}
       </pre>

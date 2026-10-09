@@ -84,9 +84,10 @@ const SECTION_INFO: Record<Section, { label: string; help: string; icon: LucideI
   },
 };
 
+/** The app's own preferences first, then the bot's settings (as macOS lists General first) */
 const NAV: { label: string; items: Section[] }[] = [
-  { label: "Bot", items: SETTING_SECTIONS.map((info) => info.id) },
   { label: "App", items: ["general"] },
+  { label: "Bot", items: SETTING_SECTIONS.map((info) => info.id) },
 ];
 
 const GROUP = Object.fromEntries(SETTING_GROUPS.map((info) => [info.id, info])) as Record<
@@ -95,10 +96,13 @@ const GROUP = Object.fromEntries(SETTING_GROUPS.map((info) => [info.id, info])) 
 >;
 const FIELD = new Map(SETTING_FIELDS.map((field) => [field.key, field]));
 
-/** #/settings/<section> picks the section; plain #/settings opens Slack, the first thing to set up. */
+/**
+ * #/settings/<section> picks the section; plain #/settings opens the first one, General. ("Setup needed" links straight
+ * to the section to fix, such as #/settings/slack.)
+ */
 function readSection(): Section {
   const id = /^#\/settings\/([a-z]+)/.exec(window.location.hash)?.[1];
-  return id && id in SECTION_INFO ? (id as Section) : "slack";
+  return id && id in SECTION_INFO ? (id as Section) : "general";
 }
 
 function useSection(): [Section, (section: Section) => void] {
@@ -566,7 +570,7 @@ export function SettingsPage() {
                 help="Settings this screen does not handle. Saving keeps them as they are."
               >
                 <span className="max-w-72 text-right font-mono text-xs text-muted-foreground">
-                  {view.otherKeys.join(", ")}
+                  <span className="select-text">{view.otherKeys.join(", ")}</span>
                 </span>
               </Row>
             )}
@@ -609,7 +613,7 @@ export function SettingsPage() {
 
       <div className="@container/content flex min-w-0 flex-1 flex-col">
         <ScrollArea className="min-h-0 flex-1">
-          <div className="max-w-3xl space-y-4 px-8 py-6 @max-[32rem]/content:px-4">
+          <div className="max-w-3xl space-y-4 px-8 py-6 @max-[36rem]/content:px-4">
             <header>
               <h2 className="text-lg font-semibold tracking-tight">
                 {SECTION_INFO[section].label}
@@ -633,7 +637,7 @@ export function SettingsPage() {
                 ) : (
                   <TriangleAlert className="size-4 shrink-0" />
                 )}
-                {notice.text}
+                <span className="select-text">{notice.text}</span>
                 {notice.restart && canRestart && (
                   <Button
                     size="xs"
@@ -657,7 +661,7 @@ export function SettingsPage() {
         </ScrollArea>
 
         {changeCount > 0 && (
-          <footer className="shrink-0 border-t bg-canvas/95 px-8 py-3 backdrop-blur @max-[32rem]/content:px-4">
+          <footer className="shrink-0 border-t bg-canvas/95 px-8 py-3 backdrop-blur @max-[36rem]/content:px-4">
             <div className="flex max-w-3xl flex-wrap items-center gap-2">
               <span className="text-sm font-medium">
                 {changeCount} unsaved {changeCount === 1 ? "change" : "changes"}
@@ -1253,7 +1257,9 @@ function Requirements({
             <CircleX className="size-3.5 shrink-0 text-status-interrupted" />
           )}
           <span className="w-28 shrink-0 font-medium">{item.label}</span>
-          <span className="min-w-0 flex-1 text-muted-foreground">{item.detail}</span>
+          <span className="min-w-0 flex-1 text-muted-foreground select-text">
+            {item.detail}
+          </span>
           {item.action && (
             <Button
               size="xs"
@@ -1284,7 +1290,7 @@ function PathControl({
       {/* A long path is cut short here; hover shows it whole. */}
       <span
         title={path}
-        className="max-w-64 truncate font-mono text-xs text-muted-foreground"
+        className="max-w-64 truncate font-mono text-xs text-muted-foreground select-text"
       >
         {path}
       </span>
@@ -1334,7 +1340,7 @@ function FieldRow({
       <div className="px-4 py-3">
         <Choice field={field} value={value} onChange={onChange} />
         <div className="mt-2 flex items-center gap-1.5 font-mono text-[10.5px] text-muted-foreground/80">
-          {field.key}
+          <span className="select-text">{field.key}</span>
           {changed && (
             <span className="size-1.5 rounded-full bg-primary" aria-label="Changed" />
           )}
@@ -1371,7 +1377,7 @@ function Choice({
     <div
       role="radiogroup"
       aria-label={field.label}
-      className="grid grid-cols-2 gap-2 @max-[32rem]/content:grid-cols-1"
+      className="grid grid-cols-2 gap-2 @max-[36rem]/content:grid-cols-1"
     >
       {field.options?.map((option) => {
         const checked = option.value === selected;
@@ -1520,11 +1526,13 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-4 px-4 py-3 @max-[32rem]/content:flex-col @max-[32rem]/content:gap-2">
-      <div className="min-w-0 flex-1 @max-[32rem]/content:w-full">
+    <div className="flex items-start gap-4 px-4 py-3 @max-[36rem]/content:flex-col @max-[36rem]/content:gap-2">
+      <div className="min-w-0 flex-1 @max-[36rem]/content:w-full">
         <div className="text-sm font-medium">{label}</div>
         {sub && (
-          <div className="font-mono text-[10.5px] text-muted-foreground/80">{sub}</div>
+          <div className="font-mono text-[10.5px] text-muted-foreground/80 select-text">
+            {sub}
+          </div>
         )}
         {help && <p className="mt-0.5 text-xs text-muted-foreground">{help}</p>}
         <RowNotes warning={warning} issue={issue} />
@@ -1540,10 +1548,10 @@ function RowNotes({ warning, issue }: { warning?: string; issue?: string }) {
       {warning && (
         <p className="mt-1 flex items-center gap-1 text-xs text-status-interrupted">
           <TriangleAlert className="size-3.5 shrink-0" />
-          {warning}
+          <span className="select-text">{warning}</span>
         </p>
       )}
-      {issue && <p className="mt-1 text-xs text-status-failed">{issue}</p>}
+      {issue && <p className="mt-1 text-xs text-status-failed select-text">{issue}</p>}
     </>
   );
 }
@@ -1650,7 +1658,7 @@ function CheckResult({ items }: { items: SlackCheckItem[] }) {
             <CircleX className="mt-px size-3.5 shrink-0 text-status-failed" />
           )}
           <span className="w-20 shrink-0 font-medium">{item.label}</span>
-          <span className="text-muted-foreground">{item.detail}</span>
+          <span className="text-muted-foreground select-text">{item.detail}</span>
         </li>
       ))}
     </ul>

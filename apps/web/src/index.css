@@ -178,6 +178,22 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
     overflow: hidden;
+    /* An app, not a page: its chrome (labels, titles, buttons, cards) is not text to select or drag.
+       Content worth copying opts back in with select-text (requests, replies, logs, paths, keys, errors). */
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+  }
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  /* Selectable content shows the text cursor over its text */
+  .select-text,
+  .select-all {
+    cursor: auto;
   }
   ::selection {
     background: color-mix(in oklch, var(--chart-1) 35%, transparent);

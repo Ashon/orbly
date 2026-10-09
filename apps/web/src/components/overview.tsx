@@ -233,7 +233,9 @@ export function Overview() {
         <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
           <FolderOpen className="mt-px size-3.5 shrink-0" />
           <span className="shrink-0">Run history folder</span>
-          <span className="min-w-0 font-mono break-all">{health.data.root}</span>
+          <span className="min-w-0 font-mono break-all select-text">
+            {health.data.root}
+          </span>
         </p>
       )}
     </div>

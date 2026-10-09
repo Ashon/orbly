@@ -392,16 +392,16 @@ Bot management:
 Settings:
 
 - The gear icon at the bottom of the left rail ("Settings") edits the config file (`~/.orbly/.env`). The app and terminal runs use the same file, so settings do not diverge.
-- Settings has its own section list (`#/settings/<section>`):
+- Settings has its own section list (`#/settings/<section>`): General for the app first, then the bot's sections.
 
   | Section | What it holds |
   | --- | --- |
+  | General | Theme, starting the bot with the app, the settings file and run history folder |
   | Slack | The connection (team hub with pairing, or your own app's tokens) with "Check connection", allowed users, Socket Mode keepalive (advanced) |
   | Answers | Reasoner CLI, model, timeout, concurrent requests, time zone, reference directory, diagrams and images |
   | Sandbox | Run environment (on this Mac or the docker sandbox), limits, the reasoner login, allowed domains, status and apply jobs |
   | Ops tools | The on/off switch with what it needs, then one card per integration: files, GitHub and pull requests, Jira, Kubernetes, SSH hosts |
   | History & logs | Run history and retention, log level |
-  | General | Theme, starting the bot with the app, the settings file and run history folder |
 
 - The section list shows what needs attention: "Not connected" when Slack tokens are missing, "Apply needed" for changes the sandbox or
   broker has not picked up, "Off" for an unused sandbox or ops tools, and per section the number of unsaved changes or a red dot for

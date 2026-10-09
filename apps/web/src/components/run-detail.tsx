@@ -34,13 +34,13 @@ export function RunDetail({ id }: { id: string }) {
       <ScrollArea className="min-h-0 flex-1">
         <div className="@container mx-auto max-w-3xl px-8 py-6">
           <RunFacts run={run} />
-          <TabsContent value="timeline">
+          <TabsContent value="timeline" className="select-text">
             <Timeline run={run} />
           </TabsContent>
-          <TabsContent value="attachments">
+          <TabsContent value="attachments" className="select-text">
             <Attachments run={run} />
           </TabsContent>
-          <TabsContent value="prompt" className="space-y-3">
+          <TabsContent value="prompt" className="space-y-3 select-text">
             {run.prompt ? (
               <>
                 <CodeBlock
@@ -58,7 +58,7 @@ export function RunDetail({ id }: { id: string }) {
               <Empty>This run ended before the prompt was built.</Empty>
             )}
           </TabsContent>
-          <TabsContent value="raw">
+          <TabsContent value="raw" className="select-text">
             <CodeBlock code={JSON.stringify(run, null, 2)} maxHeight="max-h-[70vh]" />
           </TabsContent>
         </div>
@@ -105,7 +105,7 @@ function RunHeader({ run }: { run: RunRecord }) {
             </Button>
           )}
         </div>
-        <h1 className="mt-2.5 line-clamp-2 text-lg leading-snug font-semibold tracking-tight">
+        <h1 className="mt-2.5 line-clamp-2 text-lg leading-snug font-semibold tracking-tight select-text">
           {run.request || "(empty request)"}
         </h1>
         <TabsList className="mt-4 mb-3">
