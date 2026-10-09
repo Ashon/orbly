@@ -50,7 +50,7 @@ function Card({
     <section className="surface-card overflow-hidden">
       <header className="flex items-start gap-3 border-b border-canvas px-4 py-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold">{title}</h2>
+          <h3 className="text-sm font-semibold">{title}</h3>
           {help && <div className="mt-0.5 text-xs text-muted-foreground">{help}</div>}
         </div>
         {action}
@@ -190,7 +190,8 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function PendingList({
+/** Settings changed since a component started, with the button that applies them */
+export function PendingList({
   pending,
   sandbox,
 }: {

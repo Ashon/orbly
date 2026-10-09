@@ -120,10 +120,7 @@ export default function App() {
             )}
           </main>
         </div>
-        <StatusBar
-          onOpenBot={() => go("#/bot")}
-          onOpenSettings={() => go("#/settings")}
-        />
+        <StatusBar onOpenBot={() => go("#/bot")} onOpenSettings={go} />
       </div>
     </TooltipProvider>
   );

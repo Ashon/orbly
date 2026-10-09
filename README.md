@@ -212,8 +212,8 @@ brew install --cask verda
 
 - The app carries the bot, the sandbox jobs and its own Node, so it needs no repository, Node or pnpm. It needs Docker
   (Docker Desktop, OrbStack or colima) for the sandbox, a `claude` or `codex` CLI login, and `gh` and `git` for the ops tools.
-- After creating the Slack app, open Verda, enter the Slack tokens in "Settings", then run "Build sandbox images"
-  and "Restart proxy" in the "Sandbox" tab.
+- After creating the Slack app, open Verda, enter the Slack tokens in Settings > Slack, then run "Build sandbox images"
+  and "Restart proxy" in Settings > Sandbox.
 - Config, run history and the allowed domains list live in `~/.verda` (`VERDA_HOME`), outside the app, so they survive
   upgrades and uninstall.
 - `brew upgrade --cask verda` quits the running app first (the bot gets up to 20 seconds to finish its requests, and the rest
@@ -306,7 +306,7 @@ Layout:
 
 Bot management:
 
-- Opening the app starts the bot automatically. (Turn it off with "Start the bot automatically when the app opens" in the "App" section of Settings. It is stored in `VERDA_DATA_DIR/desktop.json`)
+- Opening the app starts the bot automatically. (Turn it off with "Start the bot when the app opens" under Settings > General. It is stored in `VERDA_DATA_DIR/desktop.json`)
 - The bot runs as an Electron utilityProcess. Development runs use the repository's `dist/index.js` and run `pnpm build` first when `src` is newer.
   The packaged app uses its bundled bot (`bot/index.mjs`) as is.
   Environment variables are read from the config file (`~/.verda/.env`) like `node --env-file`, and existing environment variables take precedence.
@@ -317,8 +317,9 @@ Bot management:
 - Stop and app quit send SIGTERM. The bot waits up to 20 seconds for requests in progress, and the rest resume on the next start.
 - Before launching the bot, the app checks the settings with the bot's own rules. When the Slack tokens are missing (a first run) or a
   value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Bot screen, the Overview,
-  the status bar, and the tray menu). Tokens Slack rejects (`invalid_auth` and the like) also end up there. Saving in Settings then
-  starts the bot ("Save and start bot").
+  the status bar, and the tray menu). That way opens the section to fix: Slack for missing or rejected tokens, otherwise the section
+  of the first invalid value. Tokens Slack rejects (`invalid_auth` and the like) also end up there. Saving in Settings then starts
+  the bot ("Save and start bot").
 - If the bot dies after running normally for 30 seconds or more, it shows "Crashed" and is restarted after 3 seconds (up to 3 times in
   10 minutes). If it stops right after starting for another reason, or a dev build fails, it shows "Failed to start" with the cause and
   the last output on the Bot screen.
@@ -330,8 +331,24 @@ Bot management:
 Settings:
 
 - The gear icon at the bottom of the left rail ("Settings") edits the config file (`~/.verda/.env`). The app and terminal runs use the same file, so settings do not diverge.
-- Fields are grouped into "Slack connection (Socket Mode)", "Mentions", "Reasoning", "Diagrams" and "History and logs", and rarely changed values are collapsed under "Advanced".
-  Fields are defined only in `src/settings/fields.ts`, and a test checks that their defaults match the bot config (`src/config.ts`).
+- Settings has its own section list (`#/settings/<section>`):
+
+  | Section | What it holds |
+  | --- | --- |
+  | Slack | App and bot tokens with "Check connection", allowed users, Socket Mode keepalive (advanced) |
+  | Answers | Reasoner CLI, model, timeout, concurrent requests, time zone, reference directory, diagrams and images |
+  | Sandbox | Run environment (on this Mac or the docker sandbox), limits, the reasoner login, allowed domains, status and apply jobs |
+  | Ops tools | The on/off switch with what it needs, then one card per integration: files, GitHub and pull requests, Jira, Kubernetes, SSH hosts |
+  | History & logs | Run history and retention, log level |
+  | General | Theme, starting the bot with the app, the settings file and run history folder |
+
+- The section list shows what needs attention: "Not connected" when Slack tokens are missing, "Apply needed" for changes the sandbox or
+  broker has not picked up, "Off" for an unused sandbox or ops tools, and per section the number of unsaved changes or a red dot for
+  values to fix. Changes in several sections are saved together from the bar at the bottom, which also names the section with a problem.
+- Fields show only when they apply: sandbox limits only for the docker sandbox, and only the selected reasoner's login (claude token or
+  codex login file). Hidden values stay in `.env`. Each ops integration card says whether its fields turn it on ("On", "Incomplete", "Off")
+  and what the running broker reports. Rarely changed values are collapsed under "Advanced".
+  Fields, groups and sections are defined only in `src/settings/fields.ts`, and a test checks that their defaults match the bot config (`src/config.ts`).
 - Secret values such as tokens are never sent to the UI. Only the prefix and the last 4 characters are shown; enter a new value to change one.
 - "Check connection" checks the bot token, the bot scopes, that both tokens belong to the same app, and Socket Mode, with the entered tokens (or the current ones).
   (The same checks as `pnpm slack:check`; it only fetches the connection URL and does not connect)
@@ -344,9 +361,9 @@ Settings:
   `SOCKET_PING_PONG_LOG` (default off, visible with `LOG_LEVEL=debug`)
 - Settings are read and written only over the app's internal IPC, like bot control. The query API and the browser dev server cannot change settings.
 
-Sandbox (the "Sandbox" tab in Settings):
+Sandbox (the "Sandbox" and "Ops tools" sections of Settings):
 
-- The sandbox has three components, and each applies settings differently. Every field shows how with an "Apply:" marker.
+- The sandbox has three components, and each applies settings differently. Each section says how its settings apply.
 
   | Component | Settings | Applied by |
   | --- | --- | --- |
@@ -405,7 +422,7 @@ Other:
 - App icon: `assets/verda-icon.svg` is the source. After editing it, `pnpm --filter @verda/desktop icon` (macOS swift) redraws
   the same shape on the macOS icon grid (an 824 body in 1024, shadow, highlight) as `assets/verda-icon.png`.
   Development runs use the PNG as the Dock icon as is, so this does the system's processing by hand.
-- `VERDA_DESKTOP_THEME=light|dark` pins the theme. (The default follows the system; it can also be changed under "Theme" in the "App" section of Settings)
+- `VERDA_DESKTOP_THEME=light|dark` pins the theme. (The default follows the system; it can also be changed under "Theme" in Settings > General)
 - Build check: `VERDA_DESKTOP_CAPTURE=/tmp/verda.png pnpm --filter @verda/desktop start` saves the UI as a PNG without showing
   a window, then exits. (`VERDA_DESKTOP_CAPTURE_HASH=#/bot` picks the screen; the bot is not started in this mode)
 

@@ -1,3 +1,4 @@
+import { setupSettingsRoute } from "@src/settings/fields";
 import {
   Activity,
   BarChart3,
@@ -20,7 +21,13 @@ import { VerdaMark } from "./logo";
  * The first thing to do when the bot cannot start yet, usually connecting Slack on a first run. It names
  * what is missing and leads to Settings, where the tokens are entered and checked.
  */
-function SetupCard({ message }: { message?: string }) {
+function SetupCard({
+  message,
+  issues,
+}: {
+  message?: string;
+  issues?: { key?: string }[];
+}) {
   return (
     <div className="surface-card mb-4 flex items-center gap-4 px-5 py-4">
       <div className="min-w-0 flex-1">
@@ -29,7 +36,10 @@ function SetupCard({ message }: { message?: string }) {
           {message ?? "Some settings are missing before the bot can start."}
         </p>
       </div>
-      <Button size="sm" onClick={() => (window.location.hash = "#/settings")}>
+      <Button
+        size="sm"
+        onClick={() => (window.location.hash = setupSettingsRoute(issues))}
+      >
         <Settings />
         Open Settings
       </Button>
@@ -80,7 +90,9 @@ export function Overview() {
         </div>
       </div>
 
-      {supervisor?.phase === "setup" && <SetupCard message={supervisor.message} />}
+      {supervisor?.phase === "setup" && (
+        <SetupCard message={supervisor.message} issues={supervisor.issues} />
+      )}
 
       <div className="grid grid-cols-4 gap-4">
         <StatCard

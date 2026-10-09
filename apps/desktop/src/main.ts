@@ -20,6 +20,7 @@ import {
 import { HistoryReader } from "../../../src/history/reader.js";
 import { handleLocalApi } from "../../../src/local-api.js";
 import { readBotStatus } from "../../../src/runtime/status.js";
+import { setupSettingsRoute } from "../../../src/settings/fields.js";
 import { envFilePath } from "../../../src/settings/paths.js";
 import { BotSupervisor, type SupervisorState } from "./bot.js";
 import { SandboxService } from "./sandbox.js";
@@ -266,7 +267,11 @@ function updateTray(): void {
         live
           ? { label: "Restart bot", click: () => void supervisor.restart() }
           : phase === "setup"
-            ? { label: "Open Settings...", click: () => showMainWindow("#/settings") }
+            ? {
+                label: "Open Settings...",
+                click: () =>
+                  showMainWindow(setupSettingsRoute(supervisor?.current.issues)),
+              }
             : {
                 label: "Start bot",
                 enabled: phase === "idle" || phase === "failed" || phase === "crashed",

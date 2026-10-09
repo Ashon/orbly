@@ -5,8 +5,56 @@ import type { SandboxComponent } from "../sandbox/types.js";
  * Defaults must match the bot config (src/config.ts EnvSchema) or the broker config (src/sandbox/env.ts). (tests/settings.test.ts)
  * .env entries not listed here are hidden from the screen and kept as is on save.
  */
+/**
+ * Settings screen sections, in navigation order. Each holds a few groups (cards) of fields.
+ * The desktop app's own preferences (theme, autostart) are not .env entries and have a "general" section of their own on the screen.
+ */
+export type SettingSection = "slack" | "answers" | "sandbox" | "ops" | "logs";
+
+export const SETTING_SECTIONS: { id: SettingSection; label: string; help: string }[] = [
+  {
+    id: "slack",
+    label: "Slack",
+    help: "Connects the bot to your Slack workspace and sets who it answers. Changes apply when the bot restarts.",
+  },
+  {
+    id: "answers",
+    label: "Answers",
+    help: "The CLI that writes answers and how requests are handled. Changes apply when the bot restarts.",
+  },
+  {
+    id: "sandbox",
+    label: "Sandbox",
+    help: "Where the reasoner CLI runs for each request. Allowed domains apply when the proxy restarts, everything else when the bot restarts.",
+  },
+  {
+    id: "ops",
+    label: "Ops tools",
+    help: "Tools the reasoner can call through ops-broker. SSH keys, kubeconfig, and tokens stay in the broker container, never in the reasoner's.",
+  },
+  {
+    id: "logs",
+    label: "History & logs",
+    help: "What the bot keeps after answering. Changes apply when the bot restarts.",
+  },
+];
+
 export type SettingGroup =
-  "connection" | "mention" | "reasoner" | "render" | "history" | "sandbox" | "ops";
+  | "slack"
+  | "access"
+  | "reasoner"
+  | "requests"
+  | "diagrams"
+  | "environment"
+  | "credentials"
+  | "ops"
+  | "files"
+  | "github"
+  | "jira"
+  | "k8s"
+  | "ssh"
+  | "history"
+  | "logs";
 
 export interface SettingField {
   key: string;
@@ -15,7 +63,8 @@ export interface SettingField {
   help?: string;
   /** toggle is an on/off value. */
   type: "secret" | "text" | "number" | "select" | "toggle";
-  options?: { value: string; label: string }[];
+  /** Options with help are shown as a choice of cards instead of a drop-down. */
+  options?: { value: string; label: string; help?: string }[];
   /** Value used when left empty. No default if absent */
   default?: string;
   placeholder?: string;
@@ -25,64 +74,136 @@ export interface SettingField {
   required?: boolean;
   /** What must be applied again after a change. Defaults to restarting the bot */
   applies?: SandboxComponent;
+  /** Shown only while another field has this value (e.g. sandbox limits only for the docker run environment). Hidden values stay in .env. */
+  shownWhen?: { key: string; equals: string };
 }
 
-export type SettingTab = "bot" | "sandbox";
-
-export const SETTING_GROUPS: {
+export interface SettingGroupInfo {
   id: SettingGroup;
-  tab: SettingTab;
+  section: SettingSection;
   label: string;
   help: string;
-}[] = [
+  /** For an optional integration: the fields that must all be set for it to turn on */
+  requires?: string[];
+}
+
+export const SETTING_GROUPS: SettingGroupInfo[] = [
   {
-    id: "connection",
-    tab: "bot",
-    label: "Slack connection (Socket Mode)",
+    id: "slack",
+    section: "slack",
+    label: "Connection",
     help: "The bot opens a Socket Mode connection with the app token and reads and writes messages with the bot token.",
   },
   {
-    id: "mention",
-    tab: "bot",
-    label: "Mentions",
-    help: "Sets whose mentions to answer and how many to answer at once.",
+    id: "access",
+    section: "slack",
+    label: "Who can ask",
+    help: "Mentions from anyone else are ignored.",
   },
   {
     id: "reasoner",
-    tab: "bot",
-    label: "Reasoning",
-    help: "The local CLI that writes answers and the environment it runs in.",
+    section: "answers",
+    label: "Reasoner",
+    help: "The local CLI that writes answers.",
   },
   {
-    id: "render",
-    tab: "bot",
-    label: "Diagrams",
+    id: "requests",
+    section: "answers",
+    label: "Requests",
+    help: "How many mentions are answered at once and the context each one gets.",
+  },
+  {
+    id: "diagrams",
+    section: "answers",
+    label: "Diagrams and images",
     help: "How diagrams and generated images in answers are uploaded.",
   },
   {
-    id: "history",
-    tab: "bot",
-    label: "History and logs",
-    help: "How run history and logs are kept.",
+    id: "environment",
+    section: "sandbox",
+    label: "Run environment",
+    help: "Where the reasoner CLI runs for each request.",
   },
   {
-    id: "sandbox",
-    tab: "sandbox",
-    label: "Reasoner sandbox",
-    help: "A fresh reasoner container starts for each request. It gets only the credentials set here, and egress goes only to the proxy's allowed domains.",
+    id: "credentials",
+    section: "sandbox",
+    label: "Reasoner login",
+    help: "Passed into the sandbox container for the selected reasoner CLI. Your own CLI login on this Mac is not used there.",
   },
   {
     id: "ops",
-    tab: "sandbox",
-    label: "Ops tools (ops-broker)",
-    help: "SSH keys, kubeconfig, and the GitHub token live only in the broker container. The reasoner container can only make requests through fixed tools.",
+    section: "ops",
+    label: "Ops tools",
+    help: "Turning them on or off applies when the bot restarts.",
+  },
+  {
+    id: "files",
+    section: "ops",
+    label: "Files",
+    help: "File tools read the work directory, and pull requests are made from repositories in it.",
+    requires: ["OPS_FS_ROOT"],
+  },
+  {
+    id: "github",
+    section: "ops",
+    label: "GitHub and pull requests",
+    help: "GitHub queries and pull requests, limited to the orgs below. Pull requests also need the work directory.",
+    requires: ["OPS_GIT_ALLOWED_OWNERS"],
+  },
+  {
+    id: "jira",
+    section: "ops",
+    label: "Jira",
+    help: "Issue queries, new issues, and comments in the allowed projects.",
+    requires: ["OPS_JIRA_URL", "OPS_JIRA_EMAIL", "OPS_JIRA_TOKEN", "OPS_JIRA_PROJECTS"],
+  },
+  {
+    id: "k8s",
+    section: "ops",
+    label: "Kubernetes",
+    help: "Read-only queries through a kubeconfig built for a read-only ServiceAccount.",
+    requires: ["OPS_K8S_CONTEXTS"],
+  },
+  {
+    id: "ssh",
+    section: "ops",
+    label: "SSH hosts",
+    help: "Read-only checks on hosts in the allowed range.",
+    requires: ["OPS_SSH_USER", "OPS_SSH_ALLOWED_CIDR", "OPS_SSH_KEY"],
+  },
+  {
+    id: "history",
+    section: "logs",
+    label: "Run history",
+    help: "Each request is recorded with its tool calls, replies, and outputs.",
+  },
+  {
+    id: "logs",
+    section: "logs",
+    label: "Logs",
+    help: "What the bot writes to its log.",
   },
 ];
+
+/**
+ * Settings route for a bot waiting for setup: the section of its first issue, or Slack when there is none
+ * (the tokens are missing or Slack rejected them).
+ */
+export function setupSettingsRoute(issues: readonly { key?: string }[] = []): string {
+  const section = issues.map((issue) => settingSectionOf(issue.key)).find(Boolean);
+  return `#/settings/${section ?? "slack"}`;
+}
+
+/** Section that holds a field, for jumping to a validation issue. */
+export function settingSectionOf(key: string | undefined): SettingSection | undefined {
+  const group = SETTING_FIELDS.find((field) => field.key === key)?.group;
+  return SETTING_GROUPS.find((info) => info.id === group)?.section;
+}
 
 export const SETTING_FIELDS: SettingField[] = [
   {
     key: "SLACK_APP_TOKEN",
-    group: "connection",
+    group: "slack",
     label: "App token",
     help: "Basic Information > App-Level Tokens (connections:write). Used for the Socket Mode connection.",
     type: "secret",
@@ -91,7 +212,7 @@ export const SETTING_FIELDS: SettingField[] = [
   },
   {
     key: "SLACK_BOT_TOKEN",
-    group: "connection",
+    group: "slack",
     label: "Bot token",
     help: "OAuth & Permissions > Bot User OAuth Token",
     type: "secret",
@@ -99,17 +220,8 @@ export const SETTING_FIELDS: SettingField[] = [
     required: true,
   },
   {
-    key: "LOG_LEVEL",
-    group: "connection",
-    label: "Log level",
-    help: "At debug, detailed Socket Mode client logs are also written.",
-    type: "select",
-    options: ["debug", "info", "warn", "error"].map((value) => ({ value, label: value })),
-    default: "info",
-  },
-  {
     key: "SOCKET_CLIENT_PING_TIMEOUT_MS",
-    group: "connection",
+    group: "slack",
     label: "Client ping timeout (ms)",
     help: "Reconnects if a ping sent by the bot gets no reply within this time. (1000 to 60000)",
     type: "number",
@@ -118,7 +230,7 @@ export const SETTING_FIELDS: SettingField[] = [
   },
   {
     key: "SOCKET_SERVER_PING_TIMEOUT_MS",
-    group: "connection",
+    group: "slack",
     label: "Server ping timeout (ms)",
     help: "Reconnects if no ping arrives from Slack within this time. (5000 to 300000)",
     type: "number",
@@ -126,44 +238,12 @@ export const SETTING_FIELDS: SettingField[] = [
     advanced: true,
   },
   {
-    key: "SOCKET_PING_PONG_LOG",
-    group: "connection",
-    label: "Ping/pong log",
-    help: "Logs keepalive signals. Visible when the log level is debug.",
-    type: "toggle",
-    default: "off",
-    advanced: true,
-  },
-  {
     key: "MENTION_ALLOWED_USERS",
-    group: "mention",
+    group: "access",
     label: "Allowed users",
     help: "Comma-separated Slack user IDs (U...). Leave empty to answer everyone. Required when ops tools are on.",
     type: "text",
     placeholder: "U0123ABCD, U0456EFGH",
-  },
-  {
-    key: "MENTION_CONCURRENCY",
-    group: "mention",
-    label: "Concurrent requests",
-    type: "number",
-    default: "2",
-  },
-  {
-    key: "TIMEZONE",
-    group: "mention",
-    label: "Time zone",
-    help: "Used to show times in thread context.",
-    type: "text",
-    default: "Asia/Seoul",
-  },
-  {
-    key: "MENTION_WORKSPACE",
-    group: "mention",
-    label: "Reference directory",
-    help: "Absolute path consulted read-only when answering. Used only in run environments that can read files.",
-    type: "text",
-    advanced: true,
   },
   {
     key: "REASONER",
@@ -191,19 +271,31 @@ export const SETTING_FIELDS: SettingField[] = [
     default: "900",
   },
   {
-    key: "REASONER_SANDBOX",
-    group: "reasoner",
-    label: "Run environment",
-    type: "select",
-    options: [
-      { value: "none", label: "Run on host (none)" },
-      { value: "docker", label: "Docker sandbox (docker)" },
-    ],
-    default: "none",
+    key: "MENTION_CONCURRENCY",
+    group: "requests",
+    label: "Concurrent requests",
+    type: "number",
+    default: "2",
+  },
+  {
+    key: "TIMEZONE",
+    group: "requests",
+    label: "Time zone",
+    help: "Used to show times in thread context.",
+    type: "text",
+    default: "Asia/Seoul",
+  },
+  {
+    key: "MENTION_WORKSPACE",
+    group: "requests",
+    label: "Reference directory",
+    help: "Absolute path consulted read-only when answering. Used only in run environments that can read files.",
+    type: "text",
+    advanced: true,
   },
   {
     key: "RENDER_DIAGRAMS",
-    group: "render",
+    group: "diagrams",
     label: "Render diagrams",
     help: "Renders mermaid, dot, vega-lite, and svg blocks in answers as PNG and uploads them. (Requires docker)",
     type: "toggle",
@@ -211,16 +303,271 @@ export const SETTING_FIELDS: SettingField[] = [
   },
   {
     key: "GENERATED_IMAGE_MAX_PX",
-    group: "render",
+    group: "diagrams",
     label: "Generated image max size (px)",
     help: "Shrinks the long side to this size before uploading. 0 keeps the original size.",
     type: "number",
     default: "512",
   },
   {
+    key: "REASONER_SANDBOX",
+    group: "environment",
+    label: "Run environment",
+    type: "select",
+    options: [
+      {
+        value: "none",
+        label: "On this Mac",
+        help: "The CLI runs directly with your own login. Quick to set up, but nothing isolates it from this Mac.",
+      },
+      {
+        value: "docker",
+        label: "Docker sandbox",
+        help: "A fresh container for each request, with only the login set below and outbound traffic limited to allowed domains. Ops tools need it.",
+      },
+    ],
+    default: "none",
+  },
+  {
+    key: "SANDBOX_MEMORY",
+    group: "environment",
+    label: "Memory limit",
+    help: "docker --memory format (e.g. 2g, 1536m)",
+    type: "text",
+    default: "2g",
+    shownWhen: { key: "REASONER_SANDBOX", equals: "docker" },
+  },
+  {
+    key: "SANDBOX_CPUS",
+    group: "environment",
+    label: "CPU limit",
+    type: "text",
+    default: "2",
+    shownWhen: { key: "REASONER_SANDBOX", equals: "docker" },
+  },
+  {
+    key: "SANDBOX_IMAGE",
+    group: "environment",
+    label: "Reasoner image",
+    type: "text",
+    default: "verda-reasoner:latest",
+    advanced: true,
+    shownWhen: { key: "REASONER_SANDBOX", equals: "docker" },
+  },
+  {
+    key: "SANDBOX_NETWORK",
+    group: "environment",
+    label: "Docker network",
+    help: "Internal network with no direct outbound access",
+    type: "text",
+    default: "verda-sandbox",
+    advanced: true,
+    shownWhen: { key: "REASONER_SANDBOX", equals: "docker" },
+  },
+  {
+    key: "SANDBOX_PROXY_URL",
+    group: "environment",
+    label: "Proxy URL",
+    type: "text",
+    default: "http://egress-proxy:8888",
+    advanced: true,
+    shownWhen: { key: "REASONER_SANDBOX", equals: "docker" },
+  },
+  {
+    key: "SANDBOX_CLAUDE_OAUTH_TOKEN",
+    group: "credentials",
+    label: "claude token",
+    help: "Required to use claude in the sandbox. (claude setup-token)",
+    type: "secret",
+    shownWhen: { key: "REASONER", equals: "claude" },
+  },
+  {
+    key: "SANDBOX_ANTHROPIC_API_KEY",
+    group: "credentials",
+    label: "Anthropic API key",
+    help: "For using an API key instead of the claude token",
+    type: "secret",
+    advanced: true,
+    shownWhen: { key: "REASONER", equals: "claude" },
+  },
+  {
+    key: "SANDBOX_CODEX_AUTH_FILE",
+    group: "credentials",
+    label: "codex login file",
+    help: "Copied into the container when using codex in the sandbox.",
+    type: "text",
+    default: "~/.codex/auth.json",
+    shownWhen: { key: "REASONER", equals: "codex" },
+  },
+  {
+    key: "OPS_TOOLS",
+    group: "ops",
+    label: "Enable ops tools",
+    help: "Offers the integrations below to the reasoner. Each one stays off until its fields are filled in.",
+    type: "toggle",
+    default: "off",
+  },
+  {
+    key: "OPS_BROKER_URL",
+    group: "ops",
+    label: "Broker URL",
+    type: "text",
+    default: "http://ops-broker:8080/mcp",
+    advanced: true,
+  },
+  {
+    key: "OPS_FS_ROOT",
+    group: "files",
+    label: "Work directory",
+    help: "Work directory to mount read-only (absolute path). Leave empty to turn off the file and PR tools.",
+    type: "text",
+    placeholder: "/Users/me/workspaces",
+    applies: "broker",
+  },
+  {
+    key: "OPS_GIT_ALLOWED_OWNERS",
+    group: "github",
+    label: "Allowed GitHub orgs",
+    help: "Limits PR creation and GitHub queries to repositories of these orgs (or users). Comma-separated. Leave empty to turn off the GitHub tools.",
+    type: "text",
+    placeholder: "my-org, my-user",
+    applies: "broker",
+  },
+  {
+    key: "OPS_GIT_AUTHOR_NAME",
+    group: "github",
+    label: "PR commit author name",
+    help: "Author of commits the sandbox makes. Leave empty to use the global git config (git config --global user.name). Separate from this repository's git config.",
+    type: "text",
+    applies: "broker",
+  },
+  {
+    key: "OPS_GIT_AUTHOR_EMAIL",
+    group: "github",
+    label: "PR commit author email",
+    help: "Leave empty to use the global git config (git config --global user.email).",
+    type: "text",
+    applies: "broker",
+  },
+  {
+    key: "OPS_JIRA_URL",
+    group: "jira",
+    label: "Jira URL",
+    help: "Jira Cloud site URL. The Jira tools turn on only when the URL, email, token, and projects are all set.",
+    type: "text",
+    placeholder: "https://your-site.atlassian.net",
+    applies: "broker",
+  },
+  {
+    key: "OPS_JIRA_EMAIL",
+    group: "jira",
+    label: "Jira account email",
+    help: "Atlassian account that owns the API token. Issues and comments are posted as this account.",
+    type: "text",
+    applies: "broker",
+  },
+  {
+    key: "OPS_JIRA_TOKEN",
+    group: "jira",
+    label: "Jira API token",
+    help: "Create it under Security > API tokens at id.atlassian.com. Passed only to the broker container.",
+    type: "secret",
+    applies: "broker",
+  },
+  {
+    key: "OPS_JIRA_PROJECTS",
+    group: "jira",
+    label: "Allowed Jira projects",
+    help: "Limits queries, creation, and comments to these projects. Comma-separated project keys",
+    type: "text",
+    placeholder: "PROJ, OPS",
+    applies: "broker",
+  },
+  {
+    key: "OPS_K8S_CONTEXTS",
+    group: "k8s",
+    label: "k8s contexts",
+    help: "Local kubeconfig contexts to build the read-only kubeconfig from. Comma-separated. Rebuild the kubeconfig after changing them.",
+    type: "text",
+    applies: "broker",
+  },
+  {
+    key: "OPS_K8S_SA",
+    group: "k8s",
+    label: "k8s read-only account",
+    help: "Read-only ServiceAccount in each cluster (sandbox/k8s/verda-ro.yaml)",
+    type: "text",
+    default: "verda-ro",
+    advanced: true,
+    applies: "broker",
+  },
+  {
+    key: "OPS_K8S_SA_NAMESPACE",
+    group: "k8s",
+    label: "k8s read-only account namespace",
+    type: "text",
+    default: "verda",
+    advanced: true,
+    applies: "broker",
+  },
+  {
+    key: "OPS_SSH_USER",
+    group: "ssh",
+    label: "SSH user",
+    help: "Account used for host checks. Host checks turn on only when the user, allowed range, and key are all set.",
+    type: "text",
+    applies: "broker",
+  },
+  {
+    key: "OPS_SSH_ALLOWED_CIDR",
+    group: "ssh",
+    label: "Allowed SSH range",
+    help: "Only hosts in this range are checked over SSH.",
+    type: "text",
+    placeholder: "192.168.10.0/24",
+    applies: "broker",
+  },
+  {
+    key: "OPS_SSH_KEY",
+    group: "ssh",
+    label: "SSH key path",
+    help: "Absolute path. The key is mounted only into the broker container.",
+    type: "text",
+    placeholder: "/Users/me/.ssh/id_ed25519",
+    applies: "broker",
+  },
+  {
+    key: "OPS_SSH_KNOWN_HOSTS",
+    group: "ssh",
+    label: "SSH known_hosts path",
+    help: "Absolute path. Leave empty to remember host keys from the first connection only inside the broker.",
+    type: "text",
+    advanced: true,
+    applies: "broker",
+  },
+  {
+    key: "OPS_SSH_INVENTORY_DIR",
+    group: "ssh",
+    label: "Inventory directory",
+    help: "Location of the ansible project used to build the host list. Relative paths are relative to this repository. Leave empty to write ~/.verda/ops-broker/hosts.json directly.",
+    type: "text",
+    advanced: true,
+    applies: "broker",
+  },
+  {
+    key: "OPS_SSH_INVENTORY",
+    group: "ssh",
+    label: "Inventory file",
+    help: "Relative path inside the inventory directory",
+    type: "text",
+    placeholder: "inventory.ini",
+    advanced: true,
+    applies: "broker",
+  },
+  {
     key: "HISTORY",
     group: "history",
-    label: "Run history",
+    label: "Record runs",
     type: "toggle",
     default: "on",
   },
@@ -233,231 +580,21 @@ export const SETTING_FIELDS: SettingField[] = [
     default: "30",
   },
   {
-    key: "SANDBOX_MEMORY",
-    group: "sandbox",
-    label: "Memory limit",
-    help: "docker --memory format (e.g. 2g, 1536m)",
-    type: "text",
-    default: "2g",
+    key: "LOG_LEVEL",
+    group: "logs",
+    label: "Log level",
+    help: "At debug, detailed Socket Mode client logs are also written.",
+    type: "select",
+    options: ["debug", "info", "warn", "error"].map((value) => ({ value, label: value })),
+    default: "info",
   },
   {
-    key: "SANDBOX_CPUS",
-    group: "sandbox",
-    label: "CPU limit",
-    type: "text",
-    default: "2",
-  },
-  {
-    key: "SANDBOX_CLAUDE_OAUTH_TOKEN",
-    group: "sandbox",
-    label: "claude token",
-    help: "Required to use claude in the sandbox. (claude setup-token)",
-    type: "secret",
-  },
-  {
-    key: "SANDBOX_ANTHROPIC_API_KEY",
-    group: "sandbox",
-    label: "Anthropic API key",
-    help: "For using an API key instead of the claude token",
-    type: "secret",
-    advanced: true,
-  },
-  {
-    key: "SANDBOX_CODEX_AUTH_FILE",
-    group: "sandbox",
-    label: "codex login file",
-    help: "Copied into the container when using codex in the sandbox.",
-    type: "text",
-    default: "~/.codex/auth.json",
-  },
-  {
-    key: "SANDBOX_IMAGE",
-    group: "sandbox",
-    label: "Reasoner image",
-    type: "text",
-    default: "verda-reasoner:latest",
-    advanced: true,
-  },
-  {
-    key: "SANDBOX_NETWORK",
-    group: "sandbox",
-    label: "Docker network",
-    help: "Internal network with no direct outbound access",
-    type: "text",
-    default: "verda-sandbox",
-    advanced: true,
-  },
-  {
-    key: "SANDBOX_PROXY_URL",
-    group: "sandbox",
-    label: "Proxy URL",
-    type: "text",
-    default: "http://egress-proxy:8888",
-    advanced: true,
-  },
-  {
-    key: "OPS_TOOLS",
-    group: "ops",
-    label: "Enable ops tools",
-    help: "SSH host checks, k8s queries, work directory, GitHub, PR, and Jira tools. Requires the Docker sandbox and allowed users. Features left empty below are turned off.",
+    key: "SOCKET_PING_PONG_LOG",
+    group: "logs",
+    label: "Ping/pong log",
+    help: "Logs keepalive signals. Visible when the log level is debug.",
     type: "toggle",
     default: "off",
-  },
-  {
-    key: "OPS_GIT_ALLOWED_OWNERS",
-    group: "ops",
-    label: "Allowed GitHub orgs",
-    help: "Limits PR creation and GitHub queries to repositories of these orgs (or users). Comma-separated. Leave empty to turn off the GitHub tools.",
-    type: "text",
-    placeholder: "my-org, my-user",
-    applies: "broker",
-  },
-  {
-    key: "OPS_GIT_AUTHOR_NAME",
-    group: "ops",
-    label: "PR commit author name",
-    help: "Author of commits the sandbox makes. Leave empty to use the global git config (git config --global user.name). Separate from this repository's git config.",
-    type: "text",
-    applies: "broker",
-  },
-  {
-    key: "OPS_GIT_AUTHOR_EMAIL",
-    group: "ops",
-    label: "PR commit author email",
-    help: "Leave empty to use the global git config (git config --global user.email).",
-    type: "text",
-    applies: "broker",
-  },
-  {
-    key: "OPS_JIRA_URL",
-    group: "ops",
-    label: "Jira URL",
-    help: "Jira Cloud site URL. The Jira tools turn on only when the URL, email, token, and projects are all set.",
-    type: "text",
-    placeholder: "https://your-site.atlassian.net",
-    applies: "broker",
-  },
-  {
-    key: "OPS_JIRA_EMAIL",
-    group: "ops",
-    label: "Jira account email",
-    help: "Atlassian account that owns the API token. Issues and comments are posted as this account.",
-    type: "text",
-    applies: "broker",
-  },
-  {
-    key: "OPS_JIRA_TOKEN",
-    group: "ops",
-    label: "Jira API token",
-    help: "Create it under Security > API tokens at id.atlassian.com. Passed only to the broker container.",
-    type: "secret",
-    applies: "broker",
-  },
-  {
-    key: "OPS_JIRA_PROJECTS",
-    group: "ops",
-    label: "Allowed Jira projects",
-    help: "Limits queries, creation, and comments to these projects. Comma-separated project keys",
-    type: "text",
-    placeholder: "PROJ, OPS",
-    applies: "broker",
-  },
-  {
-    key: "OPS_FS_ROOT",
-    group: "ops",
-    label: "Work directory",
-    help: "Work directory to mount read-only (absolute path). Leave empty to turn off the file and PR tools.",
-    type: "text",
-    placeholder: "/Users/me/workspaces",
-    applies: "broker",
-  },
-  {
-    key: "OPS_SSH_USER",
-    group: "ops",
-    label: "SSH user",
-    help: "Account used for host checks. Host checks turn on only when the user, allowed range, and key are all set.",
-    type: "text",
-    applies: "broker",
-  },
-  {
-    key: "OPS_SSH_ALLOWED_CIDR",
-    group: "ops",
-    label: "Allowed SSH range",
-    help: "Only hosts in this range are checked over SSH.",
-    type: "text",
-    placeholder: "192.168.10.0/24",
-    applies: "broker",
-  },
-  {
-    key: "OPS_SSH_KEY",
-    group: "ops",
-    label: "SSH key path",
-    help: "Absolute path. The key is mounted only into the broker container.",
-    type: "text",
-    placeholder: "/Users/me/.ssh/id_ed25519",
-    applies: "broker",
-  },
-  {
-    key: "OPS_SSH_KNOWN_HOSTS",
-    group: "ops",
-    label: "SSH known_hosts path",
-    help: "Absolute path. Leave empty to remember host keys from the first connection only inside the broker.",
-    type: "text",
-    advanced: true,
-    applies: "broker",
-  },
-  {
-    key: "OPS_SSH_INVENTORY_DIR",
-    group: "ops",
-    label: "Inventory directory",
-    help: "Location of the ansible project used to build the host list. Relative paths are relative to this repository. Leave empty to write ~/.verda/ops-broker/hosts.json directly.",
-    type: "text",
-    advanced: true,
-    applies: "broker",
-  },
-  {
-    key: "OPS_SSH_INVENTORY",
-    group: "ops",
-    label: "Inventory file",
-    help: "Relative path inside the inventory directory",
-    type: "text",
-    placeholder: "inventory.ini",
-    advanced: true,
-    applies: "broker",
-  },
-  {
-    key: "OPS_K8S_CONTEXTS",
-    group: "ops",
-    label: "k8s contexts",
-    help: "Local kubeconfig contexts to build the read-only kubeconfig from. Comma-separated. Rebuild the kubeconfig after changing them.",
-    type: "text",
-    applies: "broker",
-  },
-  {
-    key: "OPS_K8S_SA",
-    group: "ops",
-    label: "k8s read-only account",
-    help: "Read-only ServiceAccount in each cluster (sandbox/k8s/verda-ro.yaml)",
-    type: "text",
-    default: "verda-ro",
-    advanced: true,
-    applies: "broker",
-  },
-  {
-    key: "OPS_K8S_SA_NAMESPACE",
-    group: "ops",
-    label: "k8s read-only account namespace",
-    type: "text",
-    default: "verda",
-    advanced: true,
-    applies: "broker",
-  },
-  {
-    key: "OPS_BROKER_URL",
-    group: "ops",
-    label: "Broker URL",
-    type: "text",
-    default: "http://ops-broker:8080/mcp",
     advanced: true,
   },
 ];

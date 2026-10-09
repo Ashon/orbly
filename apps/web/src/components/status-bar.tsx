@@ -1,3 +1,4 @@
+import { setupSettingsRoute } from "@src/settings/fields";
 import { Clock, Cpu, Plug, TriangleAlert } from "lucide-react";
 import type * as React from "react";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -16,7 +17,8 @@ export function StatusBar({
   onOpenSettings,
 }: {
   onOpenBot: () => void;
-  onOpenSettings: () => void;
+  /** Opens Settings at a route such as #/settings/slack */
+  onOpenSettings: (route: string) => void;
 }) {
   const { data } = useBotStatus();
   const supervisor = useSupervisor();
@@ -35,7 +37,11 @@ export function StatusBar({
             ? "Open Settings to set up the bot"
             : "Bot status and logs"
         }
-        onClick={supervisor?.phase === "setup" ? onOpenSettings : onOpenBot}
+        onClick={
+          supervisor?.phase === "setup"
+            ? () => onOpenSettings(setupSettingsRoute(supervisor.issues))
+            : onOpenBot
+        }
       >
         <span className="relative flex size-2">
           {(tone === "ok" || tone === "busy") && (

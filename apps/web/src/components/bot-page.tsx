@@ -1,3 +1,4 @@
+import { setupSettingsRoute } from "@src/settings/fields";
 import type { BotStatus, LogLine, SupervisorState } from "@runtime/types";
 import {
   ArrowDownToLine,
@@ -172,7 +173,10 @@ function Notice({ supervisor }: { supervisor: SupervisorState }) {
         )}
       </div>
       {phase === "setup" && (
-        <Button size="xs" onClick={() => (window.location.hash = "#/settings")}>
+        <Button
+          size="xs"
+          onClick={() => (window.location.hash = setupSettingsRoute(issues))}
+        >
           <Settings />
           Open Settings
         </Button>
