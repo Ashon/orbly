@@ -13,7 +13,7 @@ import { MentionResponder } from '../src/mention/responder.js'
 import type { Directory } from '../src/messengers/slack/directory.js'
 import { SlackMessenger } from '../src/messengers/slack/messenger.js'
 import type { Mention, Messenger, Upload } from '../src/messengers/types.js'
-import type { Reasoner, ReasonRequest } from '../src/reasoner/index.js'
+import type { Reasoner, ReasonRequest } from '../src/reasoners/types.js'
 
 const root = mkdtempSync(path.join(tmpdir(), 'pacenote-responder-'))
 afterAll(() => rmSync(root, { recursive: true, force: true }))

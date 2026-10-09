@@ -1,6 +1,6 @@
 # Architecture
 
-How Pacenote is put together, in four pictures. The diagrams are drawn by `scripts/diagrams.mjs`
+How Pacenote is put together, in five pictures. The diagrams are drawn by `scripts/diagrams.mjs`
 (`pnpm docs:diagrams`) in the desktop app's look, with a light and a dark variant.
 
 ## The pieces
@@ -42,15 +42,36 @@ hold a Slack token.
 
 More: [Team hub](team-hub.md).
 
+## Layers
+
+Three interfaces keep the mention pipeline apart from everything it could be swapped for:
+
+- **Messenger** (`src/messengers/types.ts`): the chat app. Mentions come in through it and answers, edits and images go
+  out. Slack is the adapter today.
+- **Reasoner** (`src/reasoners/types.ts`): the model. The pipeline asks for one answer and gets progress steps along
+  the way. Each CLI is a `CliAdapter` (`claude.ts`, `codex.ts`) that says how to call it, what it may read, and how to
+  read what it prints; one runner (`cli.ts`) runs any adapter.
+- **Sandbox** (`src/sandbox/runtime.ts`): where the CLI runs. A sandbox runs one process with the environment values,
+  mounts and working directory it is given, and knows nothing about which CLI it is. `host.ts` runs it on your Mac with
+  your login; `docker.ts` runs it in a disposable, hardened container. An isolated sandbox puts mounts at fixed paths
+  (`SANDBOX_PATHS`: `/workspace`, `/attachments`, `/out`, `/run/secrets`) that the reasoner image is built for.
+
+`src/index.ts` builds one of each from the settings. The dashed slots are where the next ones go.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/layers-dark.svg">
+  <img alt="The Messenger, Reasoner and Sandbox interfaces around the mention pipeline, what implements each today, and room for Telegram, Discord, other CLIs, an API reasoner, Podman and remote runners" src="diagrams/layers-light.svg">
+</picture>
+
 ## Code layout
 
 The mention pipeline (`src/mention`) talks to chat apps only through the `Messenger` interface
-(`src/messengers/types.ts`); Slack is its first adapter. Adding a chat app means adding an adapter, not changing the
-pipeline.
+(`src/messengers/types.ts`); Slack is its first adapter. Models are reached through `src/reasoners` and run in
+`src/sandbox`, as above.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/code-layout-dark.svg">
   <img alt="src/index.ts, the Slack adapter, the Messenger interface, the mention pipeline, and the modules and apps around them" src="diagrams/code-layout-light.svg">
 </picture>
 
-More: [Development](development.md), including how to add a messenger.
+More: [Development](development.md), including how to add a messenger, a reasoner or a sandbox.

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { filterByCidr, parseAnsibleHosts } from '../broker/hosts.js'
-import { runProcess } from '../reasoner/process.js'
+import { runProcess } from './process.js'
 import { brokerRuntimeDir } from '../settings/paths.js'
 import { unsetMount, type BrokerEnv } from './env.js'
 

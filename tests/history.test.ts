@@ -2,19 +2,15 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import {
-  claudeLineToEvents,
-  codexLineToEvents,
-  lastMessage,
-  splitToolName,
-} from '../src/history/events.js'
+import { lastMessage, splitToolName } from '../src/history/events.js'
 import { handleLocalApi } from '../src/local-api.js'
 import { dayOf, isSafeArtifactName, runIdFor } from '../src/history/layout.js'
 import { HistoryReader } from '../src/history/reader.js'
 import { HistoryStore } from '../src/history/recorder.js'
 import { normalizeRunRecord, type RunRecord } from '../src/history/types.js'
 import { slackPermalink } from '../src/messengers/slack/format.js'
-import { parseCodexOutput } from '../src/reasoner/index.js'
+import { claudeLineToEvents } from '../src/reasoners/claude.js'
+import { codexLineToEvents, parseCodexOutput } from '../src/reasoners/codex.js'
 
 const AT = '2026-10-08T05:00:00.000Z'
 

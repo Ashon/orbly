@@ -5,8 +5,10 @@ import { consoleSink, createLogger, fileSink, type Logger } from './logger.js'
 import { InflightStore } from './mention/inflight.js'
 import { MentionResponder } from './mention/responder.js'
 import { connectSlack } from './messengers/slack/connect.js'
-import { DockerExecutor, HostExecutor } from './reasoner/executor.js'
-import { createReasoner } from './reasoner/index.js'
+import { createReasoner } from './reasoners/cli.js'
+import { DockerSandbox } from './sandbox/docker.js'
+import { HostSandbox } from './sandbox/host.js'
+import type { Sandbox } from './sandbox/runtime.js'
 import { DiagramRenderer } from './render/diagrams.js'
 import { RECHECK_SANDBOX, SandboxHealth } from './runtime/sandbox-health.js'
 import { BotStatusFile, LOG_FILE } from './runtime/status.js'
@@ -71,13 +73,10 @@ async function main(): Promise<void> {
    */
   const problems: string[] = []
 
-  const executor = config.reasoner.sandbox
-    ? new DockerExecutor(config.reasoner.sandbox)
-    : new HostExecutor({
-        claude: config.reasoner.claudeBin,
-        codex: config.reasoner.codexBin,
-      })
-  const reasoner = createReasoner(config.reasoner, executor)
+  const sandbox: Sandbox = config.reasoner.sandbox
+    ? new DockerSandbox(config.reasoner.sandbox)
+    : new HostSandbox(config.reasoner.commands)
+  const reasoner = createReasoner(config.reasoner, sandbox)
   // If the sandbox is not ready, reasoner calls fail. They do not fall back to
   // the host. The check repeats while the bot runs, and right away when the
   // desktop app finishes a sandbox job, so the status (and the status bar)
@@ -87,14 +86,14 @@ async function main(): Promise<void> {
     ...problems,
   ]
   const sandboxHealth = new SandboxHealth(
-    () => executor.verify(),
+    () => sandbox.verify(),
     () => status.update({ problems: allProblems() }),
     log
   )
   await sandboxHealth.check()
   if (config.mention.workspace && !reasoner.canReadFiles) {
     log.warn(
-      `${reasoner.backend} cannot read files in the ${executor.kind} sandbox, so MENTION_WORKSPACE is not used.`
+      `${reasoner.backend} cannot read files in the ${sandbox.kind} sandbox, so MENTION_WORKSPACE is not used.`
     )
   }
 
@@ -136,7 +135,7 @@ async function main(): Promise<void> {
     messengers: [messenger],
     reasoner,
     log: log.child('mention'),
-    extractPdfText: (pdfPath) => executor.extractPdfText(pdfPath),
+    extractPdfText: (pdfPath) => sandbox.extractPdfText(pdfPath),
     renderer,
     inflight: new InflightStore(path.join(config.dataDir, 'inflight.json')),
     history,
@@ -145,7 +144,7 @@ async function main(): Promise<void> {
 
   status.update({
     bot,
-    reasoner: `${reasoner.backend}@${executor.kind}`,
+    reasoner: `${reasoner.backend}@${sandbox.kind}`,
     mcp: reasoner.mcpServerNames,
     diagrams: renderer !== undefined,
     history: history !== undefined,
@@ -154,7 +153,7 @@ async function main(): Promise<void> {
   await connection.start((mention) => responder.handle(mention))
   status.update({ state: 'running' })
   running = true
-  if (executor.kind === 'docker') {
+  if (sandbox.kind === 'docker') {
     sandboxHealth.start(30_000)
     parentPort()?.on('message', (event) => {
       if (
@@ -167,7 +166,7 @@ async function main(): Promise<void> {
   const allowed = config.mention.allowedUserIds
   log.info(
     `Started: ${messenger.profile.name} bot=${bot.user} (${bot.userId}) @ ${bot.team}, ` +
-      `reasoner=${reasoner.backend}@${executor.kind}, ` +
+      `reasoner=${reasoner.backend}@${sandbox.kind}, ` +
       `allowed users=${allowed.length > 0 ? `${allowed.length}` : 'all'}, ` +
       `reference directory=${config.mention.workspace && reasoner.canReadFiles ? config.mention.workspace : 'none'}, ` +
       `MCP=[${reasoner.mcpServerNames.join(', ')}], diagrams=${renderer ? 'on' : 'off'}, ` +

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  claudeArgs,
-  codexArgs,
-  parseClaudeOutput,
-} from '../src/reasoner/index.js'
+import { claudeArgs, parseClaudeOutput } from '../src/reasoners/claude.js'
+import { codexArgs } from '../src/reasoners/codex.js'
 
 describe('claudeArgs', () => {
   it('by default has no tools and does not read user settings or MCP config', () => {

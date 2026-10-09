@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { runProcess } from '../reasoner/process.js'
+import { runProcess } from './process.js'
 import { brokerRuntimeDir } from '../settings/paths.js'
 import { splitList, type BrokerEnv } from './env.js'
 

@@ -119,6 +119,18 @@ class Canvas {
     return this
   }
 
+  /**
+   * Room for an adapter that does not exist yet: a dashed outline with faint
+   * text
+   */
+  slot(x, y, w, label) {
+    this.add(
+      `<rect x="${x + 0.75}" y="${y + 0.75}" width="${w - 1.5}" height="28.5" rx="12" fill="none"` +
+        ` stroke="${this.t.line}" stroke-width="1.5" stroke-dasharray="5 4"/>`
+    )
+    return this.text(x + 12, y + 19, label, { size: 12, fill: this.t.faint })
+  }
+
   /** A small rounded label; tone picks a status color */
   chip(x, y, value, o = {}) {
     const tone = o.tone ? this.t[o.tone] : this.t.accentFg
@@ -794,10 +806,10 @@ function codeLayout(c) {
 
   // Below the pipeline
   const below = [
-    ['src/reasoner', 'claude and codex, host or docker'],
+    ['src/reasoners', 'An adapter per CLI'],
+    ['src/sandbox', 'Where it runs: host, docker'],
     ['src/history', 'runs/ written and read'],
-    ['src/hub', 'Server, policy, pairing'],
-    ['src/broker', "ops-broker's MCP tools"],
+    ['src/hub, src/broker', 'Team hub; ops tools'],
   ]
   below.forEach(([name, help], i) => {
     const x = 730 + (i % 2) * 218
@@ -853,6 +865,181 @@ function codeLayout(c) {
   )
 }
 
+/**
+ * The three interfaces around the mention pipeline, what implements each today,
+ * and where the next ones go
+ */
+function layers(c) {
+  c.header(
+    'layers',
+    "Three interfaces keep the pipeline apart from the chat app, the model's CLI, and where it runs."
+  )
+  const W = 232
+  const GAP = 64
+  const TOP = 120
+  const H = 516
+  const left = (i) => 40 + i * (W + GAP)
+  const columns = [
+    {
+      title: 'Messenger',
+      sub: 'src/messengers/types.ts',
+      accent: true,
+      upper: 'Interface',
+      contract: [
+        ['venue / request', 'Where, and what was asked'],
+        ['context / download', 'The thread, attachments'],
+        ['post / update / upload', 'Answers, edits, images'],
+        ['render', "Markdown in the app's markup"],
+      ],
+      lower: 'Adapters',
+      adapters: [['slack/', 'Bolt, Socket Mode or the hub']],
+      slots: ['Telegram', 'Discord'],
+    },
+    {
+      title: 'Mention pipeline',
+      sub: 'src/mention',
+      upper: 'Messenger- and model-neutral',
+      contract: [
+        ['responder.ts', 'One mention end to end'],
+        ['prompt.ts', 'System and user prompts'],
+        ['attachments.ts', 'What to read, and reading it'],
+        ['limiter.ts', 'Concurrency, the queue'],
+      ],
+      lower: 'Around it',
+      adapters: [
+        ['src/index.ts', 'Picks one of each'],
+        ['src/history', 'Runs and their steps'],
+      ],
+      slots: [],
+    },
+    {
+      title: 'Reasoner',
+      sub: 'src/reasoners/types.ts',
+      accent: true,
+      upper: 'Interface',
+      contract: [
+        ['complete(request)', 'Prompt in, the answer out'],
+        ['onEvent', 'Steps for the run history'],
+        ['canReadFiles', 'Whether it may read files'],
+        ['CliAdapter', 'invocation, events, answer'],
+      ],
+      lower: 'Adapters',
+      adapters: [
+        ['claude.ts', 'claude -p, stream-json'],
+        ['codex.ts', 'codex exec --json'],
+      ],
+      slots: ['Another CLI (gemini, ...)', 'An API reasoner'],
+    },
+    {
+      title: 'Sandbox',
+      sub: 'src/sandbox/runtime.ts',
+      accent: true,
+      upper: 'Interface',
+      contract: [
+        ['run(SandboxRun)', 'One process: env, mounts, stdin'],
+        ['pathIn(mount, file)', 'Paths as the process sees them'],
+        ['extractPdfText', 'Uploaded PDFs, no network'],
+        ['verify()', 'What keeps it from running'],
+      ],
+      lower: 'Implementations',
+      adapters: [
+        ['host.ts', 'Your login, no isolation'],
+        ['docker.ts', 'Hardened, one per request'],
+      ],
+      slots: ['Podman', 'A VM or a remote runner'],
+    },
+  ]
+
+  columns.forEach((col, i) => {
+    const x = left(i)
+    c.card(x, TOP, W, H, { accent: col.accent, title: col.title, sub: col.sub })
+    c.text(x + 18, TOP + 80, col.upper, { size: 11.5, fill: c.t.muted })
+    col.contract.forEach(([name, help], j) =>
+      c.item(x + 16, TOP + 90 + j * 54, W - 32, name, help)
+    )
+    c.text(x + 18, TOP + 326, col.lower, { size: 11.5, fill: c.t.muted })
+    col.adapters.forEach(([name, help], j) =>
+      c.item(x + 16, TOP + 336 + j * 54, W - 32, name, help, {
+        labelFill: c.t.primary,
+      })
+    )
+    col.slots.forEach((label, j) =>
+      c.slot(x + 16, TOP + 444 + j * 34, W - 32, label)
+    )
+  })
+
+  // What crosses each interface, there and back
+  const pairs = [
+    ['mention', 'answer'],
+    ['request', 'answer'],
+    ['process', 'stdout'],
+  ]
+  pairs.forEach(([there, back], i) => {
+    const from = left(i) + W
+    const to = left(i + 1)
+    const mid = (from + to) / 2
+    c.arrow(
+      [
+        [from, TOP + 170],
+        [to, TOP + 170],
+      ],
+      { main: true, label: there, at: [mid, TOP + 156], anchor: 'middle' }
+    )
+    c.arrow(
+      [
+        [to, TOP + 226],
+        [from, TOP + 226],
+      ],
+      { label: back, at: [mid, TOP + 212], anchor: 'middle' }
+    )
+  })
+
+  // How each kind of new thing gets in
+  const adding = [
+    [
+      'A chat app',
+      [
+        'An adapter in src/messengers',
+        'and its settings section. The',
+        'pipeline does not change.',
+      ],
+    ],
+    [
+      'Settings',
+      [
+        "REASONER picks the model's",
+        'adapter, REASONER_SANDBOX',
+        'the sandbox: host or docker.',
+      ],
+    ],
+    [
+      'A model',
+      [
+        'An adapter in src/reasoners and',
+        'its id in ids.ts; the CLI goes',
+        'into the reasoner image.',
+      ],
+    ],
+    [
+      'A runtime',
+      [
+        'A Sandbox in src/sandbox.',
+        'Adapters ask for mounts and',
+        'env, never for docker.',
+      ],
+    ],
+  ]
+  adding.forEach(([title, lines], i) => {
+    const x = left(i)
+    const y = TOP + H + 24
+    c.card(x, y, W, 98, { radius: 14 })
+    c.text(x + 16, y + 26, title, { size: 13, weight: 600 })
+    lines.forEach((line, j) =>
+      c.text(x + 16, y + 48 + j * 17, line, { size: 11.5, fill: c.t.muted })
+    )
+  })
+}
+
 /** Splits text into lines of at most `width` characters */
 function wrap(text, width) {
   const lines = []
@@ -871,6 +1058,7 @@ const DIAGRAMS = [
   ['architecture', 'Pacenote architecture', 1200, 712, architecture],
   ['team-hub', 'Pacenote team hub', 1200, 628, teamHub],
   ['mention-flow', 'Pacenote: one mention', 1200, 640, mentionFlow],
+  ['layers', 'Pacenote layers', 1200, 800, layers],
   ['code-layout', 'Pacenote code layout', 1200, 720, codeLayout],
 ]
 

@@ -63,3 +63,32 @@ app is an adapter, not a change to the pipeline:
 
 Run history (`origin.messenger`) and interrupted requests (`inflight.json`) already record which messenger a request
 came from.
+
+## Adding a reasoner
+
+A model's CLI is a `CliAdapter` in `src/reasoners`; the runner (`cli.ts`) and the sandboxes do not change:
+
+1. Add its id to `src/reasoners/ids.ts` and to the `REASONER` options in `src/settings/fields.ts`.
+2. Write `src/reasoners/<id>.ts`, with `claude.ts` and `codex.ts` as the references:
+   - `invocation()`: the command, its arguments, stdin, credentials (`env`), and the host paths it needs as mounts
+     (`SANDBOX_PATHS`, with `sandbox.pathIn()` for the paths it is told about).
+   - `canReadFiles(sandbox)`: whether it may read the reference directory where it runs.
+   - `events()`, `answer()`, `failure()`: progress steps, the final answer, and the cause of a failed run, from what it
+     prints.
+3. Register it in `ADAPTERS` in `src/reasoners/cli.ts`.
+4. In `src/config.ts`, give it a binary setting in `commands` and, for the docker sandbox, its credentials in `auth`.
+5. Install the CLI in `sandbox/reasoner/Dockerfile` and allow its API's domain in `sandbox/proxy/allowed-domains.txt`.
+
+A model reached without a CLI can implement `Reasoner` directly and be returned from `createReasoner`.
+
+## Adding a sandbox
+
+A place to run the CLI is a `Sandbox` in `src/sandbox`; the adapters do not change:
+
+1. Add its kind to `SandboxKind` in `src/sandbox/runtime.ts`.
+2. Write `src/sandbox/<kind>.ts`. `run()` starts one process with the given stdin, environment values (kept out of
+   process listings), mounts (read-only unless `writable`) and working directory (an empty one without it), honors the
+   timeout and the abort signal, and passes stdout lines on. Set `isolated` when the process sees only its mounts; an
+   isolated sandbox puts them at `SANDBOX_PATHS`, and `pathIn()` says where a host file appears. `extractPdfText()` and
+   `verify()` cover uploaded PDFs and what keeps it from running.
+3. Build it in `src/index.ts` from `REASONER_SANDBOX` (`src/config.ts`, `src/settings/fields.ts`).

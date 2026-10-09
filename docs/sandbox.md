@@ -1,17 +1,25 @@
 # Reasoner sandbox
 The requester's message and the thread content become model input as they are. With `REASONER_SANDBOX=docker`, each
-request runs the reasoner in a new container that is removed when it finishes.
+request runs the reasoner in a new container that is removed when it finishes. In the code this is `DockerSandbox`
+(`src/sandbox/docker.ts`), one implementation of the `Sandbox` interface; `REASONER_SANDBOX=none` is `HostSandbox`,
+which runs the CLI on your Mac with your own login. See [Layers](architecture.md#layers).
 
 ```
 bot (host) --docker run--> reasoner container --(internal network)--> egress-proxy --> allowed domains only
-                           |- /workspace  reference directory (read-only, optional)
-                           |- HOME, /tmp  tmpfs, empty on every run
+                           |- /workspace     reference directory (read-only, optional)
+                           |- /attachments   attached images for codex (read-only)
+                           |- /out           codex's generated images (the one writable mount)
+                           |- /run/secrets   codex's auth.json (read-only)
+                           |- HOME, /tmp     tmpfs, empty on every run
                            '- no other host files
 ```
 
+Each CLI's adapter (`src/reasoners`) asks only for the mounts it needs; the paths are `SANDBOX_PATHS` in
+`src/sandbox/runtime.ts`, and the reasoner image is built for them.
+
 | Item | Limit |
 | --- | --- |
-| Filesystem | Read-only root. The only host files visible are the reference directory (ro) and the codex auth file (ro) |
+| Filesystem | Read-only root. The only host files visible are the mounts above: the reference directory, attachments and the codex auth file read-only, and codex's output directory |
 | Network | `internal` network with no external route. Only domains in `~/.pacenote/sandbox/allowed-domains.txt` are allowed, via CONNECT on 443 (the file is first created from `sandbox/proxy/allowed-domains.txt`) |
 | Privileges | All capabilities dropped, `no-new-privileges`, uid 1000, pids/memory/CPU limits |
 | Auth | claude gets `SANDBOX_CLAUDE_OAUTH_TOKEN` or `SANDBOX_ANTHROPIC_API_KEY` passed by environment variable name only (not exposed in process arguments). codex gets `auth.json` mounted read-only and copied to tmpfs |

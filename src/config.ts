@@ -5,9 +5,10 @@ import path from 'node:path'
 import { z } from 'zod'
 import { isSecureOrLocalUrl, slackApiBase } from './messengers/slack/api.js'
 import { defaultHome } from './settings/legacy.js'
-import { readCodexDefaults } from './reasoner/codex-config.js'
-import type { DockerSandboxOptions } from './reasoner/executor.js'
-import type { McpServerRef } from './reasoner/index.js'
+import { readCodexDefaults } from './reasoners/codex.js'
+import { REASONER_IDS, type ReasonerId } from './reasoners/ids.js'
+import type { McpServerRef, ReasonerOptions } from './reasoners/types.js'
+import type { DockerSandboxOptions } from './sandbox/docker.js'
 
 const DEFAULT_CLAUDE_MODEL = 'claude-opus-5-5'
 
@@ -110,7 +111,7 @@ export const EnvSchema = z.object({
   MENTION_WORKSPACE: z.string().optional(),
   MENTION_CONCURRENCY: z.coerce.number().int().positive().default(2),
 
-  REASONER: z.enum(['claude', 'codex']).default('claude'),
+  REASONER: z.enum(REASONER_IDS).default('claude'),
   REASONER_MODEL: z.string().optional(),
   REASONER_TIMEOUT_SEC: z.coerce.number().int().positive().default(900),
   CLAUDE_BIN: z.string().default('claude'),
@@ -185,21 +186,20 @@ export interface Config {
     /** Number of CLIs to run concurrently */
     concurrency: number
   }
-  reasoner: {
-    backend: 'claude' | 'codex'
-    /** If empty, codex uses the model from ~/.codex/config.toml. */
-    model?: string
-    codexReasoningEffort?: string
-    timeoutMs: number
-    claudeBin: string
-    codexBin: string
-    /** If set, runs the CLI inside a disposable docker container. */
-    sandbox?: DockerSandboxOptions
+  /**
+   * The reasoner CLI (src/reasoners) and where it runs (src/sandbox). If empty,
+   * codex uses the model from ~/.codex/config.toml.
+   */
+  reasoner: ReasonerOptions & {
     /**
      * MCP servers to attach to the reasoner CLI. With OPS_TOOLS=on, ops-broker
      * (SSH host checks, k8s, file lookup)
      */
     mcpServers: McpServerRef[]
+    /** Binary paths for running on the host (CLAUDE_BIN, CODEX_BIN) */
+    commands: Record<ReasonerId, string>
+    /** If set, runs the CLI inside a disposable docker container. */
+    sandbox?: DockerSandboxOptions
   }
   /**
    * Renders mermaid/dot/vega-lite/svg blocks in answers to PNG and uploads
@@ -434,8 +434,7 @@ function buildReasonerConfig(e: Env): Config['reasoner'] {
       e.REASONER_MODEL ??
       (e.REASONER === 'claude' ? DEFAULT_CLAUDE_MODEL : undefined),
     timeoutMs: e.REASONER_TIMEOUT_SEC * 1000,
-    claudeBin: e.CLAUDE_BIN,
-    codexBin: e.CODEX_BIN,
+    commands: { claude: e.CLAUDE_BIN, codex: e.CODEX_BIN },
   }
   if (e.OPS_TOOLS === 'on') {
     // ops-broker uses SSH keys, a cluster read token, and the work directory.
@@ -480,12 +479,15 @@ function buildReasonerConfig(e: Env): Config['reasoner'] {
         path.join(path.dirname(codexAuthFile), 'config.toml')
       )
       base.model = defaults.model
-      base.codexReasoningEffort = defaults.reasoningEffort
+      base.reasoningEffort = defaults.reasoningEffort
     }
   }
 
   return {
     ...base,
+    // Only the selected CLI's credentials go into its runs.
+    auth:
+      e.REASONER === 'claude' ? { env: claudeEnv } : { file: codexAuthFile },
     sandbox: {
       dockerBin: e.DOCKER_BIN,
       image: e.SANDBOX_IMAGE,
@@ -493,8 +495,6 @@ function buildReasonerConfig(e: Env): Config['reasoner'] {
       proxyUrl: e.SANDBOX_PROXY_URL,
       memory: e.SANDBOX_MEMORY,
       cpus: e.SANDBOX_CPUS,
-      claudeEnv: e.REASONER === 'claude' ? claudeEnv : {},
-      codexAuthFile: e.REASONER === 'codex' ? codexAuthFile : undefined,
       noProxy: base.mcpServers.map((server) => new URL(server.url).hostname),
       requiredServices: e.OPS_TOOLS === 'on' ? ['ops-broker'] : [],
     },

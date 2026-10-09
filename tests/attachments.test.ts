@@ -18,13 +18,13 @@ import {
   settle,
   toMessageFile,
 } from '../src/messengers/slack/files.js'
-import { dockerRunArgs, pdfExtractArgs } from '../src/reasoner/executor.js'
 import {
   claudeArgs,
   claudeStreamInput,
-  codexArgs,
   parseClaudeOutput,
-} from '../src/reasoner/index.js'
+} from '../src/reasoners/claude.js'
+import { codexArgs } from '../src/reasoners/codex.js'
+import { pdfExtractArgs } from '../src/sandbox/docker.js'
 
 const candidate = (
   name: string,
@@ -281,27 +281,6 @@ describe('CLI handoff', () => {
       '--image=/attachments/2-b.jpg',
       '-',
     ])
-  })
-
-  it('Docker mounts the attachment directory read-only at /attachments', () => {
-    const args = dockerRunArgs(
-      {
-        dockerBin: 'docker',
-        image: 'img',
-        network: 'n',
-        proxyUrl: 'http://p:1',
-        memory: '1g',
-        cpus: '1',
-        claudeEnv: {},
-      },
-      {
-        tool: 'codex',
-        args: [],
-        attachmentsDir: '/home/me/agent/data/attachments/x',
-      },
-      'c'
-    )
-    expect(args).toContain('/home/me/agent/data/attachments/x:/attachments:ro')
   })
 
   it('PDF extraction runs in a disposable container without network access', () => {

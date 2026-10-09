@@ -98,33 +98,6 @@ describe('systemPrompt', () => {
 })
 
 describe('generated images', () => {
-  it('adds the writable /out mount only for codex runs', async () => {
-    const { dockerRunArgs } = await import('../src/reasoner/executor.js')
-    const options = {
-      dockerBin: 'docker',
-      image: 'img',
-      network: 'n',
-      proxyUrl: 'http://p:1',
-      memory: '1g',
-      cpus: '1',
-      claudeEnv: {},
-    }
-    expect(
-      dockerRunArgs(
-        options,
-        { tool: 'codex', args: [], outputDir: '/h/out' },
-        'c'
-      )
-    ).toContain('/h/out:/out')
-    expect(
-      dockerRunArgs(
-        options,
-        { tool: 'claude', args: [], outputDir: '/h/out' },
-        'c'
-      )
-    ).not.toContain('/h/out:/out')
-  })
-
   it('collects images from the output directory in creation order', async () => {
     const { mkdtempSync, mkdirSync, writeFileSync, utimesSync, rmSync } =
       await import('node:fs')

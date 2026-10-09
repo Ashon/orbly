@@ -62,7 +62,8 @@ Illustrations and photo-like images are made with codex's image generation (`ima
 | `src/messengers/types.ts` | The messenger interface: receiving mentions, context, files, posting, editing, uploads, formatting, links |
 | `src/messengers/slack/` | The Slack adapter: connection (Socket Mode or the team hub), user/channel cache, mrkdwn conversion, file downloads |
 | `src/mention/` | The messenger-neutral pipeline: allowlist and venue checks, prompt, attachments, run history, resuming after a restart |
-| `src/reasoner/` | `claude -p` and `codex exec` wrappers, host/docker executors |
+| `src/reasoners/` | The reasoner interface and a `CliAdapter` per CLI (`claude -p`, `codex exec`), run by `cli.ts` |
+| `src/sandbox/` | Where the CLI runs: the `Sandbox` interface, `host.ts` and `docker.ts`, plus sandbox setup jobs |
 | `src/broker/` | ops-broker: SSH host checks, k8s queries, work directory reads (MCP server) |
 | `src/tools/sandbox-job.ts` | Sandbox apply jobs: image builds, proxy, broker (mount preparation, host list), kubeconfig. Shared by the app and `pnpm sandbox:*` |
 | `scripts/bundle.mjs` | Bundles the bot, the sandbox jobs and the broker with their dependencies (`pnpm bundle`; used by the packaged app and the broker image) |

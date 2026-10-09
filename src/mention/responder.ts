@@ -14,7 +14,7 @@ import {
   type Upload,
 } from '../messengers/types.js'
 import { formatTime, truncate } from '../messengers/text.js'
-import type { Reasoner } from '../reasoner/index.js'
+import type { Reasoner } from '../reasoners/types.js'
 import {
   composeAnswer,
   extractDiagrams,

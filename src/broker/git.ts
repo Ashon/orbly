@@ -10,7 +10,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import path from 'node:path'
-import { ProcessExitError, runProcess } from '../reasoner/process.js'
+import { ProcessExitError, runProcess } from '../sandbox/process.js'
 import { isDenied } from './fs.js'
 import { redactSecrets } from './redact.js'
 

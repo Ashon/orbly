@@ -57,7 +57,7 @@ upgrades and uninstalls. To run from source instead, see [Installation](docs/ins
 
 | Doc | What it covers |
 | --- | --- |
-| [Architecture](docs/architecture.md) | The design in four diagrams: the pieces, one mention, the team hub, the code layout |
+| [Architecture](docs/architecture.md) | The design in five diagrams: the pieces, one mention, the team hub, the layers, the code layout |
 | [How it works](docs/how-it-works.md) | The path from a mention to its answer, attachments, diagrams and images, the reasoner CLIs |
 | [Reasoner sandbox](docs/sandbox.md) | The Docker sandbox, the egress proxy and allowed domains, the sandbox's claude or codex login |
 | [Ops tools](docs/ops-tools.md) | ops-broker: hosts, k8s, work directory, GitHub, Jira, and code changes as draft PRs |

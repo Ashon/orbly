@@ -3,11 +3,12 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { loadConfig } from '../src/config.js'
-import { parseCodexDefaults } from '../src/reasoner/codex-config.js'
+import { parseCodexDefaults } from '../src/reasoners/codex.js'
 import {
   dockerRunArgs,
+  DockerSandbox,
   type DockerSandboxOptions,
-} from '../src/reasoner/executor.js'
+} from '../src/sandbox/docker.js'
 
 const options: DockerSandboxOptions = {
   dockerBin: 'docker',
@@ -16,8 +17,6 @@ const options: DockerSandboxOptions = {
   proxyUrl: 'http://egress-proxy:8888',
   memory: '2g',
   cpus: '2',
-  claudeEnv: { CLAUDE_CODE_OAUTH_TOKEN: 'secret-token' },
-  codexAuthFile: '/home/me/.codex/auth.json',
 }
 
 const valueAfter = (args: string[], flag: string) =>
@@ -26,7 +25,12 @@ const valueAfter = (args: string[], flag: string) =>
 describe('dockerRunArgs', () => {
   const args = dockerRunArgs(
     options,
-    { tool: 'claude', args: ['-p'], referenceDir: '/repo' },
+    {
+      command: 'claude',
+      args: ['-p'],
+      env: { CLAUDE_CODE_OAUTH_TOKEN: 'secret-token' },
+      cwd: { host: '/repo', at: '/workspace' },
+    },
     'c1'
   )
 
@@ -40,37 +44,56 @@ describe('dockerRunArgs', () => {
     expect(args).toContain('HTTPS_PROXY=http://egress-proxy:8888')
   })
 
-  it('mounts the reference directory read-only and keeps secrets out of the arguments', () => {
+  it('mounts the working directory read-only and passes environment values by name only', () => {
     expect(args).toContain('/repo:/workspace:ro')
     expect(valueAfter(args, '-w')).toBe('/workspace')
     expect(args).toContain('CLAUDE_CODE_OAUTH_TOKEN')
     expect(args.join(' ')).not.toContain('secret-token')
-    expect(args.join(' ')).not.toContain('auth.json')
     expect(args.slice(-3)).toEqual(['img:1', 'claude', '-p'])
   })
 
   it('passes NO_PROXY so internal services bypass the proxy', () => {
     const withBroker = dockerRunArgs(
       { ...options, noProxy: ['ops-broker'] },
-      { tool: 'codex', args: [] },
+      { command: 'codex', args: [] },
       'c3'
     )
     expect(withBroker).toContain('NO_PROXY=ops-broker')
     expect(args.some((a) => a.startsWith('NO_PROXY='))).toBe(false)
   })
 
-  it('gives codex only its auth file read-only and no claude credentials', () => {
-    const codex = dockerRunArgs(
+  it('mounts read-only unless writable, and starts in an empty directory without a working directory', () => {
+    const run = dockerRunArgs(
       options,
-      { tool: 'codex', args: ['exec'] },
+      {
+        command: 'codex',
+        args: ['exec'],
+        mounts: [
+          {
+            host: '/home/me/.codex/auth.json',
+            at: '/run/secrets/codex-auth.json',
+          },
+          { host: '/tmp/out', at: '/out', writable: true },
+        ],
+      },
       'c2'
     )
-    expect(codex).toContain(
+    expect(run).toContain(
       '/home/me/.codex/auth.json:/run/secrets/codex-auth.json:ro'
     )
-    expect(codex).not.toContain('CLAUDE_CODE_OAUTH_TOKEN')
-    expect(valueAfter(codex, '-w')).toBe('/work')
-    expect(codex.some((a) => a.endsWith(':/workspace:ro'))).toBe(false)
+    expect(run).toContain('/tmp/out:/out')
+    expect(valueAfter(run, '-w')).toBe('/work')
+    expect(run.some((a) => a.endsWith(':/workspace:ro'))).toBe(false)
+  })
+})
+
+describe('DockerSandbox.pathIn', () => {
+  it('maps a host file under a mount to its path in the container', () => {
+    const box = new DockerSandbox(options)
+    const mount = { host: path.join(tmpdir(), 'files'), at: '/attachments' }
+    expect(box.pathIn(mount, path.join(mount.host, 'a b.png'))).toBe(
+      '/attachments/a b.png'
+    )
   })
 })
 
@@ -111,10 +134,11 @@ describe('loadConfig sandbox', () => {
       REASONER_SANDBOX: 'docker',
       SANDBOX_CLAUDE_OAUTH_TOKEN: 'tok',
     })
-    expect(config.reasoner.sandbox?.claudeEnv).toEqual({
-      CLAUDE_CODE_OAUTH_TOKEN: 'tok',
+    expect(config.reasoner.auth).toEqual({
+      env: { CLAUDE_CODE_OAUTH_TOKEN: 'tok' },
     })
-    expect(config.reasoner.sandbox?.codexAuthFile).toBeUndefined()
+    expect(config.reasoner.sandbox).toBeDefined()
+    expect(JSON.stringify(config.reasoner.sandbox)).not.toContain('tok')
   })
 
   it('requires an auth file for the codex sandbox and takes the model from the host config.toml', () => {
@@ -141,11 +165,21 @@ describe('loadConfig sandbox', () => {
     })
     expect(config.reasoner).toMatchObject({
       model: 'gpt-x',
-      codexReasoningEffort: 'low',
+      reasoningEffort: 'low',
+      auth: { file: auth },
     })
-    expect(config.reasoner.sandbox).toMatchObject({
-      codexAuthFile: auth,
-      claudeEnv: {},
+  })
+})
+
+describe('loadConfig commands', () => {
+  it("names each CLI's binary for the host sandbox", () => {
+    const config = loadConfig({
+      SLACK_BOT_TOKEN: 'xoxb-1',
+      SLACK_APP_TOKEN: 'xapp-1',
+      CLAUDE_BIN: '/opt/claude',
     })
+    expect(config.reasoner.sandbox).toBeUndefined()
+    expect(config.reasoner.commands.claude).toBe('/opt/claude')
+    expect(config.reasoner.commands.codex).toBeTruthy()
   })
 })

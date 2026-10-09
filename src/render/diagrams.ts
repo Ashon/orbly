@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { runProcess } from '../reasoner/process.js'
+import { runProcess } from '../sandbox/process.js'
 
 /**
  * Renders the diagram/chart code blocks in an answer to PNG.

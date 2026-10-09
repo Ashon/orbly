@@ -13,7 +13,7 @@ import {
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
-import { ProcessExitError, runProcess } from '../reasoner/process.js'
+import { ProcessExitError, runProcess } from '../sandbox/process.js'
 import {
   CHECK_NAMES,
   CHECKS,
