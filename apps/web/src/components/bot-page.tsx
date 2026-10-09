@@ -295,12 +295,13 @@ const LOG_VIEWS: { value: LogView; label: string }[] = [
 ];
 
 const matchesView = (line: LogLine, view: LogView) => {
-  const scope = line.scope ?? "";
+  // Lines logged before the rename have verda scopes; both read the same.
+  const scope = (line.scope ?? "").replace(/^verda(?=:|$)/, "orbly");
   switch (view) {
     case "socket":
-      return scope.startsWith("verda:socket") || scope.startsWith("verda:bolt");
+      return scope.startsWith("orbly:socket") || scope.startsWith("orbly:bolt");
     case "mention":
-      return scope.startsWith("verda:mention") || scope.startsWith("verda:history");
+      return scope.startsWith("orbly:mention") || scope.startsWith("orbly:history");
     case "problems":
       return line.level === "WARN" || line.level === "ERROR";
     default:
@@ -409,7 +410,8 @@ function LogPanel() {
 }
 
 function LogRow({ line }: { line: LogLine }) {
-  const scope = (line.scope ?? "").replace(/^verda:?/, "") || "main";
+  // Lines logged before the rename have verda scopes.
+  const scope = (line.scope ?? "").replace(/^(orbly|verda):?/, "") || "main";
   const socket = scope.startsWith("socket") || scope.startsWith("bolt");
   return (
     <div

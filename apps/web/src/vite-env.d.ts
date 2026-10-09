@@ -13,7 +13,7 @@ import type {
 declare global {
   interface Window {
     /** Present only in the desktop app (preload). */
-    verdaDesktop?: {
+    orblyDesktop?: {
       platform: string;
       /** Runs from the repository (Verda Dev) rather than the installed app */
       dev?: boolean;

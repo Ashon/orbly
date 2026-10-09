@@ -58,7 +58,7 @@ export function redactLogLine(text: string): string {
 
 export function createLogger(
   level: LogLevel,
-  scope = "verda",
+  scope = "orbly",
   sinks: LogSink[] = [consoleSink]
 ): Logger {
   const threshold = LEVELS[level];

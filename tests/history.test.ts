@@ -133,7 +133,7 @@ describe("claude events", () => {
 });
 
 describe("run history", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "verda-history-"));
+  const root = mkdtempSync(path.join(tmpdir(), "orbly-history-"));
   afterAll(() => rmSync(root, { recursive: true, force: true }));
   const store = new HistoryStore(root);
   const reader = new HistoryReader(root);
@@ -251,12 +251,12 @@ describe("slackPermalink", () => {
 });
 
 describe("query API", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "verda-api-"));
+  const root = mkdtempSync(path.join(tmpdir(), "orbly-api-"));
   afterAll(() => rmSync(root, { recursive: true, force: true }));
   const store = new HistoryStore(root);
   const reader = new HistoryReader(root);
   const call = (pathname: string, method = "GET") =>
-    handleLocalApi(reader, method, new URL(pathname, "verda://app"));
+    handleLocalApi(reader, method, new URL(pathname, "orbly://app"));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const body = async (pathname: string): Promise<any> => (await call(pathname)).json();
 

@@ -6,7 +6,7 @@ import { tailLogs } from "./runtime/logs.js";
 import { readBotStatus } from "./runtime/status.js";
 
 /**
- * Local query API (read-only). Shared by the desktop app's verda:// protocol and the web dev server.
+ * Local query API (read-only). Shared by the desktop app's orbly:// protocol and the web dev server.
  * The data directory is reader.root. Controls such as bot start/stop are not here; they go through
  * desktop app IPC only.
  *   GET /api/health

@@ -19,7 +19,7 @@ import { checkSlackTokens, type SlackCheckItem } from "../../../src/slack/check.
 const FIELDS = new Map(SETTING_FIELDS.map((field) => [field.key, field]));
 
 /**
- * Reads and writes .env for the Settings screen. The settings file outside the repository (src/settings/paths.ts, default ~/.verda/.env)
+ * Reads and writes .env for the Settings screen. The settings file outside the repository (src/settings/paths.ts, default ~/.orbly/.env)
  * is the single source of settings for the bot (both app and terminal).
  * - Secrets are never sent to the UI. (only whether they are set and the last 4 characters)
  * - Validates with the same rules as the bot and broker (checkConfig, checkBrokerEnv) before saving. App environment variables also take precedence over .env the same way.

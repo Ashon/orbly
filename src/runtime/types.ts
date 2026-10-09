@@ -1,5 +1,5 @@
 /**
- * Bot runtime status. The bot writes it to <VERDA_DATA_DIR>/bot.json; the desktop app and UI read it.
+ * Bot runtime status. The bot writes it to <ORBLY_DATA_DIR>/bot.json; the desktop app and UI read it.
  * The same file also acts as a run lock. (A second bot does not start while a live pid is recorded)
  */
 export type SocketState =

@@ -55,7 +55,7 @@ import {
   SandboxStatusCard,
 } from "./sandbox-panel";
 
-const bridge = () => window.verdaDesktop?.settings;
+const bridge = () => window.orblyDesktop?.settings;
 
 /** Settings sections: the bot's own (.env), then the desktop app's preferences. */
 type Section = SettingSection | "general";
@@ -116,7 +116,7 @@ interface Hint {
 }
 
 /**
- * Settings screen that edits the settings file (~/.verda/.env). Available only in the desktop app.
+ * Settings screen that edits the settings file (~/.orbly/.env). Available only in the desktop app.
  * draft holds the values changed in the UI. An empty string means revert to default.
  * Changes are kept across sections and saved together from the bar at the bottom.
  */
@@ -460,7 +460,7 @@ export function SettingsPage() {
           <div className="divide-y divide-canvas">
             <Row
               label="Theme"
-              help="System follows the macOS appearance. VERDA_DESKTOP_THEME in the environment overrides it."
+              help="System follows the macOS appearance. ORBLY_DESKTOP_THEME in the environment overrides it."
             >
               <ThemePicker />
             </Row>
@@ -499,7 +499,7 @@ export function SettingsPage() {
             </Row>
             <Row
               label="Run history folder"
-              help="VERDA_DATA_DIR. To change it, edit the settings file and relaunch the app."
+              help="ORBLY_DATA_DIR. To change it, edit the settings file and relaunch the app."
             >
               <PathControl
                 path={view.dataDir}

@@ -1,7 +1,7 @@
 import type { SandboxComponent } from "../sandbox/types.js";
 
 /**
- * Config file (.env, ~/.verda/.env outside the repository) entries handled by the settings screen. Shared by the desktop app (save, validation) and the screen (input form).
+ * Config file (.env, ~/.orbly/.env outside the repository) entries handled by the settings screen. Shared by the desktop app (save, validation) and the screen (input form).
  * Defaults must match the bot config (src/config.ts EnvSchema) or the broker config (src/sandbox/env.ts). (tests/settings.test.ts)
  * .env entries not listed here are hidden from the screen and kept as is on save.
  */
@@ -549,7 +549,7 @@ export const SETTING_FIELDS: SettingField[] = [
     key: "OPS_SSH_INVENTORY_DIR",
     group: "ssh",
     label: "Inventory directory",
-    help: "Location of the ansible project used to build the host list. Relative paths are relative to this repository. Leave empty to write ~/.verda/ops-broker/hosts.json directly.",
+    help: "Location of the ansible project used to build the host list. Relative paths are relative to this repository. Leave empty to write ~/.orbly/ops-broker/hosts.json directly.",
     type: "text",
     advanced: true,
     applies: "broker",

@@ -1,12 +1,12 @@
 # Reasoner sandbox for mention replies. Shared by the repository (pnpm sandbox:*) and the desktop app (sandbox inside the bundle).
-# Jobs are run by src/tools/sandbox-job.ts. All files that change live under VERDA_HOME (default ~/.verda).
+# Jobs are run by src/tools/sandbox-job.ts. All files that change live under ORBLY_HOME (default ~/.orbly).
 # - egress-proxy: always running. The exit from the internal network to allowed domains only
 # - reasoner: image build only. The bot starts it per request with docker run --rm.
 # - renderer: image build only. Renders diagrams/charts in answers to PNG in a disposable container without network.
 # - ops-broker: (profile ops) ops check relay. The only container that holds the SSH key, kubeconfig,
 #   and work directory. It offers the reasoner container only fixed read-only queries as MCP tools.
-#   All values come from OPS_* in the config file (VERDA_HOME/.env, default ~/.verda/.env).
-#   Generated files and empty placeholders for unset mounts are in VERDA_HOME/ops-broker outside the repository (created by the broker job),
+#   All values come from OPS_* in the config file (ORBLY_HOME/.env, default ~/.orbly/.env).
+#   Generated files and empty placeholders for unset mounts are in ORBLY_HOME/ops-broker outside the repository (created by the broker job),
 #   and for unset features the broker starts without those tools.
 name: verda-sandbox
 
@@ -21,7 +21,7 @@ services:
       - /run
     volumes:
       # Allowed domains list. If missing, the job creates it from proxy/allowed-domains.txt. (Edited in the settings screen)
-      - ${VERDA_HOME:-${HOME}/.verda}/sandbox/allowed-domains.txt:/etc/egress/allowed-domains.txt:ro
+      - ${ORBLY_HOME:-${HOME}/.orbly}/sandbox/allowed-domains.txt:/etc/egress/allowed-domains.txt:ro
     networks:
       - sandbox
       - egress
@@ -80,13 +80,13 @@ services:
       GIT_ALLOWED_OWNERS: ${OPS_GIT_ALLOWED_OWNERS:-}
     volumes:
       # Host SSH checks (host_*). The broker job builds the host list from the inventory.
-      - ${OPS_SSH_KEY:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/ssh-key}:/run/secrets/ssh-key:ro
-      - ${OPS_SSH_KNOWN_HOSTS:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/known_hosts}:/run/secrets/known_hosts:ro
-      - ${VERDA_HOME:-${HOME}/.verda}/ops-broker/hosts.json:/etc/ops/hosts.json:ro
+      - ${OPS_SSH_KEY:-${ORBLY_HOME:-${HOME}/.orbly}/ops-broker/unset/ssh-key}:/run/secrets/ssh-key:ro
+      - ${OPS_SSH_KNOWN_HOSTS:-${ORBLY_HOME:-${HOME}/.orbly}/ops-broker/unset/known_hosts}:/run/secrets/known_hosts:ro
+      - ${ORBLY_HOME:-${HOME}/.orbly}/ops-broker/hosts.json:/etc/ops/hosts.json:ro
       # Read-only k8s kubeconfig (k8s_*). Built with pnpm k8s:kubeconfig
-      - ${VERDA_HOME:-${HOME}/.verda}/ops-broker/kubeconfig:/run/secrets/kubeconfig:ro
+      - ${ORBLY_HOME:-${HOME}/.orbly}/ops-broker/kubeconfig:/run/secrets/kubeconfig:ro
       # Work directory (fs_*), read-only
-      - ${OPS_FS_ROOT:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/workspace}:/workspace:ro
+      - ${OPS_FS_ROOT:-${ORBLY_HOME:-${HOME}/.orbly}/ops-broker/unset/workspace}:/workspace:ro
       # Agent workspace (ws_*): remote mirrors and worktrees. Kept separate from local repositories.
       - ops-work:/work
     networks:

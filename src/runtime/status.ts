@@ -22,6 +22,12 @@ export function isAlive(pid: number): boolean {
   }
 }
 
+/** The first bot alive among these data folders (see botLockDirs), else the status of the first folder */
+export function readRunningBot(dataDirs: readonly string[]): BotStatusView {
+  const views = dataDirs.map(readBotStatus);
+  return views.find((view) => view.alive) ?? views[0] ?? { alive: false };
+}
+
 export function readBotStatus(dataDir: string): BotStatusView {
   const file = path.join(dataDir, STATUS_FILE);
   if (!existsSync(file)) return { alive: false };
@@ -39,7 +45,7 @@ export class BotAlreadyRunningError extends Error {
     managedBy: string
   ) {
     super(
-      `Another Verda bot is running (pid ${pid}, ${managedBy === "desktop" ? "desktop app" : "terminal"}). ` +
+      `Another Orbly bot is running (pid ${pid}, ${managedBy === "desktop" ? "desktop app" : "terminal"}). ` +
         "Running two with the same app token makes Slack split events between them, so only one runs."
     );
   }
@@ -54,16 +60,18 @@ export class BotStatusFile {
 
   /**
    * If another bot is alive, waits up to waitMs for it to exit. (Time for the previous process to finish in-progress requests on a pnpm dev restart)
-   * If it is still alive, throws BotAlreadyRunningError.
+   * If it is still alive, throws BotAlreadyRunningError. otherDirs are also checked for a running bot (both default homes,
+   * so an old Verda and a new Orbly never connect at the same time), but the status file is written only to dataDir.
    */
   static async acquire(
     dataDir: string,
     managedBy: BotStatus["managedBy"],
-    waitMs = 30_000
+    waitMs = 30_000,
+    otherDirs: readonly string[] = []
   ): Promise<BotStatusFile> {
     const deadline = Date.now() + waitMs;
     for (;;) {
-      const current = readBotStatus(dataDir);
+      const current = readRunningBot([dataDir, ...otherDirs]);
       if (!current.alive || current.status?.pid === process.pid) break;
       if (Date.now() >= deadline) {
         throw new BotAlreadyRunningError(current.status!.pid, current.status!.managedBy);

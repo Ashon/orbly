@@ -13,7 +13,7 @@ import { MentionResponder } from "../src/mention/responder.js";
 import type { Reasoner, ReasonRequest } from "../src/reasoner/index.js";
 import type { Directory } from "../src/slack/directory.js";
 
-const root = mkdtempSync(path.join(tmpdir(), "verda-responder-"));
+const root = mkdtempSync(path.join(tmpdir(), "orbly-responder-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 function setup(complete: (request: ReasonRequest) => Promise<string>) {
@@ -64,7 +64,7 @@ function setup(complete: (request: ReasonRequest) => Promise<string>) {
     reasoner,
     directory,
     log: createLogger("error"),
-    botUserId: "U0VERDA",
+    botUserId: "U0ORBLY",
     extractPdfText: async () => "",
     inflight: new InflightStore(path.join(root, "inflight.json")),
     history,
@@ -80,7 +80,7 @@ const mention = (ts: string): AppMentionEvent =>
     ts,
     thread_ts: "1791443475.275049",
     user: "U0BOSS",
-    text: "<@U0VERDA> check the status of web-01",
+    text: "<@U0ORBLY> check the status of web-01",
     event_ts: ts,
   }) as AppMentionEvent;
 

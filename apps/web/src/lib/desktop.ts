@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 /** Bot process state managed by the desktop app. undefined in the browser (dev server) */
 export function useSupervisor(): SupervisorState | undefined {
-  const bridge = window.verdaDesktop?.bot;
+  const bridge = window.orblyDesktop?.bot;
   const [state, setState] = useState<SupervisorState>();
   useEffect(() => {
     if (!bridge) return;
@@ -14,11 +14,11 @@ export function useSupervisor(): SupervisorState | undefined {
   return state;
 }
 
-export const botControl = () => window.verdaDesktop?.bot;
+export const botControl = () => window.orblyDesktop?.bot;
 
 /** Sandbox status and apply jobs. Reloads the status when a job finishes. */
 export function useSandbox() {
-  const bridge = window.verdaDesktop?.sandbox;
+  const bridge = window.orblyDesktop?.sandbox;
   const [status, setStatus] = useState<SandboxStatus>();
   const [loading, setLoading] = useState(false);
   const [job, setJob] = useState<SandboxJob>();

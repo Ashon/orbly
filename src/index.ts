@@ -9,6 +9,8 @@ import { DockerExecutor, HostExecutor } from "./reasoner/executor.js";
 import { createReasoner } from "./reasoner/index.js";
 import { DiagramRenderer } from "./render/diagrams.js";
 import { BotStatusFile, LOG_FILE } from "./runtime/status.js";
+import { botLockDirs, warnOnce } from "./settings/legacy.js";
+import { loadEnv } from "./settings/load-env.js";
 import type { SocketState } from "./runtime/types.js";
 import { Directory } from "./slack/directory.js";
 import { slackLogger } from "./slack/logger.js";
@@ -25,16 +27,21 @@ const SOCKET_STATES: Record<SocketState, { level: "info" | "warn"; text: string 
 let startupLog: Logger | undefined;
 
 async function main(): Promise<void> {
+  // The settings file and the names from before the rename (VERDA_*, ~/.verda); warnings go to the log below.
+  const envWarnings = loadEnv();
   const config = loadConfig();
-  // Logs to VERDA_DATA_DIR/logs/bot.log as well as the console. The desktop app shows this file.
-  const log = createLogger(config.logLevel, "verda", [
+  // Logs to ORBLY_DATA_DIR/logs/bot.log as well as the console. The desktop app shows this file.
+  const log = createLogger(config.logLevel, "orbly", [
     consoleSink,
     fileSink(path.join(config.dataDir, LOG_FILE)),
   ]);
   startupLog = log;
+  warnOnce(envWarnings, (message) => log.warn(message));
   const status = await BotStatusFile.acquire(
     config.dataDir,
-    process.env.VERDA_MANAGED_BY === "desktop" ? "desktop" : "terminal"
+    process.env.ORBLY_MANAGED_BY === "desktop" ? "desktop" : "terminal",
+    undefined,
+    botLockDirs(config.dataDir).slice(1)
   );
   status.update({ configHash: configFingerprint(process.env) });
   log.info(`Starting (pid ${process.pid}, ${status.current.managedBy})`);
@@ -184,7 +191,7 @@ async function main(): Promise<void> {
       `Received ${signal}, waiting for in-progress requests before shutting down.`
     );
     await app.stop().catch(() => undefined);
-    // Unfinished requests stay in VERDA_DATA_DIR/inflight.json and resume on the next start.
+    // Unfinished requests stay in ORBLY_DATA_DIR/inflight.json and resume on the next start.
     if (!(await responder.drain(20_000)))
       log.warn("Shutting down with requests still in progress.");
     log.info(`Stopped (pid ${process.pid})`);

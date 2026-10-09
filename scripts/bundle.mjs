@@ -18,7 +18,7 @@ const common = {
   logLevel: "warning",
   // Makes require work in ESM for the bundled CommonJS dependencies.
   banner: {
-    js: "import { createRequire as __verdaCreateRequire } from 'node:module'; const require = __verdaCreateRequire(import.meta.url);",
+    js: "import { createRequire as __orblyCreateRequire } from 'node:module'; const require = __orblyCreateRequire(import.meta.url);",
   },
 };
 const targets = [

@@ -281,7 +281,7 @@ export async function collectSandboxStatus(options: {
   const reasoner = values.REASONER === "codex" ? "codex" : "claude";
   const useDocker = values.REASONER_SANDBOX === "docker";
   const opsOn = values.OPS_TOOLS === "on";
-  // The allowlist lives under VERDA_HOME. If it does not exist yet (proxy never started), the default list is shown.
+  // The allowlist lives under ORBLY_HOME. If it does not exist yet (proxy never started), the default list is shown.
   const allowlistFile = allowlistPath(options.env, home);
   const allowlistSource = existsSync(allowlistFile)
     ? allowlistFile

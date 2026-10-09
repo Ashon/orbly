@@ -7,7 +7,7 @@ import { ensureAllowlistFile } from "../src/sandbox/allowlist.js";
 import { allowlistPath } from "../src/settings/paths.js";
 import { jobEnv, planJob } from "../src/tools/sandbox-job.js";
 
-const root = mkdtempSync(path.join(tmpdir(), "verda-packaging-"));
+const root = mkdtempSync(path.join(tmpdir(), "orbly-packaging-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe("app paths", () => {
@@ -32,7 +32,7 @@ describe("app paths", () => {
 });
 
 describe("sandbox jobs", () => {
-  const ctx = { sandboxDir: "/app/sandbox", envFile: "/home/me/.verda/.env" };
+  const ctx = { sandboxDir: "/app/sandbox", envFile: "/home/me/.orbly/.env" };
   const compose = ["compose", "-f", "/app/sandbox/compose.yaml"];
 
   it("each job runs its fixed steps against the same compose project", () => {
@@ -58,7 +58,7 @@ describe("sandbox jobs", () => {
       args: [
         ...compose,
         "--env-file",
-        "/home/me/.verda/.env",
+        "/home/me/.orbly/.env",
         "--profile",
         "ops",
         "up",
@@ -75,21 +75,21 @@ describe("sandbox jobs", () => {
     expect(planJob("kubeconfig", ctx)).toEqual([{ kind: "kubeconfig" }]);
   });
 
-  it("layers the environment over the config file and expands VERDA_HOME for compose", () => {
+  it("layers the environment over the config file and expands ORBLY_HOME for compose", () => {
     const envFile = path.join(root, ".env");
     writeFileSync(envFile, "OPS_SSH_USER=from-file\nOPS_FS_ROOT=/from/file\n");
     const env = jobEnv({ OPS_SSH_USER: "from-env", HOME: "/home/me" }, envFile);
     expect(env).toMatchObject({
       OPS_SSH_USER: "from-env",
       OPS_FS_ROOT: "/from/file",
-      VERDA_HOME: "/home/me/.verda",
+      ORBLY_HOME: "/home/me/.orbly",
     });
   });
 
-  it("keeps the allowlist in VERDA_HOME and seeds it from the default only when missing", () => {
+  it("keeps the allowlist in ORBLY_HOME and seeds it from the default only when missing", () => {
     const template = path.join(root, "allowed-domains.txt");
     writeFileSync(template, "api.anthropic.com\n");
-    const file = allowlistPath({ VERDA_HOME: path.join(root, "home") });
+    const file = allowlistPath({ ORBLY_HOME: path.join(root, "home") });
     expect(file).toBe(path.join(root, "home/sandbox/allowed-domains.txt"));
     ensureAllowlistFile(file, template);
     expect(readFileSync(file, "utf8")).toBe("api.anthropic.com\n");

@@ -7,7 +7,7 @@ import {
   updateAllowlist,
 } from "../src/sandbox/allowlist.js";
 import { brokerExpected, checkBrokerEnv } from "../src/sandbox/env.js";
-import { brokerRuntimeDir, envFilePath, verdaHome } from "../src/settings/paths.js";
+import { brokerRuntimeDir, envFilePath, orblyHome } from "../src/settings/paths.js";
 import { computePending, parseHealthz, pickEnv } from "../src/sandbox/status.js";
 
 const ALLOWLIST = `# Domains the sandbox containers can reach
@@ -53,7 +53,7 @@ chatgpt.com
 auth.openai.com
 api.openai.com
 
-# Added from the Verda app settings screen
+# Added from the Orbly app settings screen
 api.example.com
 `);
   });
@@ -111,20 +111,20 @@ describe("broker settings", () => {
     );
   });
 
-  it("keeps the config file and broker generated files outside the repository (VERDA_HOME, default ~/.verda)", () => {
-    expect(verdaHome({}, "/home/me")).toBe("/home/me/.verda");
-    expect(envFilePath({}, "/home/me")).toBe("/home/me/.verda/.env");
-    expect(brokerRuntimeDir({}, "/home/me")).toBe("/home/me/.verda/ops-broker");
-    expect(envFilePath({ VERDA_HOME: "~/work/verda" }, "/home/me")).toBe(
-      "/home/me/work/verda/.env"
+  it("keeps the config file and broker generated files outside the repository (ORBLY_HOME, default ~/.orbly)", () => {
+    expect(orblyHome({}, "/home/me")).toBe("/home/me/.orbly");
+    expect(envFilePath({}, "/home/me")).toBe("/home/me/.orbly/.env");
+    expect(brokerRuntimeDir({}, "/home/me")).toBe("/home/me/.orbly/ops-broker");
+    expect(envFilePath({ ORBLY_HOME: "~/work/orbly" }, "/home/me")).toBe(
+      "/home/me/work/orbly/.env"
     );
-    expect(brokerRuntimeDir({ VERDA_HOME: "/srv/verda " }, "/home/me")).toBe(
-      "/srv/verda/ops-broker"
+    expect(brokerRuntimeDir({ ORBLY_HOME: "/srv/orbly " }, "/home/me")).toBe(
+      "/srv/orbly/ops-broker"
     );
   });
 
   it("turns off empty features without defaults and points mounts at empty placeholders", () => {
-    const runtime = "/home/me/.verda/ops-broker";
+    const runtime = "/home/me/.orbly/ops-broker";
     expect(brokerExpected({}, runtime)).toEqual({
       sshUser: "",
       allowedCidr: "",
@@ -201,7 +201,7 @@ describe("status evaluation", () => {
         OPS_SSH_KEY: "/h/.ssh/id_ed25519",
         OPS_FS_ROOT: "/h/workspaces",
       },
-      "/h/.verda/ops-broker"
+      "/h/.orbly/ops-broker"
     );
     const pending = computePending({
       bot: { configHash: "aaa", expectedHash: "bbb" },
@@ -250,7 +250,7 @@ describe("status evaluation", () => {
   it("derives the config fingerprint only from bot settings, not the data location", () => {
     const base = { SLACK_BOT_TOKEN: "xoxb-1", SLACK_APP_TOKEN: "xapp-1", PATH: "/bin" };
     expect(configFingerprint(base)).toBe(
-      configFingerprint({ ...base, PATH: "/usr/bin", VERDA_DATA_DIR: "/x" })
+      configFingerprint({ ...base, PATH: "/usr/bin", ORBLY_DATA_DIR: "/x" })
     );
     expect(configFingerprint(base)).not.toBe(
       configFingerprint({ ...base, LOG_LEVEL: "debug" })

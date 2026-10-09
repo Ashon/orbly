@@ -139,7 +139,7 @@ export class HostExecutor implements Executor {
       });
     if (invocation.referenceDir) return run(invocation.referenceDir);
     // Without a reference directory, runs in an empty temporary directory.
-    const scratch = await mkdtemp(path.join(tmpdir(), "verda-"));
+    const scratch = await mkdtemp(path.join(tmpdir(), "orbly-"));
     try {
       return await run(scratch);
     } finally {

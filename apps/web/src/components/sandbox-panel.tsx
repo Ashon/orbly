@@ -276,7 +276,7 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
     setInput("");
   };
   const save = () => {
-    void window.verdaDesktop?.sandbox.saveAllowlist(domains).then((found) => {
+    void window.orblyDesktop?.sandbox.saveAllowlist(domains).then((found) => {
       setIssues(found);
       if (found.length === 0) {
         setDraft(undefined);

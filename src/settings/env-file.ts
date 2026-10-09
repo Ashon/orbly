@@ -64,7 +64,7 @@ export function updateEnvText(
   const added = [...pending].filter(([, value]) => value !== null) as [string, string][];
   if (added.length > 0) {
     if (out.length > 0 && out.at(-1) !== "") out.push("");
-    out.push("# Added from the Verda app settings screen");
+    out.push("# Added from the Orbly app settings screen");
     for (const [key, value] of added) out.push(`${key}=${formatEnvValue(value)}`);
   }
   return out.length > 0 ? `${out.join("\n")}\n` : "";

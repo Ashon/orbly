@@ -3,6 +3,7 @@ import { existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
+import { defaultHome } from "./settings/legacy.js";
 import { readCodexDefaults } from "./reasoner/codex-config.js";
 import type { DockerSandboxOptions } from "./reasoner/executor.js";
 import type { McpServerRef } from "./reasoner/index.js";
@@ -88,9 +89,9 @@ export const EnvSchema = z.object({
   /** Max px of a generated image's long side. 0 keeps the original size */
   GENERATED_IMAGE_MAX_PX: z.coerce.number().int().min(0).max(4096).default(512),
 
-  /** Where run history, bot status, and logs live. The desktop app reads it. */
-  VERDA_DATA_DIR: z.string().default("~/.verda"),
-  /** Run history (VERDA_DATA_DIR/runs) */
+  /** Where run history, bot status, and logs live. The desktop app reads it. Defaults to the home (~/.orbly, or ~/.verda before migrating) */
+  ORBLY_DATA_DIR: z.string().optional(),
+  /** Run history (ORBLY_DATA_DIR/runs) */
   HISTORY: z.enum(["on", "off"]).default("on"),
   /** Deletes history older than this many days. 0 keeps everything. */
   HISTORY_RETENTION_DAYS: z.coerce.number().int().min(0).default(30),
@@ -162,7 +163,7 @@ export function configFingerprint(env: NodeJS.ProcessEnv): string {
   const provided = providedValues(env);
   const entries = Object.keys(EnvSchema.shape)
     // Skips the data location, since the desktop app passes it as an absolute path when launching the bot.
-    .filter((key) => key !== "VERDA_DATA_DIR")
+    .filter((key) => key !== "ORBLY_DATA_DIR")
     .sort()
     .flatMap((key) => (provided[key] === undefined ? [] : [[key, provided[key]]]));
   return createHash("sha256").update(JSON.stringify(entries)).digest("hex").slice(0, 16);
@@ -235,7 +236,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       image: e.RENDERER_IMAGE,
       generatedMaxPx: e.GENERATED_IMAGE_MAX_PX,
     },
-    dataDir: path.resolve(expandHome(e.VERDA_DATA_DIR)),
+    dataDir: e.ORBLY_DATA_DIR
+      ? path.resolve(expandHome(e.ORBLY_DATA_DIR))
+      : defaultHome(),
     history: e.HISTORY === "on" ? { retentionDays: e.HISTORY_RETENTION_DAYS } : undefined,
     logLevel: e.LOG_LEVEL,
   };

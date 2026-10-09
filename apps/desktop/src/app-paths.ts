@@ -4,7 +4,7 @@ import path from "node:path";
  * File locations the app uses. Dev runs (electron . in the repository) and the packaged app (Verda.app) differ.
  * - Dev: uses the repository build output. The bot is dist/index.js (tsc) and is rebuilt when sources change.
  * - Packaged: uses only the bundled files inside the app (Contents/Resources/app). No repository, pnpm, or build is needed.
- * In both cases settings and history live outside the repository (VERDA_HOME, VERDA_DATA_DIR).
+ * In both cases settings and history live outside the repository (ORBLY_HOME, ORBLY_DATA_DIR).
  */
 export interface AppPaths {
   packaged: boolean;

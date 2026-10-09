@@ -1,6 +1,6 @@
 /**
- * Verda run history format. The bot writes it and the desktop app reads it. (apps/web imports only the types)
- * Location: <VERDA_DATA_DIR>/runs/<YYYY-MM-DD>/<run id>/run.json, outputs in artifacts/ in the same directory
+ * Orbly run history format. The bot writes it and the desktop app reads it. (apps/web imports only the types)
+ * Location: <ORBLY_DATA_DIR>/runs/<YYYY-MM-DD>/<run id>/run.json, outputs in artifacts/ in the same directory
  */
 export const RUN_RECORD_VERSION = 1;
 

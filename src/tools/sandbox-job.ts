@@ -8,13 +8,19 @@ import { loadBrokerEnv } from "../sandbox/env.js";
 import { writeKubeconfig } from "../sandbox/kubeconfig.js";
 import { prepareBrokerFiles } from "../sandbox/prepare.js";
 import { readEnvFile, readEnvValues } from "../settings/env-file.js";
-import { allowlistPath, envFilePath, verdaHome } from "../settings/paths.js";
+import {
+  applyLegacyEnv,
+  envValue,
+  legacyHomeWarning,
+  warnOnce,
+} from "../settings/legacy.js";
+import { allowlistPath, envFilePath, orblyHome } from "../settings/paths.js";
 
 /**
  * Sandbox apply jobs. The desktop app and the terminal (pnpm sandbox:*) use the same steps.
  * Usage: sandbox-job <images|proxy|broker|kubeconfig> [--dry-run]
- * - The sandbox directory is VERDA_SANDBOX_DIR (the sandbox inside the bundle for the app), otherwise sandbox in the current directory
- * - Settings are read from the config file (VERDA_HOME/.env), and existing environment variables take precedence. (Same as node --env-file)
+ * - The sandbox directory is ORBLY_SANDBOX_DIR (the sandbox inside the bundle for the app), otherwise sandbox in the current directory
+ * - Settings are read from the config file (ORBLY_HOME/.env), and existing environment variables take precedence. (Same as node --env-file)
  * - The compose project name (verda-sandbox) is the same, so the repository and the app manage the same containers.
  */
 export const JOB_KINDS = ["images", "proxy", "broker", "kubeconfig"] as const;
@@ -70,15 +76,29 @@ export function planJob(kind: JobKind, ctx: JobContext): JobStep[] {
   }
 }
 
-/** Overlays the current environment variables on the config file values. Expands VERDA_HOME so compose sees the same location as its ~ default. */
-export function jobEnv(base: NodeJS.ProcessEnv, envFile: string): NodeJS.ProcessEnv {
+/**
+ * Overlays the current environment variables on the config file values and maps the names from before the
+ * rename (VERDA_* -> ORBLY_*, reported through warn). ORBLY_HOME is always passed resolved, so compose uses
+ * the same location as the app even when it is still ~/.verda.
+ */
+export function jobEnv(
+  base: NodeJS.ProcessEnv,
+  envFile: string,
+  warn: (message: string) => void = () => {}
+): NodeJS.ProcessEnv {
   const fromFile = readEnvValues(readEnvFile(envFile));
   const merged: NodeJS.ProcessEnv = { ...fromFile };
   for (const [key, value] of Object.entries(base)) {
     if (value !== undefined) merged[key] = value;
   }
-  // Uses the same home directory as the compose default (${HOME}/.verda).
-  merged.VERDA_HOME = verdaHome(base, base.HOME || homedir());
+  const home = base.HOME || homedir();
+  warnOnce(
+    [legacyHomeWarning(base, home), ...applyLegacyEnv(merged)].filter(
+      (message): message is string => message !== undefined
+    ),
+    warn
+  );
+  merged.ORBLY_HOME = orblyHome(base, home);
   return merged;
 }
 
@@ -104,9 +124,9 @@ async function main(): Promise<void> {
   if (!JOB_KINDS.includes(kind as JobKind))
     throw new Error(`Usage: sandbox-job <${JOB_KINDS.join("|")}> [--dry-run]`);
   const dryRun = flags.includes("--dry-run");
-  const sandboxDir = path.resolve(process.env.VERDA_SANDBOX_DIR || "sandbox");
+  const sandboxDir = path.resolve(envValue(process.env, "SANDBOX_DIR") || "sandbox");
   const envFile = envFilePath();
-  const env = jobEnv(process.env, envFile);
+  const env = jobEnv(process.env, envFile, (message) => console.warn(`WARN ${message}`));
   const log = (line: string) => console.log(line);
   const steps = planJob(kind as JobKind, {
     sandboxDir,

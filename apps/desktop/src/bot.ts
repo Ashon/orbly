@@ -4,7 +4,8 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "
 import path from "node:path";
 import { parseEnv } from "node:util";
 import { utilityProcess, type UtilityProcess } from "electron";
-import { readBotStatus } from "../../../src/runtime/status.js";
+import { readRunningBot } from "../../../src/runtime/status.js";
+import { botLockDirs } from "../../../src/settings/legacy.js";
 import { setupProblem, startFailureProblem } from "./bot-readiness.js";
 import type { SupervisorState } from "../../../src/runtime/types.js";
 
@@ -190,8 +191,8 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       if (value !== undefined && !key.startsWith("ELECTRON_")) env[key] = value;
     }
     env.PATH = this.options.toolPath();
-    env.VERDA_MANAGED_BY = "desktop";
-    env.VERDA_DATA_DIR = this.options.dataDir;
+    env.ORBLY_MANAGED_BY = "desktop";
+    env.ORBLY_DATA_DIR = this.options.dataDir;
     env.NODE_ENV = "production";
     return env;
   }
@@ -271,7 +272,8 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
 
   /** Syncs phase with bot.json. A bot started here is running; one started elsewhere is external */
   private refreshExternal(): void {
-    const view = readBotStatus(this.options.dataDir);
+    // A bot in the other default home (an old Verda, or an Orbly before migrating) also counts as running elsewhere.
+    const view = readRunningBot(botLockDirs(this.options.dataDir));
     if (this.child) {
       const ours = view.alive && view.status?.pid === this.child.pid;
       const running = ours && view.status?.state === "running";

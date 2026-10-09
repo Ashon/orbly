@@ -21,6 +21,12 @@ import { HistoryReader } from "../../../src/history/reader.js";
 import { handleLocalApi } from "../../../src/local-api.js";
 import { readBotStatus } from "../../../src/runtime/status.js";
 import { setupSettingsRoute } from "../../../src/settings/fields.js";
+import {
+  applyLegacyEnv,
+  defaultHome,
+  legacyHomeWarning,
+  warnOnce,
+} from "../../../src/settings/legacy.js";
 import { envFilePath } from "../../../src/settings/paths.js";
 import { BotSupervisor, type SupervisorState } from "./bot.js";
 import { SandboxService } from "./sandbox.js";
@@ -29,26 +35,30 @@ import { SettingsStore } from "./settings.js";
 
 /**
  * Verda desktop app. Runs and manages the bot (Slack Socket Mode) as a child process and shows its status, logs, and run history.
- * - The UI (apps/web build) and the query API are served only over the verda://app protocol, so no external port is opened.
+ * - The UI (apps/web build) and the query API are served only over the orbly://app protocol, so no external port is opened.
  * - Bot control (start, stop, restart) goes only through the preload IPC.
  * - Closing the window hides it to the tray and the bot keeps running. Quitting the app lets the bot finish active requests and then stops it.
  */
+// Variables from before the rename (VERDA_*) are read as ORBLY_*, with a warning. This runs before anything reads them.
+warnOnce(applyLegacyEnv(process.env), (message) =>
+  console.warn(`[orbly-desktop] ${message}`)
+);
 const distDir = path.dirname(fileURLToPath(import.meta.url));
 /** Dev runs use the repository build output; the packaged app (Verda.app) uses the bundled files inside the app. */
 const paths = resolveAppPaths(distDir, app.isPackaged);
 const webDistDir = paths.webDist;
-/** The settings file lives outside the repository. (VERDA_HOME, default ~/.verda) */
+/** The settings file lives outside the repository. (ORBLY_HOME, default ~/.orbly) */
 const envFile = envFilePath();
-const webDevUrl = app.isPackaged ? undefined : process.env.VERDA_WEB_DEV_URL;
+const webDevUrl = app.isPackaged ? undefined : process.env.ORBLY_WEB_DEV_URL;
 /** Saves the window as a PNG and quits. (for checking builds) */
-const captureFile = process.env.VERDA_DESKTOP_CAPTURE;
+const captureFile = process.env.ORBLY_DESKTOP_CAPTURE;
 const dataDir = resolveDataDir();
 const reader = new HistoryReader(dataDir);
 /**
- * With VERDA_DESKTOP_BOT=off the app does not manage the bot and only shows history.
- * Screen captures leave the bot alone. (VERDA_DESKTOP_BOT=on manages it during captures too)
+ * With ORBLY_DESKTOP_BOT=off the app does not manage the bot and only shows history.
+ * Screen captures leave the bot alone. (ORBLY_DESKTOP_BOT=on manages it during captures too)
  */
-const botSetting = process.env.VERDA_DESKTOP_BOT;
+const botSetting = process.env.ORBLY_DESKTOP_BOT;
 const manageBot = botSetting === "on" || (botSetting !== "off" && !captureFile);
 
 /**
@@ -60,11 +70,11 @@ const appName = app.isPackaged ? "Verda" : "Verda Dev";
 const appIcon = path.join(distDir, app.isPackaged ? "icon.png" : "icon-dev.png");
 app.setName(appName);
 // Screen captures use a separate user data folder so they do not hit the running app's single-instance lock.
-if (captureFile) app.setPath("userData", path.join(tmpdir(), "verda-desktop-capture"));
+if (captureFile) app.setPath("userData", path.join(tmpdir(), "orbly-desktop-capture"));
 else if (!app.isPackaged)
   app.setPath("userData", path.join(app.getPath("appData"), appName));
 // UI theme: system (default), light, dark
-const themeSource = process.env.VERDA_DESKTOP_THEME;
+const themeSource = process.env.ORBLY_DESKTOP_THEME;
 if (themeSource === "light" || themeSource === "dark")
   nativeTheme.themeSource = themeSource;
 
@@ -79,14 +89,14 @@ function toolPath(): string {
   try {
     const output = execFileSync(
       process.env.SHELL || "/bin/zsh",
-      ["-ilc", 'printf "\\nVERDA_PATH=%s\\n" "$PATH"'],
+      ["-ilc", 'printf "\\nORBLY_PATH=%s\\n" "$PATH"'],
       { encoding: "utf8", timeout: 5_000, stdio: ["ignore", "pipe", "ignore"] }
     );
     const line = output
       .split("\n")
       .reverse()
-      .find((l) => l.startsWith("VERDA_PATH="));
-    if (line) toolPathCache = line.slice("VERDA_PATH=".length);
+      .find((l) => l.startsWith("ORBLY_PATH="));
+    if (line) toolPathCache = line.slice("ORBLY_PATH=".length);
   } catch {
     // Falls back to the default paths below.
   }
@@ -128,34 +138,45 @@ const supervisor = manageBot
       envFile,
       dataDir,
       toolPath,
-      log: (message) => console.log(`[verda-desktop] ${message}`),
+      log: (message) => console.log(`[orbly-desktop] ${message}`),
     })
   : undefined;
 
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: "verda",
+    scheme: "orbly",
     privileges: { standard: true, secure: true, supportFetchAPI: true },
   },
 ]);
 
-/** Resolved from the environment variable, then VERDA_DATA_DIR in the settings file, then the default (~/.verda). */
+/**
+ * Resolved from the environment variable, then ORBLY_DATA_DIR (or VERDA_DATA_DIR from before the rename) in the
+ * settings file, then the default home (~/.orbly, or ~/.verda while ~/.orbly does not exist).
+ */
 function resolveDataDir(): string {
-  let value = process.env.VERDA_DATA_DIR;
+  let value = process.env.ORBLY_DATA_DIR;
   if (!value) {
     try {
-      const line = readFileSync(envFile, "utf8")
-        .split("\n")
-        .find((l) => l.startsWith("VERDA_DATA_DIR="));
-      value = line
-        ?.slice("VERDA_DATA_DIR=".length)
-        .trim()
-        .replace(/^["']|["']$/g, "");
+      const lines = readFileSync(envFile, "utf8").split("\n");
+      for (const key of ["ORBLY_DATA_DIR", "VERDA_DATA_DIR"]) {
+        value = lines
+          .find((l) => l.startsWith(`${key}=`))
+          ?.slice(key.length + 1)
+          .trim()
+          .replace(/^["']|["']$/g, "");
+        if (value) break;
+      }
     } catch {
       // Without .env, the default is used.
     }
   }
-  value ||= "~/.verda";
+  if (!value) {
+    warnOnce(
+      [legacyHomeWarning()].filter((m): m is string => m !== undefined),
+      (m) => console.warn(`[orbly-desktop] ${m}`)
+    );
+    return defaultHome();
+  }
   return path.resolve(
     value === "~" || value.startsWith("~/") ? path.join(homedir(), value.slice(1)) : value
   );
@@ -172,7 +193,7 @@ const CSP = [
 ].join("; ");
 
 function registerAppProtocol(): void {
-  protocol.handle("verda", async (request) => {
+  protocol.handle("orbly", async (request) => {
     const url = new URL(request.url);
     if (url.hostname !== "app") return new Response("Not found", { status: 404 });
     if (url.pathname.startsWith("/api/")) {
@@ -312,36 +333,36 @@ function createTray(): void {
 function registerBotIpc(): void {
   const fromMainWindow = (event: Electron.IpcMainInvokeEvent) =>
     event.sender === mainWindow?.webContents;
-  ipcMain.handle("verda:bot:state", (event) =>
+  ipcMain.handle("orbly:bot:state", (event) =>
     fromMainWindow(event) && supervisor ? supervisor.current : null
   );
-  ipcMain.handle("verda:bot:start", async (event) => {
+  ipcMain.handle("orbly:bot:start", async (event) => {
     if (fromMainWindow(event)) await supervisor?.start();
   });
-  ipcMain.handle("verda:bot:stop", async (event) => {
+  ipcMain.handle("orbly:bot:stop", async (event) => {
     if (fromMainWindow(event)) await supervisor?.stop();
   });
-  ipcMain.handle("verda:bot:restart", async (event, rebuild: unknown) => {
+  ipcMain.handle("orbly:bot:restart", async (event, rebuild: unknown) => {
     if (fromMainWindow(event)) await supervisor?.restart({ rebuild: rebuild === true });
   });
-  ipcMain.handle("verda:bot:auto-start", (event, value: unknown) => {
+  ipcMain.handle("orbly:bot:auto-start", (event, value: unknown) => {
     if (fromMainWindow(event) && typeof value === "boolean")
       supervisor?.setAutoStart(value);
   });
-  ipcMain.handle("verda:bot:open-logs", (event) => {
+  ipcMain.handle("orbly:bot:open-logs", (event) => {
     if (fromMainWindow(event)) void shell.openPath(path.join(dataDir, "logs"));
   });
-  ipcMain.handle("verda:settings:get", (event) =>
+  ipcMain.handle("orbly:settings:get", (event) =>
     fromMainWindow(event) ? settings.view() : null
   );
-  ipcMain.handle("verda:settings:validate", (event, changes: unknown) =>
+  ipcMain.handle("orbly:settings:validate", (event, changes: unknown) =>
     fromMainWindow(event) ? settings.validate(changes) : []
   );
-  ipcMain.handle("verda:settings:check-slack", (event, changes: unknown) =>
+  ipcMain.handle("orbly:settings:check-slack", (event, changes: unknown) =>
     fromMainWindow(event) ? settings.checkSlack(changes) : []
   );
   ipcMain.handle(
-    "verda:settings:save",
+    "orbly:settings:save",
     async (event, changes: unknown, restart: unknown) => {
       if (!fromMainWindow(event)) return { issues: [], restarted: false };
       const issues = settings.save(changes);
@@ -362,29 +383,29 @@ function registerBotIpc(): void {
       return { issues, restarted: true };
     }
   );
-  ipcMain.handle("verda:settings:open-data-dir", (event) => {
+  ipcMain.handle("orbly:settings:open-data-dir", (event) => {
     if (fromMainWindow(event)) void shell.openPath(dataDir);
   });
-  ipcMain.handle("verda:settings:reveal-env", (event) => {
+  ipcMain.handle("orbly:settings:reveal-env", (event) => {
     if (fromMainWindow(event)) shell.showItemInFolder(envFile);
   });
-  ipcMain.handle("verda:sandbox:status", (event) =>
+  ipcMain.handle("orbly:sandbox:status", (event) =>
     fromMainWindow(event) ? sandbox.status() : null
   );
-  ipcMain.handle("verda:sandbox:job", (event) =>
+  ipcMain.handle("orbly:sandbox:job", (event) =>
     fromMainWindow(event) ? (sandbox.job ?? null) : null
   );
-  ipcMain.handle("verda:sandbox:run", (event, kind: unknown) =>
+  ipcMain.handle("orbly:sandbox:run", (event, kind: unknown) =>
     fromMainWindow(event) ? sandbox.run(kind) : { error: "Denied" }
   );
-  ipcMain.handle("verda:sandbox:save-allowlist", (event, domains: unknown) =>
+  ipcMain.handle("orbly:sandbox:save-allowlist", (event, domains: unknown) =>
     fromMainWindow(event) ? sandbox.saveAllowlist(domains) : []
   );
   sandbox.on("job", (job) =>
-    mainWindow?.webContents.send("verda:sandbox:job-changed", job)
+    mainWindow?.webContents.send("orbly:sandbox:job-changed", job)
   );
   supervisor?.on("change", (state) => {
-    mainWindow?.webContents.send("verda:bot:changed", state);
+    mainWindow?.webContents.send("orbly:bot:changed", state);
     updateTray();
   });
 }
@@ -396,8 +417,8 @@ async function createWindow(route = ""): Promise<void> {
   }
   const window = new BrowserWindow({
     // For captures the size can be changed: a narrow width for tight layouts, a tall height for long screens.
-    width: (captureFile && Number(process.env.VERDA_DESKTOP_CAPTURE_WIDTH)) || 1360,
-    height: (captureFile && Number(process.env.VERDA_DESKTOP_CAPTURE_HEIGHT)) || 880,
+    width: (captureFile && Number(process.env.ORBLY_DESKTOP_CAPTURE_WIDTH)) || 1360,
+    height: (captureFile && Number(process.env.ORBLY_DESKTOP_CAPTURE_HEIGHT)) || 880,
     minWidth: 960,
     minHeight: 600,
     show: false,
@@ -412,7 +433,7 @@ async function createWindow(route = ""): Promise<void> {
       sandbox: true,
       preload: path.join(distDir, "preload.cjs"),
       // Tells the UI it runs from the repository (preload reads it from argv).
-      additionalArguments: app.isPackaged ? [] : ["--verda-dev"],
+      additionalArguments: app.isPackaged ? [] : ["--orbly-dev"],
     },
   });
   mainWindow = window;
@@ -432,12 +453,12 @@ async function createWindow(route = ""): Promise<void> {
     return { action: "deny" };
   });
   window.webContents.on("will-navigate", (event, url) => {
-    if (!url.startsWith("verda://app/") && !(webDevUrl && url.startsWith(webDevUrl))) {
+    if (!url.startsWith("orbly://app/") && !(webDevUrl && url.startsWith(webDevUrl))) {
       event.preventDefault();
     }
   });
   if (webDevUrl) await waitForUrl(webDevUrl);
-  await window.loadURL(`${webDevUrl ?? "verda://app/"}${route}`);
+  await window.loadURL(`${webDevUrl ?? "orbly://app/"}${route}`);
   if (captureFile) await capture(window, captureFile);
 }
 
@@ -455,11 +476,11 @@ async function waitForUrl(url: string): Promise<void> {
 }
 
 async function capture(window: BrowserWindow, file: string): Promise<void> {
-  const hash = process.env.VERDA_DESKTOP_CAPTURE_HASH;
+  const hash = process.env.ORBLY_DESKTOP_CAPTURE_HASH;
   if (hash)
     await window.webContents.executeJavaScript(`location.hash = ${JSON.stringify(hash)}`);
   await new Promise((resolve) =>
-    setTimeout(resolve, Number(process.env.VERDA_DESKTOP_CAPTURE_DELAY) || 2_500)
+    setTimeout(resolve, Number(process.env.ORBLY_DESKTOP_CAPTURE_DELAY) || 2_500)
   );
   const image = await window.webContents.capturePage();
   writeFileSync(file, image.toPNG());

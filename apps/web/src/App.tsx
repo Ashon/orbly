@@ -48,13 +48,13 @@ export default function App() {
   const [q, setQ] = useState("");
   const selectedId = route.page === "run" ? route.id : undefined;
   const select = (id?: string) => go(id ? `#/runs/${id}` : "#/");
-  const isMacDesktop = window.verdaDesktop?.platform === "darwin";
+  const isMacDesktop = window.orblyDesktop?.platform === "darwin";
   const section: Section =
     route.page === "bot" ? "bot" : route.page === "settings" ? "settings" : "overview";
   // The run list belongs to the overview; the bot and settings screens use the full width.
   const showRuns = section === "overview";
   const [listWidth, setListWidth] = useStoredWidth(
-    "verda.runList.width",
+    "orbly.runList.width",
     LIST_WIDTH.default
   );
   const windowWidth = useWindowWidth();
@@ -77,7 +77,7 @@ export default function App() {
         <header className="titlebar-drag grid h-11 shrink-0 grid-cols-[1fr_minmax(0,520px)_1fr] items-center gap-3 border-b border-sidebar-border bg-sidebar px-3">
           {/* The left column clears the traffic lights; a run from the repository is labelled there. */}
           <div className={cn("flex items-center", isMacDesktop && "pl-[72px]")}>
-            {window.verdaDesktop?.dev && (
+            {window.orblyDesktop?.dev && (
               <span className="rounded-md bg-status-interrupted/15 px-1.5 py-px text-[11px] font-semibold text-status-interrupted">
                 Dev
               </span>
