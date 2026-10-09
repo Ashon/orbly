@@ -1,4 +1,4 @@
-# Pacenote team hub on a server of its own (README "Team hub").
+# Pacenote team hub on a server of its own (docs/team-hub.md).
 #   cp hub.env.example hub.env   # the Slack app's tokens live only here
 #   docker compose up -d --build # after pnpm bundle (the image copies dist/hub.mjs)
 # The hub listens on 127.0.0.1:8790; put HTTPS in front of it (Caddy, nginx, or a tunnel) and give members that URL.

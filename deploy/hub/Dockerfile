@@ -1,4 +1,4 @@
-# Pacenote team hub (README "Team hub"). The build context is this directory, and the code is a single prebuilt
+# Pacenote team hub (docs/team-hub.md). The build context is this directory, and the code is a single prebuilt
 # bundle (pnpm bundle, or pnpm hub:image to bundle and build in one step).
 FROM node:24-bookworm-slim
 # Paired desktops (desktops.json). The volume inherits this ownership on first mount.

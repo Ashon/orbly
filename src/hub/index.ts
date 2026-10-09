@@ -10,7 +10,7 @@ import { HubServer } from "./server.js";
 import { DesktopStore } from "./store.js";
 
 /**
- * Pacenote team hub (README "Team hub"). Holds the Slack app's Socket Mode connection and tokens, and routes each
+ * Pacenote team hub (docs/team-hub.md). Holds the Slack app's Socket Mode connection and tokens, and routes each
  * member's mentions to their own Pacenote desktop, which connects here. Runs as a container on a server of its own
  * (deploy/hub), behind HTTPS.
  */

@@ -5,7 +5,7 @@ import path from "node:path";
 /**
  * Compatibility with installs from before the renames (Verda -> Orbly -> Pacenote). The code reads only PACENOTE_*
  * variables and ~/.pacenote; these helpers map the earlier names onto the current ones so an existing setup keeps
- * working, and say how to migrate. (README: "Migrating from Orbly or Verda")
+ * working, and say how to migrate. (docs/migrating.md)
  * - Env vars: PACENOTE_* first, then ORBLY_*, then VERDA_*, with a one-time deprecation warning per variable
  * - Home: ~/.pacenote, or else the newest earlier home that exists (~/.orbly, then ~/.verda). User data is never
  *   moved or copied.

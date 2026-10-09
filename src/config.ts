@@ -51,7 +51,7 @@ export const EnvSchema = z.object({
     .url()
     .refine(isSecureOrLocalUrl, "Must be an https URL (http only for localhost)")
     .optional(),
-  /** The team hub (README "Team hub"). https, or http only for a hub on this computer */
+  /** The team hub (docs/team-hub.md). https, or http only for a hub on this computer */
   HUB_URL: z
     .string()
     .url()

@@ -9,7 +9,7 @@ import type { SettingsIssue } from "../../../src/settings/fields.js";
 import type { SettingsStore } from "./settings.js";
 
 /**
- * Pairs this desktop with the team hub (README "Team hub"). The token is made here and stays in the main process
+ * Pairs this desktop with the team hub (docs/team-hub.md). The token is made here and stays in the main process
  * until it is saved to .env (HUB_TOKEN); the UI only sees the code and who sent it.
  */
 export class HubPairing {

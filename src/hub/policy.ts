@@ -1,7 +1,7 @@
 /**
  * What a desktop may do with the hub's Slack token. A desktop gets a grant for each mention routed to it (that
  * channel and thread), and its Slack calls must stay inside one: read that thread, post and edit in it, read and
- * upload its files. Calls the bot does not make are refused. (README "Team hub")
+ * upload its files. Calls the bot does not make are refused. (docs/team-hub.md)
  *
  * Arguments arrive as the Slack client sends them (form fields, nested values as JSON strings).
  */

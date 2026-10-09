@@ -83,7 +83,7 @@ const NOTICES = {
 
 /**
  * The hub server: pairing (HTTP), desktop connections (WebSocket /connect), mention routing, and the Slack proxy
- * desktops make their calls through. Runs behind HTTPS in production (README "Team hub").
+ * desktops make their calls through. Runs behind HTTPS in production (docs/team-hub.md).
  */
 export class HubServer {
   readonly http: Server;
