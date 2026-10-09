@@ -38,8 +38,9 @@ cask "orbly" do
     Before the first mention:
       - run Docker (Docker Desktop, OrbStack or colima)
       - log in to claude or codex
-      - open Orbly, fill in the Slack tokens in Settings > Slack, then build the
-        sandbox images in Settings > Sandbox
+      - open Orbly, connect Slack in Settings > Slack (pair with your team's hub, or enter
+        your own Slack app's tokens), then build the sandbox images in Settings > Sandbox
     Config and run history are in ~/.orbly and are kept when the app is removed.
+    Coming from Verda: Orbly keeps using ~/.verda until you move it to ~/.orbly.
   EOS
 end
