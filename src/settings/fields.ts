@@ -2,7 +2,7 @@ import type { MessengerId } from "../messengers/ids.js";
 import type { SandboxComponent } from "../sandbox/types.js";
 
 /**
- * Config file (.env, ~/.orbly/.env outside the repository) entries handled by the settings screen. Shared by the desktop app (save, validation) and the screen (input form).
+ * Config file (.env, ~/.pacenote/.env outside the repository) entries handled by the settings screen. Shared by the desktop app (save, validation) and the screen (input form).
  * Defaults must match the bot config (src/config.ts EnvSchema) or the broker config (src/sandbox/env.ts). (tests/settings.test.ts)
  * .env entries not listed here are hidden from the screen and kept as is on save.
  */
@@ -233,7 +233,7 @@ export const SETTING_FIELDS: SettingField[] = [
     label: "Hub URL",
     help: "The address your team's hub admin gave you.",
     type: "text",
-    placeholder: "https://orbly-hub.example.com",
+    placeholder: "https://pacenote-hub.example.com",
     shownWhen: { key: "SLACK_CONNECTION", equals: "hub" },
   },
   {
@@ -395,7 +395,7 @@ export const SETTING_FIELDS: SettingField[] = [
     group: "environment",
     label: "Reasoner image",
     type: "text",
-    default: "orbly-reasoner:latest",
+    default: "pacenote-reasoner:latest",
     advanced: true,
     shownWhen: { key: "REASONER_SANDBOX", equals: "docker" },
   },
@@ -405,7 +405,7 @@ export const SETTING_FIELDS: SettingField[] = [
     label: "Docker network",
     help: "Internal network with no direct outbound access",
     type: "text",
-    default: "orbly-sandbox",
+    default: "pacenote-sandbox",
     advanced: true,
     shownWhen: { key: "REASONER_SANDBOX", equals: "docker" },
   },
@@ -540,9 +540,9 @@ export const SETTING_FIELDS: SettingField[] = [
     key: "OPS_K8S_SA",
     group: "k8s",
     label: "k8s read-only account",
-    help: "Read-only ServiceAccount in each cluster (sandbox/k8s/orbly-ro.yaml)",
+    help: "Read-only ServiceAccount in each cluster (sandbox/k8s/pacenote-ro.yaml)",
     type: "text",
-    default: "orbly-ro",
+    default: "pacenote-ro",
     advanced: true,
     applies: "broker",
   },
@@ -551,7 +551,7 @@ export const SETTING_FIELDS: SettingField[] = [
     group: "k8s",
     label: "k8s read-only account namespace",
     type: "text",
-    default: "orbly",
+    default: "pacenote",
     advanced: true,
     applies: "broker",
   },
@@ -594,7 +594,7 @@ export const SETTING_FIELDS: SettingField[] = [
     key: "OPS_SSH_INVENTORY_DIR",
     group: "ssh",
     label: "Inventory directory",
-    help: "Location of the ansible project used to build the host list. Relative paths are relative to this repository. Leave empty to write ~/.orbly/ops-broker/hosts.json directly.",
+    help: "Location of the ansible project used to build the host list. Relative paths are relative to this repository. Leave empty to write ~/.pacenote/ops-broker/hosts.json directly.",
     type: "text",
     advanced: true,
     applies: "broker",

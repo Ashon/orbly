@@ -8,12 +8,12 @@
 #   All values come from OPS_* in the config file (PACENOTE_HOME/.env, default ~/.pacenote/.env).
 #   Generated files and empty placeholders for unset mounts are in PACENOTE_HOME/ops-broker outside the repository (created by the broker job),
 #   and for unset features the broker starts without those tools.
-name: orbly-sandbox
+name: pacenote-sandbox
 
 services:
   egress-proxy:
     build: ./proxy
-    image: orbly-egress-proxy:latest
+    image: pacenote-egress-proxy:latest
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -32,7 +32,7 @@ services:
       args:
         CLAUDE_CODE_VERSION: "2.1.293"
         CODEX_VERSION: "0.161.0"
-    image: orbly-reasoner:latest
+    image: pacenote-reasoner:latest
     profiles: ["build"]
 
   renderer:
@@ -42,7 +42,7 @@ services:
         MERMAID_CLI_VERSION: "12.0.0"
         VL_CONVERT_VERSION: "1.9.0.post1"
         PILLOW_VERSION: "12.3.0"
-    image: orbly-renderer:latest
+    image: pacenote-renderer:latest
     profiles: ["build"]
 
   ops-broker:
@@ -51,7 +51,7 @@ services:
       context: ./ops-broker
       args:
         KUBECTL_VERSION: v1.37.0
-    image: orbly-ops-broker:latest
+    image: pacenote-ops-broker:latest
     profiles: ["ops"]
     restart: unless-stopped
     read_only: true
@@ -99,7 +99,7 @@ volumes:
 networks:
   # Internal-only network with no external routing. Reasoner containers attach only to this one.
   sandbox:
-    name: orbly-sandbox
+    name: pacenote-sandbox
     internal: true
   egress:
-    name: orbly-egress
+    name: pacenote-egress

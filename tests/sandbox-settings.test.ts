@@ -201,7 +201,7 @@ describe("status evaluation", () => {
         OPS_SSH_KEY: "/h/.ssh/id_ed25519",
         OPS_FS_ROOT: "/h/workspaces",
       },
-      "/h/.orbly/ops-broker"
+      "/h/.pacenote/ops-broker"
     );
     const pending = computePending({
       bot: { configHash: "aaa", expectedHash: "bbb" },

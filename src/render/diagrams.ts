@@ -92,7 +92,7 @@ export function renderArgs(
     "--pids-limit",
     "256",
     "--label",
-    "orbly.role=renderer",
+    "pacenote.role=renderer",
     "-v",
     `${dir}:/io`,
     image,

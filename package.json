@@ -34,7 +34,7 @@
     "package:mac": "pnpm desktop:build && node apps/desktop/scripts/package-mac.mjs",
     "install:mac": "node apps/desktop/scripts/install-mac.mjs",
     "hub": "tsx src/hub/index.ts",
-    "hub:image": "pnpm bundle && docker build -t orbly-hub:latest deploy/hub"
+    "hub:image": "pnpm bundle && docker build -t pacenote-hub:latest deploy/hub"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",

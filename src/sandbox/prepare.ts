@@ -6,7 +6,7 @@ import { brokerRuntimeDir } from "../settings/paths.js";
 import { unsetMount, type BrokerEnv } from "./env.js";
 
 /**
- * Prepares the files to mount outside the repository (brokerRuntimeDir, default ~/.orbly/ops-broker) before starting ops-broker.
+ * Prepares the files to mount outside the repository (brokerRuntimeDir, default ~/.pacenote/ops-broker) before starting ops-broker.
  * - Puts empty files/directories in place of an unset SSH key, known_hosts, and work directory. The broker treats empty ones as disabled features.
  * - Puts an empty file if kubeconfig is missing. (The kubeconfig job builds it)
  * - If OPS_SSH_INVENTORY is set, rebuilds hosts.json from the ansible inventory.

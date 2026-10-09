@@ -234,20 +234,24 @@ describe("names from before the renames (Orbly, Verda)", () => {
   });
 });
 
-describe("sandbox names from before the rename (Verda)", () => {
-  it("creates orbly/* branches and still recognizes verda/* ones as the agent's", () => {
-    expect(BRANCH_PREFIX).toBe("orbly/");
-    expect(isAgentBranch("orbly/20261009-1a2b3c4d")).toBe(true);
+describe("sandbox names from before the renames (Orbly, Verda)", () => {
+  it("creates pacenote/* branches and still recognizes orbly/* and verda/* ones as the agent's", () => {
+    expect(BRANCH_PREFIX).toBe("pacenote/");
+    expect(isAgentBranch("pacenote/20261009-1a2b3c4d")).toBe(true);
+    expect(isAgentBranch("orbly/20261005-1a2b3c4d")).toBe(true);
     expect(isAgentBranch("verda/20261001-1a2b3c4d")).toBe(true);
     expect(isAgentBranch("main")).toBe(false);
-    expect(isAgentBranch("feature/verda/x")).toBe(false);
+    expect(isAgentBranch("feature/orbly/x")).toBe(false);
   });
 
-  it("defaults to the orbly-ro account and keeps verda-ro when it is set", () => {
+  it("defaults to the pacenote-ro account and keeps orbly-ro or verda-ro when it is set", () => {
     expect(loadBrokerEnv({})).toMatchObject({
-      OPS_K8S_SA: "orbly-ro",
-      OPS_K8S_SA_NAMESPACE: "orbly",
+      OPS_K8S_SA: "pacenote-ro",
+      OPS_K8S_SA_NAMESPACE: "pacenote",
     });
+    expect(
+      loadBrokerEnv({ OPS_K8S_SA: "orbly-ro", OPS_K8S_SA_NAMESPACE: "orbly" })
+    ).toMatchObject({ OPS_K8S_SA: "orbly-ro", OPS_K8S_SA_NAMESPACE: "orbly" });
     expect(
       loadBrokerEnv({ OPS_K8S_SA: "verda-ro", OPS_K8S_SA_NAMESPACE: "verda" })
     ).toMatchObject({ OPS_K8S_SA: "verda-ro", OPS_K8S_SA_NAMESPACE: "verda" });

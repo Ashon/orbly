@@ -21,7 +21,7 @@ import { allowlistPath, envFilePath, pacenoteHome } from "../settings/paths.js";
  * Usage: sandbox-job <images|proxy|broker|kubeconfig> [--dry-run]
  * - The sandbox directory is PACENOTE_SANDBOX_DIR (the sandbox inside the bundle for the app), otherwise sandbox in the current directory
  * - Settings are read from the config file (PACENOTE_HOME/.env), and existing environment variables take precedence. (Same as node --env-file)
- * - The compose project name (orbly-sandbox) is the same, so the repository and the app manage the same containers.
+ * - The compose project name (pacenote-sandbox) is the same, so the repository and the app manage the same containers.
  */
 export const JOB_KINDS = ["images", "proxy", "broker", "kubeconfig"] as const;
 export type JobKind = (typeof JOB_KINDS)[number];

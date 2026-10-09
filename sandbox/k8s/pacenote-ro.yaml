@@ -1,58 +1,58 @@
-# Example read-only account for Orbly. Apply it to each cluster to query. (kubectl apply -f)
+# Example read-only account for Pacenote. Apply it to each cluster to query. (kubectl apply -f)
 #
 # - Namespace-scoped resources are read with the built-in ClusterRole view. (Except secrets)
-# - Cluster-scoped resources such as nodes, namespaces, storage, and metrics are read with orbly-ro-cluster.
-# - A separate account keeps Orbly's queries distinct in audit logs and can be revoked on its own.
+# - Cluster-scoped resources such as nodes, namespaces, storage, and metrics are read with pacenote-ro-cluster.
+# - A separate account keeps Pacenote's queries distinct in audit logs and can be revoked on its own.
 #
 # If you change the name or namespace, also change OPS_K8S_SA and OPS_K8S_SA_NAMESPACE in .env.
 # After applying, build the broker kubeconfig with pnpm k8s:kubeconfig.
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: orbly
+  name: pacenote
   labels:
-    app: orbly
+    app: pacenote
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: orbly-ro
-  namespace: orbly
+  name: pacenote-ro
+  namespace: pacenote
   labels:
-    app: orbly
+    app: pacenote
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: orbly-ro-token
-  namespace: orbly
+  name: pacenote-ro-token
+  namespace: pacenote
   annotations:
-    kubernetes.io/service-account.name: orbly-ro
+    kubernetes.io/service-account.name: pacenote-ro
   labels:
-    app: orbly
+    app: pacenote
 type: kubernetes.io/service-account-token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: orbly-ro-view
+  name: pacenote-ro-view
   labels:
-    app: orbly
+    app: pacenote
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: view
 subjects:
   - kind: ServiceAccount
-    name: orbly-ro
-    namespace: orbly
+    name: pacenote-ro
+    namespace: pacenote
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: orbly-ro-cluster
+  name: pacenote-ro-cluster
   labels:
-    app: orbly
+    app: pacenote
 rules:
   - apiGroups: [""]
     resources: [nodes, namespaces, persistentvolumes]
@@ -67,14 +67,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: orbly-ro-cluster
+  name: pacenote-ro-cluster
   labels:
-    app: orbly
+    app: pacenote
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: orbly-ro-cluster
+  name: pacenote-ro-cluster
 subjects:
   - kind: ServiceAccount
-    name: orbly-ro
-    namespace: orbly
+    name: pacenote-ro
+    namespace: pacenote

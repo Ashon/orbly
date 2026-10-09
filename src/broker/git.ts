@@ -13,11 +13,11 @@ import { redactSecrets } from "./redact.js";
  * - The GitHub token lives only in this process's environment variables and is never exposed to the model.
  */
 
-export const BRANCH_PREFIX = "orbly/";
+export const BRANCH_PREFIX = "pacenote/";
 /** Branches made before the rename (Verda). Still recognized as the agent's own, but never created. */
-export const LEGACY_BRANCH_PREFIXES = ["verda/"];
+export const LEGACY_BRANCH_PREFIXES = ["orbly/", "verda/"];
 
-/** Whether a branch is one the agent made: orbly/*, or verda/* from before the rename */
+/** Whether a branch is one the agent made: pacenote/*, or orbly/* and verda/* from before the renames */
 export function isAgentBranch(branch: string): boolean {
   return [BRANCH_PREFIX, ...LEGACY_BRANCH_PREFIXES].some((prefix) =>
     branch.startsWith(prefix)
@@ -335,7 +335,7 @@ export class GitWorkspaces {
           title: title.trim(),
           head: workspace.branch,
           base: workspace.base,
-          body: `${body.trim()}\n\n---\n_This draft PR was written by Orbly from a Slack request. It needs review before merging._`,
+          body: `${body.trim()}\n\n---\n_This draft PR was written by Pacey (Pacenote) from a Slack request. It needs review before merging._`,
           draft: true,
         }),
       }

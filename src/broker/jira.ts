@@ -429,7 +429,7 @@ export class JiraClient {
         Authorization: `Basic ${auth}`,
         Accept: "application/json",
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-        "User-Agent": "orbly-ops-broker",
+        "User-Agent": "pacenote-ops-broker",
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(this.options.timeoutMs ?? 20_000),

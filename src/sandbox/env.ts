@@ -85,11 +85,11 @@ export const BrokerEnvSchema = z.object({
   OPS_K8S_SA: z
     .string()
     .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, "Must be a valid ServiceAccount name")
-    .default("orbly-ro"),
+    .default("pacenote-ro"),
   OPS_K8S_SA_NAMESPACE: z
     .string()
     .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, "Must be a valid namespace name")
-    .default("orbly"),
+    .default("pacenote"),
 });
 
 export type BrokerEnv = z.infer<typeof BrokerEnvSchema>;

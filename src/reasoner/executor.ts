@@ -169,7 +169,7 @@ export interface DockerSandboxOptions {
   requiredServices?: string[];
 }
 
-export const SANDBOX_LABEL = "orbly.role=reasoner";
+export const SANDBOX_LABEL = "pacenote.role=reasoner";
 const CONTAINER_WORKSPACE = "/workspace";
 const CONTAINER_EMPTY_DIR = "/work";
 const CONTAINER_ATTACHMENTS = "/attachments";
@@ -276,7 +276,7 @@ export class DockerExecutor implements Executor {
   }
 
   async run(invocation: CliInvocation): Promise<RunResult> {
-    const name = `orbly-reasoner-${randomUUID().slice(0, 8)}`;
+    const name = `pacenote-reasoner-${randomUUID().slice(0, 8)}`;
     const env: NodeJS.ProcessEnv = { ...process.env };
     if (invocation.tool === "claude") Object.assign(env, this.options.claudeEnv);
     const referenceDir = this.canReadFiles(invocation.tool)
