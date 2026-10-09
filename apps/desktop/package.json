@@ -1,6 +1,6 @@
 {
   "name": "@pacenote/desktop",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "description": "Pacenote desktop app: runs the bot and shows its status, logs and run history",
   "type": "module",
