@@ -5,14 +5,17 @@ How Pacenote is put together, in five pictures. The diagrams are drawn by `scrip
 
 ## The pieces
 
-Pacey, the bot, runs on your Mac as a process the desktop app manages. Slack reaches it over Socket Mode, so nothing
-listens on a public port. Every answer is reasoned by your own `claude` or `codex` CLI in a disposable container whose
-only ways out are the egress proxy (allowed domains) and ops-broker (ops tools, with the credentials kept in the
-broker). Settings and everything Pacey keeps live in `~/.pacenote`.
+Pacey, the bot, runs on your Mac as a process the desktop app manages, in four layers: the Slack messenger, the
+mention pipeline, the reasoner that calls your `claude` or `codex` CLI, and the sandbox the CLI runs in. Slack reaches
+it over Socket Mode, so nothing listens on a public port. With the Docker sandbox, each answer is reasoned in a new,
+hardened container whose only ways out are the egress proxy (the model APIs and the domains you allow) and ops-broker
+(ops tools, with the credentials kept in the broker); without it, the CLI runs on your Mac with your own login.
+Diagrams are rendered in a container of their own, with no network. Settings and everything Pacey keeps live in
+`~/.pacenote`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/architecture-dark.svg">
-  <img alt="Slack, Pacey on your Mac, and the Docker sandbox with the reasoner, the egress proxy, ops-broker and the renderer" src="diagrams/architecture-light.svg">
+  <img alt="Slack; Pacey on your Mac as four layers (messenger, pipeline, reasoner, sandbox); and the Docker sandbox with the renderer, the reasoner and its two ways out, the egress proxy and ops-broker" src="diagrams/architecture-light.svg">
 </picture>
 
 More: [How it works](how-it-works.md), [Reasoner sandbox](sandbox.md), [Ops tools](ops-tools.md),

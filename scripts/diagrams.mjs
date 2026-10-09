@@ -235,13 +235,13 @@ ${this.parts.join('\n')}
 }
 
 /**
- * Slack, the desktop with Pacey, the Docker sandbox, and what the sandbox may
- * reach
+ * Slack, Pacey's layers on the desktop, the Docker sandbox, and what the
+ * sandbox may reach
  */
 function architecture(c) {
   c.header(
     'architecture',
-    "One person's setup: Pacey runs on your Mac, and every answer is reasoned in a disposable sandbox."
+    "One person's setup: Pacey runs on your Mac and reasons each answer in a disposable sandbox."
   )
 
   // Slack
@@ -260,38 +260,31 @@ function architecture(c) {
   c.item(56, 288, 188, 'Socket Mode', 'Events over a WebSocket')
   c.item(56, 344, 188, 'Web API', 'Replies, edits, files')
 
-  // The Mac
-  c.card(320, 120, 410, 470, {
+  // The Mac. Pacey's layers, in the order a mention goes through them.
+  c.card(320, 120, 410, 526, {
     title: 'Your Mac',
     sub: 'Pacenote.app, from Homebrew',
   })
-  c.card(336, 176, 378, 228, { accent: true, radius: 14 })
+  c.card(336, 176, 378, 284, { accent: true, radius: 14 })
   c.text(352, 200, 'Pacey', { size: 14, weight: 700, fill: c.t.primary })
   c.text(400, 200, 'the bot process, managed by the app', {
     size: 12,
     fill: c.t.muted,
   })
-  c.item(
-    352,
-    214,
-    346,
-    'messengers/slack',
-    'Turns events into mentions, posts answers'
+  const layers = [
+    ['messengers/slack', 'Messenger: Slack events in, answers out'],
+    ['mention pipeline', 'Who may ask, context, attachments, prompt'],
+    ['reasoners/claude, codex', 'Reasoner: calls the CLI, reads its steps'],
+    ['sandbox/docker', 'Sandbox: a container per request, or the host'],
+  ]
+  layers.forEach(([name, help], i) =>
+    c.item(352, 214 + i * 52, 346, name, help)
   )
-  c.item(
-    352,
-    266,
-    346,
-    'mention pipeline',
-    'Who may ask, context, attachments, prompt'
-  )
-  c.item(352, 318, 165, 'reasoner', 'claude or codex')
-  c.item(533, 318, 165, 'run history', 'Every tool step')
-  c.chip(352, 374, 'claude@docker', { width: 108 })
-  c.chip(468, 374, 'Working on it...', { tone: 'running', width: 112 })
+  c.chip(352, 426, 'claude@docker', { width: 108 })
+  c.chip(468, 426, 'Working on it...', { tone: 'running', width: 112 })
   c.item(
     336,
-    418,
+    474,
     378,
     'Desktop app',
     'Status, run history, settings, menu bar',
@@ -299,120 +292,104 @@ function architecture(c) {
       mono: false,
     }
   )
-  c.well(336, 476, 378, 98)
-  c.text(352, 498, '~/.pacenote', { mono: true, size: 12, weight: 600 })
-  c.text(352, 516, 'Settings and what Pacey keeps, outside the app', {
+  c.well(336, 532, 378, 98)
+  c.text(352, 554, '~/.pacenote', { mono: true, size: 12, weight: 600 })
+  c.text(352, 572, 'Settings and what Pacey keeps, outside the app', {
     size: 11.5,
     fill: c.t.muted,
   })
   ;['.env', 'runs/', 'logs/', 'ops-broker/'].forEach((name, i) =>
-    c.text(352 + i * 84, 550, name, {
+    c.text(352 + i * 84, 606, name, {
       mono: true,
       size: 11.5,
       fill: c.t.accentFg,
     })
   )
 
-  // The sandbox
-  c.card(820, 120, 340, 470, {
+  // The sandbox: the renderer on its own, and the reasoner with its only two
+  // ways out
+  c.card(820, 120, 340, 526, {
     title: 'Docker sandbox',
-    sub: 'pacenote-sandbox, on the same Mac',
+    sub: 'pacenote-* containers, on the same Mac',
   })
-  c.item(836, 176, 276, 'pacenote-reasoner', 'The CLI per request, read-only')
+  c.item(836, 176, 308, 'renderer', 'Diagrams to PNG, no network')
   c.item(
     836,
-    236,
-    276,
-    'pacenote-egress-proxy',
-    'The only way out: allowed domains'
+    238,
+    308,
+    'reasoner',
+    'claude or codex, a new container per request'
   )
-  c.item(
-    836,
-    296,
-    276,
-    'pacenote-ops-broker',
-    'Ops tools; credentials stay here'
-  )
-  c.item(836, 356, 276, 'pacenote-renderer', 'Diagrams to PNG, no network')
-  c.well(836, 430, 308, 144)
-  c.text(852, 454, 'Reached only through the proxy or the broker', {
-    size: 11.5,
-    fill: c.t.muted,
+  c.item(836, 316, 151, 'egress-proxy', 'Allowed domains only')
+  c.item(993, 316, 151, 'ops-broker', 'Credentials stay here')
+  ;[
+    [911, 'HTTPS'],
+    [1068, 'MCP'],
+  ].forEach(([x, label]) => {
+    c.arrow(
+      [
+        [x, 284],
+        [x, 314],
+      ],
+      {}
+    )
+    c.text(x + 8, 304, label, { size: 11, fill: c.t.muted })
+    c.arrow(
+      [
+        [x, 362],
+        [x, 382],
+      ],
+      {}
+    )
   })
-  c.chip(852, 468, 'api.anthropic.com', { width: 132 })
-  c.chip(992, 468, 'chatgpt.com', { width: 100 })
-  c.chip(852, 496, 'SSH hosts', { width: 84 })
-  c.chip(944, 496, 'k8s, read-only', { width: 112 })
-  c.chip(852, 524, 'GitHub', { width: 66 })
-  c.chip(926, 524, 'Jira', { width: 50 })
-  c.chip(984, 524, 'work directory', { width: 108 })
-  c.text(852, 562, 'Code changes become draft PRs', {
-    size: 11.5,
-    fill: c.t.muted,
-  })
+  c.well(836, 384, 151, 146)
+  c.text(848, 404, 'Model APIs', { size: 11.5, fill: c.t.muted })
+  c.chip(848, 414, 'api.anthropic.com', { width: 124 })
+  c.chip(848, 442, 'chatgpt.com', { width: 92 })
+  c.text(848, 486, 'and your allowlist', { size: 11.5, fill: c.t.muted })
+  c.well(993, 384, 151, 146)
+  c.text(1005, 404, 'Ops tools', { size: 11.5, fill: c.t.muted })
+  c.chip(1005, 414, 'SSH hosts', { width: 84 })
+  c.chip(1005, 442, 'k8s, read-only', { width: 112 })
+  c.chip(1005, 470, 'GitHub', { width: 66 })
+  c.chip(1077, 470, 'Jira', { width: 50 })
+  c.chip(1005, 498, 'work directory', { width: 108 })
+  c.well(836, 544, 308, 88)
+  c.text(848, 564, 'Every container', { size: 11.5, fill: c.t.muted })
+  const first = c.chip(848, 574, 'read-only root')
+  c.chip(856 + first, 574, 'no capabilities')
+  const second = c.chip(848, 602, 'internal network')
+  c.chip(856 + second, 602, 'removed after use')
 
-  // Slack and Pacey
+  // Slack and Pacey's messenger
   c.arrow(
     [
-      [260, 256],
-      [336, 228],
+      [260, 255],
+      [336, 230],
     ],
-    { main: true, label: 'mention', at: [290, 236], anchor: 'middle' }
+    { main: true, label: 'mention', at: [298, 240], anchor: 'middle' }
   )
   c.arrow(
     [
-      [336, 300],
-      [260, 330],
+      [336, 252],
+      [260, 362],
     ],
-    { main: true, label: 'answer', at: [290, 322], anchor: 'middle' }
+    { main: true, label: 'answer', at: [298, 310], anchor: 'middle' }
   )
-  // Pacey and the sandbox
+  // The pipeline renders diagrams; the sandbox layer starts the reasoner
   c.arrow(
     [
-      [730, 230],
+      [714, 289],
       [836, 199],
     ],
-    { main: true, label: 'docker run', at: [775, 210], anchor: 'middle' }
+    { dashed: true, label: 'diagrams', at: [775, 244], anchor: 'middle' }
   )
   c.arrow(
     [
-      [730, 352],
-      [836, 379],
+      [714, 393],
+      [836, 261],
     ],
-    { dashed: true, label: 'diagrams', at: [775, 358], anchor: 'middle' }
-  )
-  // Inside the sandbox: the reasoner reaches out only through the proxy and the
-  // broker
-  c.arrow(
-    [
-      [974, 222],
-      [974, 236],
-    ],
-    {}
-  )
-  c.arrow(
-    [
-      [1112, 199],
-      [1126, 199],
-      [1126, 319],
-      [1112, 319],
-    ],
-    { label: 'MCP', at: [1126, 259], anchor: 'middle' }
-  )
-  c.arrow(
-    [
-      [1112, 268],
-      [1140, 268],
-      [1140, 430],
-    ],
-    { dashed: true }
-  )
-  c.arrow(
-    [
-      [1112, 329],
-      [1140, 329],
-    ],
-    { dashed: true, end: false }
+    { main: true, label: 'docker run', at: [775, 327], anchor: 'middle' }
   )
 
   // Footer: the rules that hold everywhere
@@ -424,9 +401,9 @@ function architecture(c) {
   ]
   rules.forEach(([title, help], i) => {
     const x = 40 + i * 282
-    c.card(x, 614, 266, 66, { radius: 14 })
-    c.text(x + 16, 640, title, { size: 13, weight: 600 })
-    c.text(x + 16, 660, help, { size: 11.5, fill: c.t.muted })
+    c.card(x, 670, 266, 66, { radius: 14 })
+    c.text(x + 16, 696, title, { size: 13, weight: 600 })
+    c.text(x + 16, 716, help, { size: 11.5, fill: c.t.muted })
   })
 }
 
@@ -578,7 +555,7 @@ function mentionFlow(c) {
   const lanes = [
     ['Slack', 'The workspace', 120, 104],
     ['Pacey', 'On your Mac', 236, 132],
-    ['Sandbox', 'Docker', 380, 104],
+    ['Sandbox', 'Docker or the host', 380, 104],
   ]
   lanes.forEach(([name, help, y, h], i) => {
     c.add(
@@ -1055,7 +1032,7 @@ function wrap(text, width) {
 }
 
 const DIAGRAMS = [
-  ['architecture', 'Pacenote architecture', 1200, 712, architecture],
+  ['architecture', 'Pacenote architecture', 1200, 760, architecture],
   ['team-hub', 'Pacenote team hub', 1200, 628, teamHub],
   ['mention-flow', 'Pacenote: one mention', 1200, 640, mentionFlow],
   ['layers', 'Pacenote layers', 1200, 800, layers],
