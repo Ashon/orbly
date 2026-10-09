@@ -2,19 +2,24 @@
   <img src="assets/pacenote-icon-256.png" alt="Pacenote" width="96" height="96">
 </p>
 
-# Orbly
+# Pacenote
 
 [![ci](https://github.com/Ashon/orbly/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ashon/orbly/actions/workflows/ci.yml)
 [![e2e coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FAshon%2Forbly%2Fbadges%2Fe2e-coverage.json)](https://github.com/Ashon/orbly/actions/workflows/ci.yml)
 
-Your orbiting assistant. (Formerly Verda: see [Migrating from Verda](#migrating-from-verda))
+**You drive. Pacey reads the notes.**
 
-A Slack bot that, when mentioned in a public channel, collects the thread context, hands the
-reasoning to a local `claude` or `codex` CLI, and posts the answer back to the same thread under the bot's name.
+In rallying, the co-driver reads pace notes so the driver can keep their eyes on the road. Pacenote puts Pacey in that
+seat for your team's Slack: mention `@Pacey` in a public channel, and Pacey reads the thread, hands the reasoning to a
+local `claude` or `codex` CLI on your machine, keeps only what matters now, and answers in the same thread. History,
+the sandbox and the ops tools stay on your machine.
+
+Two names, two roles: **Pacenote** is the project and the app; **Pacey** is who you talk to, the Slack bot and the
+voice of the app. (Formerly Orbly and Verda: see [Migrating from Orbly or Verda](#migrating-from-orbly-or-verda))
 
 It connects over Socket Mode, so it needs no public endpoint, and it uses only the minimum bot token scopes.
 Used alone, it runs with a Slack app of your own; for a team, a [team hub](#team-hub) holds one Slack app and routes each
-member's mentions to that member's own Orbly.
+member's mentions to that member's own Pacenote.
 
 ## How it works
 
@@ -22,18 +27,18 @@ member's mentions to that member's own Orbly.
 @bot mention in a public channel
   -> messenger adapter (Slack: Bolt, Socket Mode or the team hub, app_mention event) -> Mention
   -> check allowed users / public channel
-  -> post "Working on an answer..." in the thread
+  -> Pacey posts "Working on it..." in the thread
   -> collect thread context (the whole thread, or the last 10 messages outside a thread)
   -> Reasoner: claude -p or codex exec (a disposable container when REASONER_SANDBOX=docker)
-  -> replace "Working on an answer..." with the answer (long answers continue in more messages)
+  -> replace "Working on it..." with the answer (long answers continue in more messages)
 ```
 
 - A mention inside a thread also passes the bot's earlier answers as context, so it continues from them.
 - With `MENTION_ALLOWED_USERS` set, the bot answers only those users. Anyone else gets a message only they
-  can see (ephemeral): "This bot is only available to specific users."
+  can see (ephemeral): "I only answer specific people here."
 - It does not answer in private channels or DMs.
 - It runs up to `MENTION_CONCURRENCY` requests at once and queues up to 10 more. Beyond that it replies that it is busy.
-- On failure it replaces the placeholder message with "Couldn't produce an answer." The channel is public, so error
+- On failure it replaces the placeholder message with "I couldn't produce an answer." The channel is public, so error
   details go only to the log.
 
 ### Attachments
@@ -48,7 +53,7 @@ of the request message come first, then the thread's recent attachments. Files t
 | PDF | Text of the first 50 pages only, extracted in a disposable container with no network (`pdftotext`) | 20MB, up to 4 together with text files |
 | Other formats, external files (Google Drive and so on) | Not read; the model is told the name and the reason | |
 
-- Instructions inside attachments are treated as data only. Downloaded files are kept in `ORBLY_DATA_DIR/attachments/<id>`
+- Instructions inside attachments are treated as data only. Downloaded files are kept in `PACENOTE_DATA_DIR/attachments/<id>`
   and deleted when the answer is done. (`/tmp` is not used because colima mounts only paths under the home directory into containers.)
 - Without the scope, Slack returns a login page instead of the file. This case is reported as "check the files:read scope".
 
@@ -65,7 +70,7 @@ The bot renders the block as a PNG, posts it to the thread (`files:write`), and 
 Illustrations and photo-like images are made with codex's image generation (`image_generation`). (The claude backend has none.)
 
 - codex saves generated images to `~/.codex/generated_images`. In the sandbox container, each request mounts
-  `ORBLY_DATA_DIR/attachments/<id>/generated` at `/out`, and the entrypoint links that path to `/out` so the images stay on the host.
+  `PACENOTE_DATA_DIR/attachments/<id>/generated` at `/out`, and the entrypoint links that path to `/out` so the images stay on the host.
   This is the only path the container can write to on the host.
 - After the answer, the bot posts the generated images (up to 4) together with the diagrams to the thread. Generation takes about a minute.
 - codex generates only fixed sizes (1024x1024, 1536x1024 and so on), so without a size or aspect request it is asked for a square,
@@ -85,7 +90,7 @@ Illustrations and photo-like images are made with codex's image generation (`ima
 | `apps/desktop/scripts/package-mac.mjs` | Installable macOS app and its release zip (`pnpm package:mac`) |
 | `src/tools/check-slack.ts` | Slack app config check (`pnpm slack:check`) |
 | `sandbox/` | Reasoner container image, egress proxy, compose |
-| `deploy/homebrew/` | Homebrew cask template (`Casks/orbly.rb`), tap update script, release runbook |
+| `deploy/homebrew/` | Homebrew cask template (`Casks/pacenote.rb`), tap update script, release runbook |
 
 ## Reasoner backends
 
@@ -108,7 +113,7 @@ bot (host) --docker run--> reasoner container --(internal network)--> egress-pro
 | Item | Limit |
 | --- | --- |
 | Filesystem | Read-only root. The only host files visible are the reference directory (ro) and the codex auth file (ro) |
-| Network | `internal` network with no external route. Only domains in `~/.orbly/sandbox/allowed-domains.txt` are allowed, via CONNECT on 443 (the file is first created from `sandbox/proxy/allowed-domains.txt`) |
+| Network | `internal` network with no external route. Only domains in `~/.pacenote/sandbox/allowed-domains.txt` are allowed, via CONNECT on 443 (the file is first created from `sandbox/proxy/allowed-domains.txt`) |
 | Privileges | All capabilities dropped, `no-new-privileges`, uid 1000, pids/memory/CPU limits |
 | Auth | claude gets `SANDBOX_CLAUDE_OAUTH_TOKEN` or `SANDBOX_ANTHROPIC_API_KEY` passed by environment variable name only (not exposed in process arguments). codex gets `auth.json` mounted read-only and copied to tmpfs |
 | On failure | If the image, network or proxy is missing, the startup log says so and reasoner calls fail. It does not fall back to running on the host. |
@@ -151,7 +156,7 @@ only request fixed queries through MCP tools.
 reasoner container --MCP(http, internal network)--> ops-broker     --ssh OPS_SSH_USER--> inventory hosts (within OPS_SSH_ALLOWED_CIDR)
   (no credentials, no shell or shell rejected)      (keys, tokens) --kubectl (read-only SA)--> OPS_K8S_CONTEXTS clusters
                                                                    --read-only mount--> OPS_FS_ROOT
-                                                                   --git(https, user token)--> GitHub (orbly/* branches, draft PRs)
+                                                                   --git(https, user token)--> GitHub (pacenote/* branches, draft PRs)
                                                                    --REST(user token, read)--> GitHub (repositories, PR queries)
                                                                    --REST(API token)--> Jira (allowed project queries, issue create/comment)
 ```
@@ -159,7 +164,7 @@ reasoner container --MCP(http, internal network)--> ops-broker     --ssh OPS_SSH
 | Tool | What it does | Limits |
 | --- | --- | --- |
 | `host_list`, `host_check` | Host checks over SSH: `uptime`, `dmesg`, `memory`, `disk`, `top`, `pci_devices`, `failed_units`, `service`, `journal` | Fixed checks with format-validated arguments only. Hosts are named from the host list only, within `OPS_SSH_ALLOWED_CIDR` |
-| `k8s_get`, `k8s_describe`, `k8s_logs`, `k8s_events`, `k8s_top` | kubectl queries | Enforced on the cluster side by a read-only SA (`sandbox/k8s/orbly-ro.yaml`, ClusterRole `view` plus cluster-scoped reads). Secrets are blocked by both RBAC and the broker |
+| `k8s_get`, `k8s_describe`, `k8s_logs`, `k8s_events`, `k8s_top` | kubectl queries | Enforced on the cluster side by a read-only SA (`sandbox/k8s/pacenote-ro.yaml`, ClusterRole `view` plus cluster-scoped reads). Secrets are blocked by both RBAC and the broker |
 | `fs_list`, `fs_find`, `fs_search`, `fs_read` | Work directory reads | Read-only mount. Excludes `.env`, keys, kubeconfig, `*secret*`, `.git`, `.venv` and similar. Rejects paths outside the root and links pointing outside it. Searches must be scoped to a repository or a path inside one |
 | `ws_prepare`, `ws_read`, `ws_search`, `ws_list`, `ws_edit`, `ws_write`, `ws_delete`, `ws_diff`, `ws_create_pr` | Code changes and draft PRs | See "Code changes and PRs" below |
 | `gh_repo_search`, `gh_pr_list`, `gh_pr_search`, `gh_pr_view`, `gh_pr_diff` | GitHub repository search, PR list/search, PR details (reviews, CI checks, changed files), diff | Read-only. Only `OPS_GIT_ALLOWED_OWNERS` orgs. A repository name without an org is looked up in the allowed orgs; if there is none, similar repositories are suggested |
@@ -170,18 +175,18 @@ reasoner container --MCP(http, internal network)--> ops-broker     --ssh OPS_SSH
 - GitHub is queried only with the broker's token (`gh auth token`). The reasoner container cannot reach GitHub and has no token.
   codex's ChatGPT app connectors (`codex_apps`, including the GitHub connector) have a different permission scope and send data
   over a different path, so they are turned off in sandbox runs. (`codex exec --disable apps`)
-- Every call is logged by the broker (`docker logs orbly-sandbox-ops-broker-1`).
+- Every call is logged by the broker (`docker logs pacenote-sandbox-ops-broker-1`).
 - Because it uses credentials, the bot does not start without `REASONER_SANDBOX=docker` and `MENTION_ALLOWED_USERS`.
 - To add checks, edit `src/broker/checks.ts` (SSH) or `src/broker/k8s.ts` and rebuild the broker.
 
 ### Code changes and PRs
 
 - `ws_prepare(repo)`: finds `origin` from the local repository directory name and, if it is a repository of an allowed org
-  (`OPS_GIT_ALLOWED_OWNERS`), creates a workspace on a `orbly/<date>-<id>` branch from the remote default branch.
+  (`OPS_GIT_ALLOWED_OWNERS`), creates a workspace on a `pacenote/<date>-<id>` branch from the remote default branch.
   The workspace is a mirror worktree in the broker volume (`ops-work`), so the user's local working tree and changes in progress are not touched.
 - Changes are made only with `ws_edit` (exact string replacement), `ws_write` and `ws_delete`. There is no shell and no test run.
   Verification is left to the PR's CI and human review.
-- `ws_create_pr`: commits after policy checks, pushes only to `orbly/*` branches, and creates a draft PR.
+- `ws_create_pr`: commits after policy checks, pushes only to `pacenote/*` branches, and creates a draft PR.
   - Rejected: no changes, `.github/workflows/`, `.gitmodules`, secret file paths, secret value formats in the diff, more than 50 files, more than 3000 added lines
   - The commit author is `OPS_GIT_AUTHOR_NAME`, `OPS_GIT_AUTHOR_EMAIL`, or, when they are empty, the user in the global git config (`git config --global`).
     This is separate from this repository's git config. PRs are created as the `gh` login account. Limited to 10 per hour.
@@ -189,8 +194,8 @@ reasoner container --MCP(http, internal network)--> ops-broker     --ssh OPS_SSH
   It has the `repo` and `workflow` scopes, so in production a fine-grained PAT limited to the target repositories is recommended instead.
 - Workspaces are cleaned up after 24 hours.
 
-Setup: no value of the target environment lives in the code; all of them go into `OPS_*` in the config file (`~/.orbly/.env`). Each feature is optional, and the broker starts without the tools of any feature left empty.
-Files the broker generates, such as the host list and kubeconfig, are also created outside the repository, in `~/.orbly/ops-broker/`.
+Setup: no value of the target environment lives in the code; all of them go into `OPS_*` in the config file (`~/.pacenote/.env`). Each feature is optional, and the broker starts without the tools of any feature left empty.
+Files the broker generates, such as the host list and kubeconfig, are also created outside the repository, in `~/.pacenote/ops-broker/`.
 
 | Feature | Settings | If empty |
 | --- | --- | --- |
@@ -199,10 +204,10 @@ Files the broker generates, such as the host list and kubeconfig, are also creat
 | Jira (`jira_*`) | `OPS_JIRA_URL`, `OPS_JIRA_EMAIL`, `OPS_JIRA_TOKEN`, `OPS_JIRA_PROJECTS` | Jira tools off |
 | k8s queries (`k8s_*`) | `OPS_K8S_CONTEXTS`, `OPS_K8S_SA`, `OPS_K8S_SA_NAMESPACE` | Empty kubeconfig, k8s tools off |
 | Host checks (`host_*`) | `OPS_SSH_USER`, `OPS_SSH_ALLOWED_CIDR`, `OPS_SSH_KEY` (+ `OPS_SSH_KNOWN_HOSTS`) | Host tools off |
-| Host list | `OPS_SSH_INVENTORY_DIR`, `OPS_SSH_INVENTORY` (ansible inventory) | Write `~/.orbly/ops-broker/hosts.json` directly |
+| Host list | `OPS_SSH_INVENTORY_DIR`, `OPS_SSH_INVENTORY` (ansible inventory) | Write `~/.pacenote/ops-broker/hosts.json` directly |
 
 ```sh
-# 1) Read-only k8s SA: apply sandbox/k8s/orbly-ro.yaml to every cluster to query
+# 1) Read-only k8s SA: apply sandbox/k8s/pacenote-ro.yaml to every cluster to query
 # 2) Build the broker kubeconfig from the SA tokens (reads the token Secrets with the local admin kubeconfig)
 pnpm k8s:kubeconfig
 # 3) Bundle the broker (pnpm bundle), prepare mounts and the host list, then build and start the broker
@@ -213,11 +218,11 @@ When the inventory or an SA token changes, run the matching command and `pnpm sa
 
 ## Team hub
 
-For several people in one workspace: one hub server holds the Slack app, and each member's Orbly desktop answers that
+For several people in one workspace: one hub server holds the Slack app, and each member's Pacenote desktop answers that
 member's mentions with their own `claude` or `codex` login, sandbox and ops tools.
 
 ```
-Slack <--Socket Mode--> hub (deploy/hub: Slack tokens, paired desktops) <--WebSocket over HTTPS--> each member's Orbly
+Slack <--Socket Mode--> hub (deploy/hub: Slack tokens, paired desktops) <--WebSocket over HTTPS--> each member's Pacenote
 ```
 
 - The Slack tokens live only on the hub. Desktops never get one: their Slack Web API calls, file downloads and uploads go
@@ -227,8 +232,8 @@ Slack <--Socket Mode--> hub (deploy/hub: Slack tokens, paired desktops) <--WebSo
   2 hours after the mention. Other calls are refused with errors like `thread_not_granted` or `method_not_allowed_by_hub`.
 - Routing: a mention goes to the desktop of the member who wrote it. Members without a paired desktop, or whose desktop is
   offline, get a message only they can see that says so.
-- Pairing: in Orbly, Settings > Messengers > Slack > Team hub, enter the hub URL and choose Connect. Orbly shows a code; send
-  `@orbly connect <code>` in a channel Orbly is in, then confirm in Orbly that the Slack account shown is yours.
+- Pairing: in Pacenote, Settings > Messengers > Slack > Team hub, enter the hub URL and choose Connect. Pacenote shows a code; send
+  `@Pacey connect <code>` in a channel Pacenote is in, then confirm in Pacenote that the Slack account shown is yours.
   The confirmation is what counts, so a code someone else saw and sent first is turned down on the desktop.
   The desktop keeps a random token in `.env` (`HUB_TOKEN`); the hub stores only its SHA-256.
 - One desktop per member: pairing again replaces the previous desktop. Settings > Messengers > Slack > Disconnect unpairs it.
@@ -240,11 +245,11 @@ Running the hub (on a server of its own, with Docker):
 1. Create the Slack app from `slack-app-manifest.yaml` (Socket Mode), install it, and create an app-level token with
    `connections:write`.
 2. On a machine with the repository: `pnpm install && pnpm bundle`, which writes `deploy/hub/dist/hub.mjs`
-   (`pnpm hub:image` also builds the image `orbly-hub:latest`).
+   (`pnpm hub:image` also builds the image `pacenote-hub:latest`).
 3. In `deploy/hub`: `cp hub.env.example hub.env`, fill in `SLACK_APP_TOKEN`, `SLACK_BOT_TOKEN` and `HUB_PUBLIC_URL`
    (optionally `HUB_ALLOWED_USERS`), then `docker compose up -d --build`. Paired desktops are kept in the `hub-data` volume.
 4. The hub listens on `127.0.0.1:8790`. Serve it over HTTPS at `HUB_PUBLIC_URL`, for example with Caddy:
-   `orbly-hub.example.com { reverse_proxy 127.0.0.1:8790 }` (WebSockets pass through). Desktops accept only https URLs
+   `pacenote-hub.example.com { reverse_proxy 127.0.0.1:8790 }` (WebSockets pass through). Desktops accept only https URLs
    (http only for localhost).
 5. Give members the URL. `docker compose logs -f hub` shows pairings, connections, routed mentions and refused calls.
 
@@ -259,7 +264,7 @@ Running the hub (on a server of its own, with Docker):
 
 ## Installation
 
-There are two ways to run Orbly: the desktop app from Homebrew, or from source with pnpm. Both need the
+There are two ways to run Pacenote: the desktop app from Homebrew, or from source with pnpm. Both need the
 Slack app from steps 1-3 under "From source".
 
 ### Install with Homebrew
@@ -268,17 +273,17 @@ The desktop app installs from the Homebrew tap (macOS 12 or later, Apple silicon
 
 ```sh
 brew tap ashon/tap
-brew install --cask orbly
+brew install --cask pacenote
 ```
 
 - The app carries the bot, the sandbox jobs and its own Node, so it needs no repository, Node or pnpm. It needs Docker
   (Docker Desktop, OrbStack or colima) for the sandbox, a `claude` or `codex` CLI login, and `gh` and `git` for the ops tools.
-- After creating the Slack app, open Orbly, enter the Slack tokens in Settings > Messengers > Slack, then run "Build sandbox images"
+- After creating the Slack app, open Pacenote, enter the Slack tokens in Settings > Messengers > Slack, then run "Build sandbox images"
   and "Restart proxy" in Settings > Sandbox.
-- Config, run history and the allowed domains list live in `~/.orbly` (`ORBLY_HOME`), outside the app, so they survive
+- Config, run history and the allowed domains list live in `~/.pacenote` (`PACENOTE_HOME`), outside the app, so they survive
   upgrades and uninstall.
-- `brew upgrade --cask orbly` quits the running app first (the bot gets up to 20 seconds to finish its requests, and the rest
-  resume on the next start) and reopens it. `brew uninstall --cask orbly` removes the app and keeps `~/.orbly`.
+- `brew upgrade --cask pacenote` quits the running app first (the bot gets up to 20 seconds to finish its requests, and the rest
+  resume on the next start) and reopens it. `brew uninstall --cask pacenote` removes the app and keeps `~/.pacenote`.
 
 ### From source
 
@@ -289,11 +294,11 @@ brew install --cask orbly
    - Turn on Socket Mode
 2. Basic Information -> App-Level Tokens: create a token with `connections:write` -> `SLACK_APP_TOKEN`
 3. Invite the bot to the public channels where it should answer. (`/invite @botname`)
-4. Write the config file and check it. Config lives outside the repository in `~/.orbly/.env`. (`ORBLY_HOME` changes the location)
+4. Write the config file and check it. Config lives outside the repository in `~/.pacenote/.env`. (`PACENOTE_HOME` changes the location)
    The bot (app, terminal), the setup commands and the sandbox compose all read this file, so values of the target environment never land in the repository.
 
    ```sh
-   mkdir -p ~/.orbly && cp .env.example ~/.orbly/.env   # fill in SLACK_*, REASONER, REASONER_SANDBOX
+   mkdir -p ~/.pacenote && cp .env.example ~/.pacenote/.env   # fill in SLACK_*, REASONER, REASONER_SANDBOX
    pnpm install
    pnpm slack:check        # check tokens, scopes, app match, Socket Mode
    ```
@@ -307,17 +312,17 @@ brew install --cask orbly
    ```
 
 Two processes with the same app token make Slack split events between them, so run only one.
-At startup the bot takes a run lock through `ORBLY_DATA_DIR/bot.json`. If another bot is alive, it waits 30 seconds for it to exit,
-and if it is still alive it exits with "Another Orbly bot is running".
+At startup the bot takes a run lock through `PACENOTE_DATA_DIR/bot.json`. If another bot is alive, it waits 30 seconds for it to exit,
+and if it is still alive it exits with "Another Pacenote bot is running".
 `pnpm dev` restarts the process whenever the source changes, so requests in progress can be cut off while you edit code.
 
 Restart handling:
 
-- Mentions in progress are recorded in `ORBLY_DATA_DIR/inflight.json`. After a restart the bot resumes each one once in the same placeholder
+- Mentions in progress are recorded in `PACENOTE_DATA_DIR/inflight.json`. After a restart the bot resumes each one once in the same placeholder
   message ("The bot restarted. Resuming the answer..."). Requests already resumed once or older than 30 minutes are replaced with
-  "Couldn't produce an answer. The bot restarted and the request was interrupted. Please mention me again."
+  "I couldn't finish this: I restarted and the request was cut off. Please mention me again."
 - On a shutdown signal (SIGINT, SIGTERM) it stops taking new events and waits up to 20 seconds for requests in progress.
-- At startup it deletes attachment/output temp directories (`ORBLY_DATA_DIR/attachments/*`) older than 1 hour.
+- At startup it deletes attachment/output temp directories (`PACENOTE_DATA_DIR/attachments/*`) older than 1 hour.
 
 Requirements: Node.js 22.9 or later, pnpm 11, and Docker for the sandbox.
 
@@ -329,37 +334,37 @@ The UI is `apps/web` (React).
 ```sh
 pnpm desktop        # build the bot, the UI and the app, then run it from the repository (development)
 pnpm desktop:dev    # the UI runs on the Vite dev server (127.0.0.1:5179) and the app opens that address
-pnpm package:mac    # build the installable Orbly.app as a release zip in release/
-pnpm install:mac    # unpack that zip into /Applications (quit Orbly first)
+pnpm package:mac    # build the installable Pacenote.app as a release zip in release/
+pnpm install:mac    # unpack that zip into /Applications (quit Pacenote first)
 ```
 
-Runs from the repository (`pnpm desktop`, `pnpm desktop:dev`) are named "Orbly Dev": they have their own Electron user data
-folder and single-instance lock, so they start next to an installed Orbly. The top bar, the Dock icon (a DEV tag, drawn by
-`icon.swift` as `assets/orbly-icon-dev.png`) and the menu bar item say "Dev". Both use the
-same config and data folder (`~/.orbly`), so the bot lock still keeps a single bot running.
+Runs from the repository (`pnpm desktop`, `pnpm desktop:dev`) are named "Pacenote Dev": they have their own Electron user data
+folder and single-instance lock, so they start next to an installed Pacenote. The top bar, the Dock icon (a DEV tag, drawn by
+`icon.swift` as `assets/pacenote-icon-dev.png`) and the menu bar item say "Dev". Both use the
+same config and data folder (`~/.pacenote`), so the bot lock still keeps a single bot running.
 
 Packaging:
 
-- `pnpm package:mac` builds `release/Orbly-v<version>-macos-<arch>.app.zip` with a `.sha256` file. The arch defaults to
+- `pnpm package:mac` builds `release/Pacenote-v<version>-macos-<arch>.app.zip` with a `.sha256` file. The arch defaults to
   this Mac's; `pnpm package:mac --arch x64` builds the Intel app. The app is assembled in `release/staging.noindex` and
-  removed once zipped, so Spotlight and Launchpad list only the installed Orbly.
+  removed once zipped, so Spotlight and Launchpad list only the installed Pacenote.
 - `pnpm install:mac` checks the zip for this Mac's arch against its `.sha256` and unpacks it into `/Applications`. It refuses to
-  replace a running Orbly, or a Orbly installed with Homebrew (`brew uninstall --cask orbly` first).
+  replace a running Pacenote, or a Pacenote installed with Homebrew (`brew uninstall --cask pacenote` first).
 
 Using the packaged app:
 
-- `Orbly.app` contains the UI, the bot and sandbox job bundles (`pnpm bundle`) and the `sandbox/` files, so it runs without the repository, Node or pnpm.
+- `Pacenote.app` contains the UI, the bot and sandbox job bundles (`pnpm bundle`) and the `sandbox/` files, so it runs without the repository, Node or pnpm.
   It needs Docker (sandbox), a reasoner CLI login (claude or codex), and gh and git for the ops tools.
-- Config (`~/.orbly/.env`), history and the allowed domains list live outside the app (`ORBLY_HOME`, default `~/.orbly`), so they are kept when the app is reinstalled.
+- Config (`~/.pacenote/.env`), history and the allowed domains list live outside the app (`PACENOTE_HOME`, default `~/.pacenote`), so they are kept when the app is reinstalled.
 - Sandbox apply jobs (image builds, proxy, broker, kubeconfig) run the job bundle inside the app with the app's Node.
   From the repository, the same jobs run with `pnpm sandbox:build`, `sandbox:up`, `sandbox:ops-up` and `k8s:kubeconfig`.
 - The packaged app uses its bundles as they are, so it has no "Rebuild and restart". After changing code, reinstall with `pnpm package:mac && pnpm install:mac`.
 - To avoid two bots on the same Slack app token, do not run `pnpm desktop` or `pnpm dev` while using the packaged app.
-  (If both run, the bot run lock makes the one started later only show "This bot is running elsewhere, such as a terminal.")
+  (If both run, the bot run lock makes the one started later only show "Pacey is running elsewhere, such as a terminal.")
 
 Layout:
 
-- The left rail switches sections: "Overview" (with the run list), "Bot", and "Settings" at the bottom. The top bar holds the
+- The left rail switches sections: "Overview" (with the run list), "Pacey" (the bot), and "Settings" at the bottom. The top bar holds the
   run search (Cmd+K focuses it, Esc clears it); the run list shows next to the overview and run details, while the bot and
   settings screens use the full width.
 - The toggle at the left of the top bar (Cmd+B) hides or shows the run list, and the choice is remembered. When the window
@@ -368,35 +373,35 @@ Layout:
 - The window can be as narrow as 600 pixels. Narrow screens stack their cards and rows, and Settings shows its sections as
   icons.
 - The status bar at the bottom holds status to glance at: bot connection status, reasoner backend, attached tools, startup check issues (when any),
-  requests in progress, and last request time. Clicking the bot status item opens the Bot screen.
+  requests in progress, and last request time. Clicking the "Pacey: ..." status item opens the Pacey screen.
 
 Bot management:
 
-- Opening the app starts the bot automatically. (Turn it off with "Start the bot when the app opens" under Settings > General. It is stored in `ORBLY_DATA_DIR/desktop.json`)
+- Opening the app starts the bot automatically. (Turn it off with "Start the bot when the app opens" under Settings > General. It is stored in `PACENOTE_DATA_DIR/desktop.json`)
 - The bot runs as an Electron utilityProcess. Development runs use the repository's `dist/index.js` and run `pnpm build` first when `src` is newer.
   The packaged app uses its bundled bot (`bot/index.mjs`) as is.
-  Environment variables are read from the config file (`~/.orbly/.env`) like `node --env-file`, and existing environment variables take precedence.
+  Environment variables are read from the config file (`~/.pacenote/.env`) like `node --env-file`, and existing environment variables take precedence.
   PATH comes from the login shell. (So docker, codex and pnpm are found even when the app is launched from Finder)
-- The Bot screen has "Start", "Stop", "Restart" and "Rebuild and restart" (development runs only). The number of requests in progress is shown next to the menu bar icon.
-- The menu bar (tray) holds only "Open Orbly" at the top, then the bot status ("Bot: ...") with "Start bot" (when stopped) or "Restart bot", and "Quit Orbly".
+- The Pacey screen has "Start", "Stop", "Restart" and "Rebuild and restart" (development runs only). The number of requests in progress is shown next to the menu bar icon.
+- The menu bar (tray) holds only "Open Pacenote" at the top, then the bot status ("Pacey: ...") with "Start Pacey" (when stopped) or "Restart Pacey", and "Quit Pacenote".
   App settings (automatic start, run history folder) are in Settings.
 - Stop and app quit send SIGTERM. The bot waits up to 20 seconds for requests in progress, and the rest resume on the next start.
 - Before launching the bot, the app checks the settings with the bot's own rules. When the Slack tokens are missing (a first run) or a
-  value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Bot screen, the Overview,
+  value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Pacey screen, the Overview,
   the status bar, and the tray menu). That way opens the section to fix: Slack for missing or rejected tokens, otherwise the section
   of the first invalid value. Tokens Slack rejects (`invalid_auth` and the like) also end up there. Saving in Settings then starts
-  the bot ("Save and start bot").
+  the bot ("Save and start Pacey").
 - If the bot dies after running normally for 30 seconds or more, it shows "Crashed" and is restarted after 3 seconds (up to 3 times in
   10 minutes). If it stops right after starting for another reason, or a dev build fails, it shows "Failed to start" with the cause and
-  the last output on the Bot screen.
+  the last output on the Pacey screen.
 - If a bot is already running from a terminal (`pnpm dev` and so on), the app leaves it alone and only shows its status and logs as "Running in terminal".
   When the terminal bot stops, the app takes over. (It starts the bot right away if automatic start is on)
 - Closing the window hides the app in the tray and the bot keeps running. Quit from the tray menu or with Cmd+Q.
-- With `ORBLY_DESKTOP_BOT=off`, the app does not manage the bot and only shows history.
+- With `PACENOTE_DESKTOP_BOT=off`, the app does not manage the bot and only shows history.
 
 Settings:
 
-- The gear icon at the bottom of the left rail ("Settings") edits the config file (`~/.orbly/.env`). The app and terminal runs use the same file, so settings do not diverge.
+- The gear icon at the bottom of the left rail ("Settings") edits the config file (`~/.pacenote/.env`). The app and terminal runs use the same file, so settings do not diverge.
 - Settings has its own section list (`#/settings/<section>`): General for the app first, then the bot's sections.
 
   | Section | What it holds |
@@ -424,7 +429,7 @@ Settings:
   can be saved a piece at a time; the bot shows "Setup needed" until it is complete.
 - Saving keeps comments, order, and entries the settings screen does not handle (such as personal API keys). Fields reset to their default are emptied as `KEY=`.
   New entries are appended at the end, and the file mode (600) is kept.
-- Saved settings take effect after the bot restarts. "Save and restart bot" does both at once.
+- Saved settings take effect after the bot restarts. "Save and restart Pacey" does both at once.
 - A field also set in the app's environment variables takes precedence over `.env`, so the UI marks it.
 - Socket Mode keepalive values: `SOCKET_CLIENT_PING_TIMEOUT_MS` (default 5000), `SOCKET_SERVER_PING_TIMEOUT_MS` (default 30000),
   `SOCKET_PING_PONG_LOG` (default off, visible with `LOG_LEVEL=debug`)
@@ -439,7 +444,7 @@ Sandbox (the "Sandbox" and "Ops tools" sections of Settings):
   | Component | Settings | Applied by |
   | --- | --- | --- |
   | Reasoner sandbox (a new container per request) | `SANDBOX_*`, `OPS_TOOLS` | Restarting the bot |
-  | Allowed outbound domains (egress-proxy) | `~/.orbly/sandbox/allowed-domains.txt` | Restarting the proxy (`pnpm sandbox:up`) |
+  | Allowed outbound domains (egress-proxy) | `~/.pacenote/sandbox/allowed-domains.txt` | Restarting the proxy (`pnpm sandbox:up`) |
   | ops-broker | `OPS_GIT_*`, `OPS_FS_ROOT`, `OPS_SSH_*`, `OPS_K8S_*`, `OPS_JIRA_*` | Recreating the broker (`pnpm sandbox:ops-up`) |
 
 - Status: docker, the 4 images, the proxy and broker containers, broker tools (SSH host count, k8s, files, GitHub, PR, Jira), credential files,
@@ -460,19 +465,19 @@ Sandbox (the "Sandbox" and "Ops tools" sections of Settings):
 Status and logs:
 
 - The bot writes its status (Socket Mode connection state and reconnect count, bot account, reasoner backend, requests in progress and handled,
-  sandbox check problems) to `ORBLY_DATA_DIR/bot.json`. The app reads it the same way no matter who started the bot.
-- Logs go to the console and to `ORBLY_DATA_DIR/logs/bot.log`. (Past 5MB it rolls over to `bot.log.1`)
-  Bolt and Socket Mode client logs go through the same logger, with the scopes `orbly:socket` and `orbly:bolt`.
+  sandbox check problems) to `PACENOTE_DATA_DIR/bot.json`. The app reads it the same way no matter who started the bot.
+- Logs go to the console and to `PACENOTE_DATA_DIR/logs/bot.log`. (Past 5MB it rolls over to `bot.log.1`)
+  Bolt and Socket Mode client logs go through the same logger, with the scopes `pacenote:socket` and `pacenote:bolt`.
   Connects, reconnects, disconnects and received events (envelope, retry count) are logged.
 - The log file masks token and key formats and the ticket in the Socket Mode connection URL.
-- The Bot screen shows logs as "All", "Socket Mode", "Mentions" or "Warnings and errors", with search. It rereads them every 2 seconds and follows the end.
+- The Pacey screen shows logs as "All", "Socket Mode", "Mentions" or "Warnings and errors", with search. It rereads them every 2 seconds and follows the end.
   With `LOG_LEVEL=debug`, detailed Socket Mode client logs are also written.
 
 Run history:
 
 ```
-~/.orbly/runs/<YYYY-MM-DD>/<run id>/run.json      # request, context count, attachments, prompt, steps, answer, status
-~/.orbly/runs/<YYYY-MM-DD>/<run id>/artifacts/    # images passed to the model, generated images and diagrams posted
+~/.pacenote/runs/<YYYY-MM-DD>/<run id>/run.json      # request, context count, attachments, prompt, steps, answer, status
+~/.pacenote/runs/<YYYY-MM-DD>/<run id>/artifacts/    # images passed to the model, generated images and diagrams posted
 ```
 
 - The bot records a run for every mention it handles. (`HISTORY=on`, the default)
@@ -480,53 +485,58 @@ Run history:
   duration), shell commands and token usage. Tool results are stored up to 8,000 characters.
 - Statuses are "Running", "Succeeded", "Failed" and "Interrupted". A request resumed after a restart continues in the same record
   ("Resumed after a bot restart (attempt 2)"), and records that will not be resumed are marked "Interrupted" at startup.
-- Date directories older than `HISTORY_RETENTION_DAYS` (default 30 days) are deleted. Change the location with `ORBLY_DATA_DIR`.
+- Date directories older than `HISTORY_RETENTION_DAYS` (default 30 days) are deleted. Change the location with `PACENOTE_DATA_DIR`.
 - Records contain thread context and attachment contents, so they stay local.
 - UI: run list (status filter, search), "Overview" (last 14 days, success rate, average duration, top tools), run detail ("Timeline" of the work
   in the order request -> tool calls -> answer -> outputs, "Attachments", "Prompt", raw "JSON"). Runs in progress are reread every 1.5 seconds.
 
 Other:
 
-- The query API is served only inside the app at `orbly://app/api/*`, with no open port. Bot control uses preload IPC only.
+- The query API is served only inside the app at `pacenote://app/api/*`, with no open port. Bot control uses preload IPC only.
   The dev server (`apps/web` Vite) listens only on 127.0.0.1 and attaches the same query API read-only.
-- The data location is taken from the `ORBLY_DATA_DIR` environment variable, then `ORBLY_DATA_DIR` in the config file, then the
-  default home (`~/.orbly`, or `~/.verda` while `~/.orbly` does not exist; see "Migrating from Verda").
-- App icon: `assets/orbly-icon.svg` is the source. After editing it, `pnpm --filter @orbly/desktop icon` (macOS swift) redraws
-  the same shape on the macOS icon grid (an 824 body in 1024, shadow, highlight) as `assets/orbly-icon.png`.
+- The data location is taken from the `PACENOTE_DATA_DIR` environment variable, then `PACENOTE_DATA_DIR` in the config file, then the
+  default home (`~/.pacenote`, or `~/.orbly` or `~/.verda` while `~/.pacenote` does not exist; see "Migrating from Orbly or Verda").
+- App icon: `assets/pacenote-icon.svg` is the source. After editing it, `pnpm --filter @pacenote/desktop icon` (macOS swift) redraws
+  the same shape on the macOS icon grid (an 824 body in 1024, shadow, highlight) as `assets/pacenote-icon.png`.
   Development runs use the PNG as the Dock icon as is, so this does the system's processing by hand.
-- `ORBLY_DESKTOP_THEME=light|dark` pins the theme. (The default follows the system; it can also be changed under "Theme" in Settings > General)
-- Build check: `ORBLY_DESKTOP_CAPTURE=/tmp/orbly.png pnpm --filter @orbly/desktop start` saves the UI as a PNG without showing
-  a window, then exits. (`ORBLY_DESKTOP_CAPTURE_HASH=#/bot` picks the screen, and `ORBLY_DESKTOP_CAPTURE_WIDTH` and
-  `ORBLY_DESKTOP_CAPTURE_HEIGHT` the window size; the bot is not started in this mode)
+- `PACENOTE_DESKTOP_THEME=light|dark` pins the theme. (The default follows the system; it can also be changed under "Theme" in Settings > General)
+- Build check: `PACENOTE_DESKTOP_CAPTURE=/tmp/pacenote.png pnpm --filter @pacenote/desktop start` saves the UI as a PNG without showing
+  a window, then exits. (`PACENOTE_DESKTOP_CAPTURE_HASH=#/bot` picks the screen, and `PACENOTE_DESKTOP_CAPTURE_WIDTH` and
+  `PACENOTE_DESKTOP_CAPTURE_HEIGHT` the window size; the bot is not started in this mode)
 
-## Migrating from Verda
+## Migrating from Orbly or Verda
 
-The project was renamed from Verda to Orbly, and the repository moved to [Ashon/orbly](https://github.com/Ashon/orbly)
-(old links redirect; for a clone, `git remote set-url origin git@github.com:Ashon/orbly.git`). The Homebrew cask is now
-`orbly`. An existing Verda setup keeps working, with warnings in the bot log and the terminal:
+The project was renamed twice: Verda (v0.1), then Orbly (v0.2), now Pacenote, with Pacey as the assistant's name. The
+repository is still [Ashon/orbly](https://github.com/Ashon/orbly) until it moves (old links will redirect). The Homebrew
+cask is now `pacenote`. An existing Orbly or Verda setup keeps working, with warnings in the bot log and the terminal:
 
-- `VERDA_*` environment variables (in the environment or in `.env`) are read as their `ORBLY_*` names when those are not set.
-- When `~/.orbly` does not exist and `~/.verda` does, Orbly uses `~/.verda`. User data is never moved or copied.
-- The bot looks for a running bot in both `~/.orbly` and `~/.verda`, so an old Verda.app and the new Orbly.app never
+- `ORBLY_*` and `VERDA_*` environment variables (in the environment or in `.env`) are read as their `PACENOTE_*` names
+  when those are not set; an `ORBLY_*` value wins over a `VERDA_*` one.
+- When `~/.pacenote` does not exist, Pacenote uses `~/.orbly`, or else `~/.verda`. User data is never moved or copied.
+- The bot looks for a running bot in all three homes, so an old Verda.app or Orbly.app and the new Pacenote.app never
   connect to Slack at the same time.
-- Run history and logs written by Verda show in the Orbly app as they are.
-- The broker creates `orbly/*` branches and still recognizes `verda/*` branches as its own.
-- The k8s account defaults to `orbly-ro` in the `orbly` namespace (`sandbox/k8s/orbly-ro.yaml`). To keep the old account,
-  set `OPS_K8S_SA=verda-ro` and `OPS_K8S_SA_NAMESPACE=verda` in `.env`.
+- Run history and logs written by Verda and Orbly show in the Pacenote app as they are.
+- The broker creates `pacenote/*` branches and still recognizes `orbly/*` and `verda/*` branches as its own.
+- The k8s account defaults to `pacenote-ro` in the `pacenote` namespace (`sandbox/k8s/pacenote-ro.yaml`). To keep an
+  old account, set `OPS_K8S_SA=orbly-ro` and `OPS_K8S_SA_NAMESPACE=orbly` (or the `verda` ones) in `.env`.
 
 To migrate by hand:
 
-1. Stop the bot (quit Verda.app, or stop `pnpm dev`).
-2. `mv ~/.verda ~/.orbly`
-3. In `~/.orbly/.env`, rename the `VERDA_*` keys to `ORBLY_*` (for example `VERDA_DATA_DIR` to `ORBLY_DATA_DIR`). Remove
-   explicit `SANDBOX_IMAGE=verda-reasoner:latest`, `SANDBOX_NETWORK=verda-sandbox` or `RENDERER_IMAGE=verda-renderer:latest`
-   lines so the new `orbly-*` defaults apply, then rebuild the images (Settings > Sandbox, or `pnpm sandbox:build` and
-   `pnpm sandbox:up`; `pnpm sandbox:ops-up` for the broker).
-4. With Homebrew, `brew update && brew upgrade` moves the `verda` cask to `orbly` (the tap renames it) and replaces
-   Verda.app with Orbly.app. If brew keeps listing `verda`, run `brew uninstall --cask verda && brew install --cask orbly`.
-   Without Homebrew, remove `/Applications/Verda.app` and install Orbly.app.
-5. Start Orbly. Old `verda-*` images, the `verda-sandbox` containers and network can then be removed
-   (`docker compose -p verda-sandbox down`, `docker image rm verda-reasoner verda-renderer verda-egress-proxy verda-ops-broker`).
+1. Stop the bot (quit Orbly.app or Verda.app, or stop `pnpm dev`).
+2. `mv ~/.orbly ~/.pacenote` (or `mv ~/.verda ~/.pacenote`).
+3. In `~/.pacenote/.env`, rename the `ORBLY_*` or `VERDA_*` keys to `PACENOTE_*` (for example `ORBLY_DATA_DIR` to
+   `PACENOTE_DATA_DIR`). Remove explicit `SANDBOX_IMAGE`, `SANDBOX_NETWORK` or `RENDERER_IMAGE` lines that name
+   `orbly-*` or `verda-*` images so the new `pacenote-*` defaults apply, then rebuild the images (Settings > Sandbox, or
+   `pnpm sandbox:build` and `pnpm sandbox:up`; `pnpm sandbox:ops-up` for the broker).
+4. With Homebrew, once the tap renames the cask, `brew update && brew upgrade` moves `orbly` (and `verda`) to `pacenote`
+   and replaces the old app with Pacenote.app. If brew keeps listing the old cask, run
+   `brew uninstall --cask orbly && brew install --cask pacenote`. Without Homebrew, remove `/Applications/Orbly.app` and
+   install Pacenote.app.
+5. In api.slack.com, re-apply `slack-app-manifest.yaml` (app name Pacenote, bot display name Pacey), so mentions read
+   `@Pacey`. A team hub's Slack app gets the same.
+6. Start Pacenote. Old images, containers and networks can then be removed (`docker compose -p orbly-sandbox down`,
+   `docker image rm orbly-reasoner orbly-renderer orbly-egress-proxy orbly-ops-broker`, and the same for `verda-` ones
+   still left).
 
 ## Development
 
@@ -540,9 +550,9 @@ pnpm test:e2e:app   # end-to-end through the desktop app's window (builds first;
 
 ### End-to-end tests
 
-`tests/e2e` runs Orbly the way it runs for real, on this computer and without network access: the bot (and the
+`tests/e2e` runs Pacenote the way it runs for real, on this computer and without network access: the bot (and the
 team hub) as their own processes, a Slack workspace stand-in they reach through `SLACK_API_URL`, and a stand-in
-for the claude CLI. Each test gets its own workspace, data folder and `HOME`, so a real Orbly running on the same
+for the claude CLI. Each test gets its own workspace, data folder and `HOME`, so a real Pacenote running on the same
 Mac is never touched.
 
 | Piece | What it is |

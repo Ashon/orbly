@@ -410,7 +410,7 @@ function LogPanel() {
 }
 
 function LogRow({ line }: { line: LogLine }) {
-  // Lines logged before the rename have verda scopes.
+  // Lines logged before the renames have orbly or verda scopes.
   const scope = (line.scope ?? "").replace(/^(pacenote|orbly|verda):?/, "") || "main";
   const socket = scope.startsWith("socket") || scope.startsWith("bolt");
   return (

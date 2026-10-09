@@ -1,13 +1,13 @@
 # Paste into "From an app manifest" when creating the Slack app.
 # The bot answers in the thread when it is mentioned in a public channel. It uses no user token and no DM scopes.
 display_information:
-  name: Orbly
-  description: Ops bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)
-  long_description: When mentioned in a public channel, Orbly collects the thread context and attachments, hands the reasoning to a local claude or codex CLI, and answers in the same thread. From a sandbox it can query servers, k8s and a work directory, or draw diagrams. Code changes are posted as draft PRs.
+  name: Pacenote
+  description: "You drive. Pacey reads the notes. Answers public channel mentions with local claude/codex CLIs."
+  long_description: When mentioned in a public channel, Pacey collects the thread context and attachments, hands the reasoning to a local claude or codex CLI, and answers in the same thread. From a sandbox it can query servers, k8s and a work directory, or draw diagrams. Code changes are posted as draft PRs.
   background_color: "#0b6e5b"
 features:
   bot_user:
-    display_name: orbly
+    display_name: Pacey
     always_online: true
 oauth_config:
   scopes:

@@ -14,7 +14,7 @@ import { redactSecrets } from "./redact.js";
  */
 
 export const BRANCH_PREFIX = "pacenote/";
-/** Branches made before the rename (Verda). Still recognized as the agent's own, but never created. */
+/** Branches made before the renames (Orbly, Verda). Still recognized as the agent's own, but never created. */
 export const LEGACY_BRANCH_PREFIXES = ["orbly/", "verda/"];
 
 /** Whether a branch is one the agent made: pacenote/*, or orbly/* and verda/* from before the renames */
