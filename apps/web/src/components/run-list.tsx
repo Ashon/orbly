@@ -65,7 +65,7 @@ export function RunList({
               type="button"
               onClick={() => setStatus(filter.value)}
               className={cn(
-                "h-6 flex-1 rounded-md text-xs font-medium transition-colors",
+                "h-6 flex-auto rounded-md px-1.5 text-xs font-medium whitespace-nowrap transition-colors",
                 status === filter.value
                   ? "bg-card text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"

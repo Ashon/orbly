@@ -32,7 +32,7 @@ type Sandbox = ReturnType<typeof useSandbox>;
 export const APPLY_LABEL: Record<SandboxComponent, string> = {
   bot: "Restart bot",
   proxy: "Restart proxy",
-  broker: "Restart broker",
+  broker: "Recreate broker",
 };
 
 function Card({
