@@ -50,8 +50,13 @@ describe("settings store", () => {
         message: "This entry cannot be changed from the Settings screen.",
       },
     ]);
+    // Clearing a token your own Slack app needs is refused by the bot's own rule.
     expect(s.validate({ SLACK_BOT_TOKEN: " " })).toEqual([
-      { key: "SLACK_BOT_TOKEN", message: "Cannot be empty." },
+      {
+        key: "SLACK_BOT_TOKEN",
+        message:
+          "SLACK_BOT_TOKEN is required for your own Slack app (SLACK_CONNECTION=app).",
+      },
     ]);
     expect(s.validate("bad")).toEqual([{ message: "The changes format is invalid." }]);
   });

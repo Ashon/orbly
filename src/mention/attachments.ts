@@ -243,6 +243,8 @@ export function escapeBoundary(text: string): string {
 
 export interface DownloadDeps {
   token: string;
+  /** With the team hub, files are fetched through it (GET <hub>/files?url=...) with the desktop's hub token */
+  hubUrl?: string;
   dir: string;
   /** Extracts text from a PDF. (sandbox container or host) */
   extractPdfText(pdfPath: string): Promise<string>;
@@ -267,10 +269,14 @@ export async function loadAttachments(
   for (const [index, item] of planned.entries()) {
     const name = displayName(item.file);
     try {
-      const res = await fetchImpl(item.file.url_private_download!, {
-        headers: { Authorization: `Bearer ${deps.token}` },
-        signal: AbortSignal.timeout(30_000),
-      });
+      const fileUrl = item.file.url_private_download!;
+      const res = await fetchImpl(
+        deps.hubUrl ? `${deps.hubUrl}/files?url=${encodeURIComponent(fileUrl)}` : fileUrl,
+        {
+          headers: { Authorization: `Bearer ${deps.token}` },
+          signal: AbortSignal.timeout(30_000),
+        }
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const type = (res.headers.get("content-type") ?? "").toLowerCase();
       const isHtmlFile = (item.file.filetype ?? "") === "html";

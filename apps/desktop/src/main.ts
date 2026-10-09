@@ -31,6 +31,7 @@ import { envFilePath } from "../../../src/settings/paths.js";
 import { BotSupervisor, type SupervisorState } from "./bot.js";
 import { SandboxService } from "./sandbox.js";
 import { resolveAppPaths } from "./app-paths.js";
+import { HubPairing } from "./hub-pairing.js";
 import { SettingsStore } from "./settings.js";
 
 /**
@@ -118,6 +119,7 @@ const settings = new SettingsStore({
   dataDir,
   env: process.env,
 });
+const hubPairing = new HubPairing(settings);
 
 /** Sandbox status, allowed domains, apply jobs */
 const sandbox = new SandboxService({
@@ -361,27 +363,64 @@ function registerBotIpc(): void {
   ipcMain.handle("orbly:settings:check-slack", (event, changes: unknown) =>
     fromMainWindow(event) ? settings.checkSlack(changes) : []
   );
+  // New settings take effect only after the bot restarts. A stopped bot is started fresh.
+  const applySettings = async (): Promise<boolean> => {
+    if (!supervisor) return false;
+    const phase = supervisor.current.phase;
+    if (phase === "running" || phase === "starting") await supervisor.restart();
+    else if (
+      phase === "idle" ||
+      phase === "setup" ||
+      phase === "failed" ||
+      phase === "crashed"
+    )
+      await supervisor.start();
+    else return false;
+    return true;
+  };
   ipcMain.handle(
     "orbly:settings:save",
     async (event, changes: unknown, restart: unknown) => {
       if (!fromMainWindow(event)) return { issues: [], restarted: false };
       const issues = settings.save(changes);
-      if (issues.length > 0 || restart !== true || !supervisor) {
-        return { issues, restarted: false };
-      }
-      // New settings take effect only after the bot restarts. A stopped bot is started fresh.
-      const phase = supervisor.current.phase;
-      if (phase === "running" || phase === "starting") await supervisor.restart();
-      else if (
-        phase === "idle" ||
-        phase === "setup" ||
-        phase === "failed" ||
-        phase === "crashed"
-      )
-        await supervisor.start();
-      else return { issues, restarted: false };
-      return { issues, restarted: true };
+      if (issues.length > 0 || restart !== true) return { issues, restarted: false };
+      return { issues, restarted: await applySettings() };
     }
+  );
+  // Team hub pairing. Errors reach the UI as { error }, since thrown errors lose their message over IPC.
+  const hubCall = async <T>(
+    event: Electron.IpcMainInvokeEvent,
+    run: () => Promise<T>
+  ) => {
+    if (!fromMainWindow(event)) return { error: "Not allowed." };
+    try {
+      return await run();
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  };
+  ipcMain.handle("orbly:hub:pair-start", (event, url: unknown) =>
+    hubCall(event, () => hubPairing.start(url))
+  );
+  ipcMain.handle("orbly:hub:pair-status", (event) =>
+    hubCall(event, () => hubPairing.status())
+  );
+  ipcMain.handle("orbly:hub:pair-confirm", (event) =>
+    hubCall(event, async () => {
+      const confirmed = await hubPairing.confirm();
+      const started = confirmed.issues.length === 0 && (await applySettings());
+      return { ...confirmed, started };
+    })
+  );
+  ipcMain.handle("orbly:hub:pair-cancel", (event) => {
+    if (fromMainWindow(event)) hubPairing.cancel();
+  });
+  ipcMain.handle("orbly:hub:disconnect", (event) =>
+    hubCall(event, async () => {
+      const issues = await hubPairing.disconnect(settings.effectiveEnv());
+      if (issues.length === 0) await applySettings();
+      return { issues };
+    })
   );
   ipcMain.handle("orbly:settings:open-data-dir", (event) => {
     if (fromMainWindow(event)) void shell.openPath(dataDir);

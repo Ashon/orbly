@@ -76,6 +76,8 @@ export interface SettingField {
   applies?: SandboxComponent;
   /** Shown only while another field has this value (e.g. sandbox limits only for the docker run environment). Hidden values stay in .env. */
   shownWhen?: { key: string; equals: string };
+  /** Saved and validated like any field but never shown as a row; the screen sets it some other way (e.g. hub pairing) */
+  internal?: boolean;
 }
 
 export interface SettingGroupInfo {
@@ -92,7 +94,7 @@ export const SETTING_GROUPS: SettingGroupInfo[] = [
     id: "slack",
     section: "slack",
     label: "Connection",
-    help: "The bot opens a Socket Mode connection with the app token and reads and writes messages with the bot token.",
+    help: "How this desktop reaches Slack: through your team's hub, or a Slack app of your own.",
   },
   {
     id: "access",
@@ -202,13 +204,49 @@ export function settingSectionOf(key: string | undefined): SettingSection | unde
 
 export const SETTING_FIELDS: SettingField[] = [
   {
+    key: "SLACK_CONNECTION",
+    group: "slack",
+    label: "Connection",
+    type: "select",
+    options: [
+      {
+        value: "hub",
+        label: "Team hub",
+        help: "Your team's hub server holds the Slack app. This desktop answers your own mentions through it, and keeps no Slack token.",
+      },
+      {
+        value: "app",
+        label: "Your own Slack app",
+        help: "Socket Mode with the app token and bot token of a Slack app you created. For using Orbly on your own.",
+      },
+    ],
+    default: "app",
+  },
+  {
+    key: "HUB_URL",
+    group: "slack",
+    label: "Hub URL",
+    help: "The address your team's hub admin gave you.",
+    type: "text",
+    placeholder: "https://orbly-hub.example.com",
+    shownWhen: { key: "SLACK_CONNECTION", equals: "hub" },
+  },
+  {
+    key: "HUB_TOKEN",
+    group: "slack",
+    label: "Hub token",
+    help: "Stored by pairing with the hub. The hub keeps only its hash.",
+    type: "secret",
+    internal: true,
+  },
+  {
     key: "SLACK_APP_TOKEN",
     group: "slack",
     label: "App token",
     help: "Basic Information > App-Level Tokens (connections:write). Used for the Socket Mode connection.",
     type: "secret",
     placeholder: "xapp-...",
-    required: true,
+    shownWhen: { key: "SLACK_CONNECTION", equals: "app" },
   },
   {
     key: "SLACK_BOT_TOKEN",
@@ -217,7 +255,7 @@ export const SETTING_FIELDS: SettingField[] = [
     help: "OAuth & Permissions > Bot User OAuth Token",
     type: "secret",
     placeholder: "xoxb-...",
-    required: true,
+    shownWhen: { key: "SLACK_CONNECTION", equals: "app" },
   },
   {
     key: "SOCKET_CLIENT_PING_TIMEOUT_MS",
@@ -227,6 +265,7 @@ export const SETTING_FIELDS: SettingField[] = [
     type: "number",
     default: "5000",
     advanced: true,
+    shownWhen: { key: "SLACK_CONNECTION", equals: "app" },
   },
   {
     key: "SOCKET_SERVER_PING_TIMEOUT_MS",
@@ -236,6 +275,7 @@ export const SETTING_FIELDS: SettingField[] = [
     type: "number",
     default: "30000",
     advanced: true,
+    shownWhen: { key: "SLACK_CONNECTION", equals: "app" },
   },
   {
     key: "MENTION_ALLOWED_USERS",

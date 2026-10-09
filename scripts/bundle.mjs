@@ -8,6 +8,7 @@ import { build } from "esbuild";
  * - build/bot/index.mjs: the bot (the packaged app runs it as a utilityProcess)
  * - build/tools/sandbox-job.mjs: sandbox apply jobs (run by the packaged app)
  * - sandbox/ops-broker/dist/server.mjs: ops-broker (goes into the image)
+ * - deploy/hub/dist/hub.mjs: the team hub (goes into its image, deploy/hub)
  */
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const common = {
@@ -25,6 +26,7 @@ const targets = [
   ["src/index.ts", "build/bot/index.mjs"],
   ["src/tools/sandbox-job.ts", "build/tools/sandbox-job.mjs"],
   ["src/broker/server.ts", "sandbox/ops-broker/dist/server.mjs"],
+  ["src/hub/index.ts", "deploy/hub/dist/hub.mjs"],
 ];
 for (const [entry, out] of targets) {
   await build({ ...common, entryPoints: [path.join(root, entry)], outfile: path.join(root, out) });

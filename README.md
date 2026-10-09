@@ -10,6 +10,8 @@ A Slack bot that, when mentioned in a public channel, collects the thread contex
 reasoning to a local `claude` or `codex` CLI, and posts the answer back to the same thread under the bot's name.
 
 It connects over Socket Mode, so it needs no public endpoint, and it uses only the minimum bot token scopes.
+Used alone, it runs with a Slack app of your own; for a team, a [team hub](#team-hub) holds one Slack app and routes each
+member's mentions to that member's own Orbly.
 
 ## How it works
 
@@ -198,6 +200,51 @@ pnpm sandbox:ops-up
 
 When the inventory or an SA token changes, run the matching command and `pnpm sandbox:ops-up` again.
 
+## Team hub
+
+For several people in one workspace: one hub server holds the Slack app, and each member's Orbly desktop answers that
+member's mentions with their own `claude` or `codex` login, sandbox and ops tools.
+
+```
+Slack <--Socket Mode--> hub (deploy/hub: Slack tokens, paired desktops) <--WebSocket over HTTPS--> each member's Orbly
+```
+
+- The Slack tokens live only on the hub. Desktops never get one: their Slack Web API calls, file downloads and uploads go
+  through the hub (`/api/*`, `/files`, `/upload`), which makes them with the bot token.
+- The hub allows a desktop only what the thread routed to it needs (`src/hub/policy.ts`): read that thread (and the few
+  messages before a mention outside a thread), post in it, edit what it posted, read its files, and upload into it, for
+  2 hours after the mention. Other calls are refused with errors like `thread_not_granted` or `method_not_allowed_by_hub`.
+- Routing: a mention goes to the desktop of the member who wrote it. Members without a paired desktop, or whose desktop is
+  offline, get a message only they can see that says so.
+- Pairing: in Orbly, Settings > Slack > Team hub, enter the hub URL and choose Connect. Orbly shows a code; send
+  `@orbly connect <code>` in a channel Orbly is in, then confirm in Orbly that the Slack account shown is yours.
+  The confirmation is what counts, so a code someone else saw and sent first is turned down on the desktop.
+  The desktop keeps a random token in `.env` (`HUB_TOKEN`); the hub stores only its SHA-256.
+- One desktop per member: pairing again replaces the previous desktop. Settings > Slack > Disconnect unpairs it.
+- The hub sees mentions and thread content in transit (as Slack's own servers do) and stores only paired desktops.
+  Grants are kept in memory, so restarting the hub ends edits to answers in progress.
+
+Running the hub (on a server of its own, with Docker):
+
+1. Create the Slack app from `slack-app-manifest.yaml` (Socket Mode), install it, and create an app-level token with
+   `connections:write`.
+2. On a machine with the repository: `pnpm install && pnpm bundle`, which writes `deploy/hub/dist/hub.mjs`
+   (`pnpm hub:image` also builds the image `orbly-hub:latest`).
+3. In `deploy/hub`: `cp hub.env.example hub.env`, fill in `SLACK_APP_TOKEN`, `SLACK_BOT_TOKEN` and `HUB_PUBLIC_URL`
+   (optionally `HUB_ALLOWED_USERS`), then `docker compose up -d --build`. Paired desktops are kept in the `hub-data` volume.
+4. The hub listens on `127.0.0.1:8790`. Serve it over HTTPS at `HUB_PUBLIC_URL`, for example with Caddy:
+   `orbly-hub.example.com { reverse_proxy 127.0.0.1:8790 }` (WebSockets pass through). Desktops accept only https URLs
+   (http only for localhost).
+5. Give members the URL. `docker compose logs -f hub` shows pairings, connections, routed mentions and refused calls.
+
+| Hub setting (`hub.env`) | Meaning |
+| --- | --- |
+| `SLACK_APP_TOKEN`, `SLACK_BOT_TOKEN` | The Slack app's tokens (required) |
+| `HUB_PUBLIC_URL` | The HTTPS URL members use; upload URLs handed to desktops are built from it |
+| `HUB_ALLOWED_USERS` | Comma-separated Slack user IDs who may pair and use the hub. Empty: everyone |
+| `HUB_PORT`, `HUB_HOST`, `HUB_DATA_DIR` | Listen port (8790), address (0.0.0.0) and data folder (`/data`) |
+| `LOG_LEVEL` | debug, info (default), warn, error |
+
 ## Installation
 
 There are two ways to run Orbly: the desktop app from Homebrew, or from source with pnpm. Both need the
@@ -337,7 +384,7 @@ Settings:
 
   | Section | What it holds |
   | --- | --- |
-  | Slack | App and bot tokens with "Check connection", allowed users, Socket Mode keepalive (advanced) |
+  | Slack | The connection (team hub with pairing, or your own app's tokens) with "Check connection", allowed users, Socket Mode keepalive (advanced) |
   | Answers | Reasoner CLI, model, timeout, concurrent requests, time zone, reference directory, diagrams and images |
   | Sandbox | Run environment (on this Mac or the docker sandbox), limits, the reasoner login, allowed domains, status and apply jobs |
   | Ops tools | The on/off switch with what it needs, then one card per integration: files, GitHub and pull requests, Jira, Kubernetes, SSH hosts |

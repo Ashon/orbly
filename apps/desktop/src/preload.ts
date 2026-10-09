@@ -29,6 +29,14 @@ contextBridge.exposeInMainWorld("orblyDesktop", {
     revealEnv: () => ipcRenderer.invoke("orbly:settings:reveal-env"),
     openDataDir: () => ipcRenderer.invoke("orbly:settings:open-data-dir"),
   },
+  // Team hub pairing. The token stays in the main process; these return { error } on failure.
+  hub: {
+    pairStart: (url: string) => ipcRenderer.invoke("orbly:hub:pair-start", url),
+    pairStatus: () => ipcRenderer.invoke("orbly:hub:pair-status"),
+    pairConfirm: () => ipcRenderer.invoke("orbly:hub:pair-confirm"),
+    pairCancel: () => ipcRenderer.invoke("orbly:hub:pair-cancel"),
+    disconnect: () => ipcRenderer.invoke("orbly:hub:disconnect"),
+  },
   sandbox: {
     status: () => ipcRenderer.invoke("orbly:sandbox:status"),
     job: () => ipcRenderer.invoke("orbly:sandbox:job"),

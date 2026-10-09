@@ -1,6 +1,7 @@
 import path from "node:path";
 import { App, SocketModeReceiver } from "@slack/bolt";
-import { configFingerprint, loadConfig } from "./config.js";
+import { type Config, configFingerprint, loadConfig } from "./config.js";
+import { HUB_PATHS } from "./hub/protocol.js";
 import { HistoryStore } from "./history/recorder.js";
 import { consoleSink, createLogger, fileSink, type Logger } from "./logger.js";
 import { InflightStore } from "./mention/inflight.js";
@@ -13,6 +14,7 @@ import { botLockDirs, warnOnce } from "./settings/legacy.js";
 import { loadEnv } from "./settings/load-env.js";
 import type { SocketState } from "./runtime/types.js";
 import { Directory } from "./slack/directory.js";
+import { HubReceiver } from "./slack/hub-receiver.js";
 import { slackLogger } from "./slack/logger.js";
 
 const SOCKET_STATES: Record<SocketState, { level: "info" | "warn"; text: string }> = {
@@ -22,6 +24,50 @@ const SOCKET_STATES: Record<SocketState, { level: "info" | "warn"; text: string 
   disconnecting: { level: "info", text: "Closing Socket Mode connection" },
   disconnected: { level: "warn", text: "Socket Mode disconnected" },
 };
+
+const HUB_STATES: Record<SocketState, { level: "info" | "warn"; text: string }> = {
+  connecting: { level: "info", text: "Connecting to the team hub" },
+  connected: {
+    level: "info",
+    text: "Connected to the team hub, receiving this member's mentions",
+  },
+  reconnecting: { level: "warn", text: "Reconnecting to the team hub" },
+  disconnecting: { level: "info", text: "Closing the team hub connection" },
+  disconnected: { level: "warn", text: "Disconnected from the team hub" },
+};
+
+/** Socket Mode with the member's own Slack app, reporting its states and received events */
+function socketModeReceiver(
+  slack: Extract<Config["slack"], { kind: "app" }>,
+  socketLog: Logger,
+  level: Config["logLevel"],
+  onState: (state: SocketState) => void
+): SocketModeReceiver {
+  const receiver = new SocketModeReceiver({
+    appToken: slack.appToken,
+    logger: slackLogger(socketLog, level),
+    clientPingTimeout: slack.socket.clientPingTimeoutMs,
+    serverPingTimeout: slack.socket.serverPingTimeoutMs,
+    pingPongLoggingEnabled: slack.socket.pingPongLogging,
+  });
+  for (const state of Object.keys(SOCKET_STATES) as SocketState[])
+    receiver.client.on(state, () => onState(state));
+  receiver.client.on(
+    "slack_event",
+    (args: {
+      type?: string;
+      envelope_id?: string;
+      retry_num?: number;
+      body?: { event?: { type?: string } };
+    }) => {
+      const kind = [args.type, args.body?.event?.type].filter(Boolean).join("/");
+      socketLog.info(
+        `Received event ${kind} (envelope ${args.envelope_id ?? "-"}${args.retry_num ? `, retry ${args.retry_num}` : ""})`
+      );
+    }
+  );
+  return receiver;
+}
 
 /** Holds the logger once created, so startup failures also reach the log file. */
 let startupLog: Logger | undefined;
@@ -46,43 +92,39 @@ async function main(): Promise<void> {
   status.update({ configHash: configFingerprint(process.env) });
   log.info(`Starting (pid ${process.pid}, ${status.current.managedBy})`);
 
-  // Sends Socket Mode client and Bolt logs to the same logger (console + file).
+  // Sends the Slack connection's logs and Bolt's to the same logger (console + file).
   const socketLog = log.child("socket");
-  const receiver = new SocketModeReceiver({
-    appToken: config.slack.appToken,
-    logger: slackLogger(socketLog, config.logLevel),
-    clientPingTimeout: config.slack.socket.clientPingTimeoutMs,
-    serverPingTimeout: config.slack.socket.serverPingTimeoutMs,
-    pingPongLoggingEnabled: config.slack.socket.pingPongLogging,
-  });
   let stopping = false;
-  for (const state of Object.keys(SOCKET_STATES) as SocketState[]) {
-    receiver.client.on(state, () => {
-      status.socket(state);
-      const { level, text } = SOCKET_STATES[state];
-      // Disconnecting during shutdown is expected.
-      socketLog[stopping && level === "warn" ? "info" : level](text);
-    });
-  }
-  receiver.client.on(
-    "slack_event",
-    (args: {
-      type?: string;
-      envelope_id?: string;
-      retry_num?: number;
-      body?: { event?: { type?: string } };
-    }) => {
-      const kind = [args.type, args.body?.event?.type].filter(Boolean).join("/");
-      socketLog.info(
-        `Received event ${kind} (envelope ${args.envelope_id ?? "-"}${args.retry_num ? `, retry ${args.retry_num}` : ""})`
-      );
-    }
-  );
+  const slack = config.slack;
+  const states = slack.kind === "hub" ? HUB_STATES : SOCKET_STATES;
+  const onState = (state: SocketState) => {
+    status.socket(state);
+    const { level, text } = states[state];
+    // Disconnecting during shutdown is expected.
+    socketLog[stopping && level === "warn" ? "info" : level](text);
+  };
+  const receiver =
+    slack.kind === "hub"
+      ? new HubReceiver({
+          url: slack.hubUrl,
+          token: slack.hubToken,
+          log: socketLog,
+          onState,
+          onFatal: (err) => {
+            log.error(err.message);
+            process.exit(1);
+          },
+        })
+      : socketModeReceiver(slack, socketLog, config.logLevel, onState);
 
+  // With the team hub, Slack Web API calls go to the hub, which makes them with the bot token it keeps.
   const app = new App({
-    token: config.slack.botToken,
+    token: slack.kind === "hub" ? slack.hubToken : slack.botToken,
     receiver,
     logger: slackLogger(log.child("bolt"), config.logLevel),
+    ...(slack.kind === "hub"
+      ? { clientOptions: { slackApiUrl: `${slack.hubUrl}${HUB_PATHS.api}` } }
+      : {}),
   });
   const auth = await app.client.auth.test();
   const botUserId = auth.user_id;

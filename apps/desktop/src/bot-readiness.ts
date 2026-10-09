@@ -13,7 +13,19 @@ export interface SetupProblem {
   issues: ConfigIssue[];
 }
 
-const SLACK_TOKENS = ["SLACK_APP_TOKEN", "SLACK_BOT_TOKEN"];
+/** What each Slack connection needs before the bot can start (src/config.ts SLACK_CONNECTION) */
+const SLACK_NEEDS = {
+  app: {
+    keys: ["SLACK_APP_TOKEN", "SLACK_BOT_TOKEN"],
+    message:
+      "Slack is not connected yet. In Settings > Slack, connect to your team's hub or enter your own Slack app's tokens.",
+  },
+  hub: {
+    keys: ["HUB_URL", "HUB_TOKEN"],
+    message:
+      "This desktop is not paired with the team hub yet. Connect it in Settings > Slack to start the bot.",
+  },
+};
 
 /** Checks the environment the bot would get with the bot's own rules (checkConfig), before launching it. */
 export function setupProblem(
@@ -22,14 +34,9 @@ export function setupProblem(
 ): SetupProblem | undefined {
   const issues = check(env);
   if (issues.length === 0) return undefined;
-  if (SLACK_TOKENS.some((key) => !env[key]?.trim())) {
-    return {
-      kind: "slack",
-      message:
-        "Slack is not connected yet. Enter the app token and the bot token in Settings to start the bot.",
-      issues: [],
-    };
-  }
+  const needs = SLACK_NEEDS[env.SLACK_CONNECTION?.trim() === "hub" ? "hub" : "app"];
+  if (needs.keys.some((key) => !env[key]?.trim()))
+    return { kind: "slack", message: needs.message, issues: [] };
   return {
     kind: "config",
     message: "Some settings need fixing before the bot can start.",
@@ -40,6 +47,8 @@ export function setupProblem(
 /** Slack API errors that mean the token itself is wrong, revoked, or belongs to a disabled account */
 const SLACK_AUTH_ERROR =
   /\b(invalid_auth|not_authed|account_inactive|token_revoked|token_expired|invalid_token)\b/;
+/** The team hub no longer accepts this desktop (src/slack/hub-receiver.ts, src/hub/server.ts) */
+const HUB_AUTH_ERROR = /\b(hub_unauthorized|hub_revoked)\b/;
 
 /**
  * A bot that exits right after starting because Slack rejected its tokens also needs setup, not a
@@ -47,6 +56,14 @@ const SLACK_AUTH_ERROR =
  */
 export function startFailureProblem(output: readonly string[]): SetupProblem | undefined {
   for (const line of [...output].reverse()) {
+    const hub = HUB_AUTH_ERROR.exec(line)?.[1];
+    if (hub) {
+      return {
+        kind: "slack",
+        message: `The team hub no longer accepts this desktop (${hub}). Connect it again in Settings > Slack.`,
+        issues: [],
+      };
+    }
     const code = SLACK_AUTH_ERROR.exec(line)?.[1];
     if (code) {
       return {

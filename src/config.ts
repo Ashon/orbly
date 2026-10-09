@@ -31,12 +31,35 @@ const userIds = csv.pipe(
 );
 
 export const EnvSchema = z.object({
+  /**
+   * How this bot reaches Slack. app: its own Slack app over Socket Mode (SLACK_BOT_TOKEN, SLACK_APP_TOKEN).
+   * hub: the team hub, which holds the Slack app; this desktop answers its member's mentions through it (HUB_URL, HUB_TOKEN).
+   */
+  SLACK_CONNECTION: z.enum(["app", "hub"]).default("app"),
   SLACK_BOT_TOKEN: z
     .string()
-    .startsWith("xoxb-", "Must be a bot token starting with xoxb-"),
+    .startsWith("xoxb-", "Must be a bot token starting with xoxb-")
+    .optional(),
   SLACK_APP_TOKEN: z
     .string()
-    .startsWith("xapp-", "Must be an app token starting with xapp-"),
+    .startsWith("xapp-", "Must be an app token starting with xapp-")
+    .optional(),
+  /** The team hub (README "Team hub"). https, or http only for a hub on this computer */
+  HUB_URL: z
+    .string()
+    .url()
+    .refine(
+      (value) =>
+        /^https:\/\//.test(value) ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(value),
+      "Must be an https URL (http only for localhost)"
+    )
+    .optional(),
+  /** This desktop's token for the hub, set by pairing in Settings > Slack */
+  HUB_TOKEN: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, "Must be the token pairing stored (64 hex characters)")
+    .optional(),
   /** Reconnects if no pong arrives within this time after the bot sends a ping. */
   SOCKET_CLIENT_PING_TIMEOUT_MS: z.coerce
     .number()
@@ -100,15 +123,23 @@ export const EnvSchema = z.object({
 });
 
 export interface Config {
-  slack: {
-    botToken: string;
-    appToken: string;
-    socket: {
-      clientPingTimeoutMs: number;
-      serverPingTimeoutMs: number;
-      pingPongLogging: boolean;
-    };
-  };
+  slack:
+    | {
+        kind: "app";
+        botToken: string;
+        appToken: string;
+        socket: {
+          clientPingTimeoutMs: number;
+          serverPingTimeoutMs: number;
+          pingPongLogging: boolean;
+        };
+      }
+    | {
+        kind: "hub";
+        /** Without a trailing slash */
+        hubUrl: string;
+        hubToken: string;
+      };
   timezone: string;
   mention: {
     /** Answers mentions only from these users. Empty means all users */
@@ -214,15 +245,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
 
   return {
-    slack: {
-      botToken: e.SLACK_BOT_TOKEN,
-      appToken: e.SLACK_APP_TOKEN,
-      socket: {
-        clientPingTimeoutMs: e.SOCKET_CLIENT_PING_TIMEOUT_MS,
-        serverPingTimeoutMs: e.SOCKET_SERVER_PING_TIMEOUT_MS,
-        pingPongLogging: e.SOCKET_PING_PONG_LOG === "on",
-      },
-    },
+    slack: slackConnection(e),
     timezone: e.TIMEZONE,
     mention: {
       allowedUserIds: [...new Set(e.MENTION_ALLOWED_USERS)],
@@ -242,6 +265,46 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     history: e.HISTORY === "on" ? { retentionDays: e.HISTORY_RETENTION_DAYS } : undefined,
     logLevel: e.LOG_LEVEL,
   };
+}
+
+function slackConnection(e: z.infer<typeof EnvSchema>): Config["slack"] {
+  if (e.SLACK_CONNECTION === "hub") {
+    if (!e.HUB_URL)
+      throw new Error("HUB_URL is required to connect through the team hub.");
+    if (!e.HUB_TOKEN)
+      throw new Error(
+        "HUB_TOKEN is missing: this desktop is not paired with the hub yet. Connect in Settings > Slack."
+      );
+    return { kind: "hub", hubUrl: e.HUB_URL.replace(/\/+$/, ""), hubToken: e.HUB_TOKEN };
+  }
+  if (!e.SLACK_BOT_TOKEN)
+    throw new Error(
+      "SLACK_BOT_TOKEN is required for your own Slack app (SLACK_CONNECTION=app)."
+    );
+  if (!e.SLACK_APP_TOKEN)
+    throw new Error(
+      "SLACK_APP_TOKEN is required for your own Slack app (SLACK_CONNECTION=app)."
+    );
+  return {
+    kind: "app",
+    botToken: e.SLACK_BOT_TOKEN,
+    appToken: e.SLACK_APP_TOKEN,
+    socket: {
+      clientPingTimeoutMs: e.SOCKET_CLIENT_PING_TIMEOUT_MS,
+      serverPingTimeoutMs: e.SOCKET_SERVER_PING_TIMEOUT_MS,
+      pingPongLogging: e.SOCKET_PING_PONG_LOG === "on",
+    },
+  };
+}
+
+/** How files are downloaded: with the bot token, or through the hub with this desktop's hub token */
+export function slackFileAccess(slack: Config["slack"]): {
+  token: string;
+  hubUrl?: string;
+} {
+  return slack.kind === "hub"
+    ? { token: slack.hubToken, hubUrl: slack.hubUrl }
+    : { token: slack.botToken };
 }
 
 function isDirectory(dir: string): boolean {

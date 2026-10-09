@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import type { SupervisorState } from "@runtime/types";
+import type { HubTeam, HubUser, PairStartResponse, PairStatus } from "@src/hub/protocol";
 import type { SettingsChanges, SettingsIssue, SettingsView } from "@src/settings/fields";
 import type { SlackCheckItem } from "@src/slack/check";
 import type {
@@ -36,6 +37,17 @@ declare global {
         ): Promise<{ issues: SettingsIssue[]; restarted: boolean }>;
         revealEnv(): Promise<void>;
         openDataDir(): Promise<void>;
+      };
+      /** Team hub pairing. Each call returns { error } instead of throwing. */
+      hub: {
+        pairStart(url: string): Promise<PairStartResponse | { error: string }>;
+        pairStatus(): Promise<PairStatus | { error: string }>;
+        pairConfirm(): Promise<
+          | { user: HubUser; team: HubTeam; issues: SettingsIssue[]; started: boolean }
+          | { error: string }
+        >;
+        pairCancel(): Promise<void>;
+        disconnect(): Promise<{ issues: SettingsIssue[] } | { error: string }>;
       };
       sandbox: {
         status(): Promise<SandboxStatus | null>;

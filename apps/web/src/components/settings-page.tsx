@@ -11,6 +11,7 @@ import {
   type SettingsIssue,
   type SettingsView,
 } from "@src/settings/fields";
+import type { HubUser } from "@src/hub/protocol";
 import type { BrokerHealth } from "@src/sandbox/types";
 import type { SlackCheckItem } from "@src/slack/check";
 import {
@@ -195,7 +196,8 @@ export function SettingsPage() {
   };
   const isSet = (key: string) => valueOf(key) !== "";
   const shown = (field: SettingField) =>
-    !field.shownWhen || valueOf(field.shownWhen.key) === field.shownWhen.equals;
+    !field.internal &&
+    (!field.shownWhen || valueOf(field.shownWhen.key) === field.shownWhen.equals);
 
   const set = (key: string, value: string) => setDraft((d) => ({ ...d, [key]: value }));
   const reset = () => {
@@ -264,11 +266,15 @@ export function SettingsPage() {
   const opsOn = valueOf("OPS_TOOLS") === "on";
   const pending = sandbox.status?.pending ?? [];
   const opsReady = docker && isSet("MENTION_ALLOWED_USERS");
+  const hubMode = valueOf("SLACK_CONNECTION") === "hub";
   const hints: Partial<Record<Section, Hint>> = {
-    slack:
-      isSet("SLACK_APP_TOKEN") && isSet("SLACK_BOT_TOKEN")
-        ? undefined
-        : { tone: "warn", text: "Not connected" },
+    slack: (
+      hubMode
+        ? isSet("HUB_URL") && isSet("HUB_TOKEN")
+        : isSet("SLACK_APP_TOKEN") && isSet("SLACK_BOT_TOKEN")
+    )
+      ? undefined
+      : { tone: "warn", text: hubMode ? "Not paired" : "Not connected" },
     sandbox: !docker
       ? { tone: "muted", text: "Off" }
       : sandbox.status && !sandbox.status.docker.ok
@@ -366,6 +372,35 @@ export function SettingsPage() {
             </Button>
           ),
           children: check && check !== "running" ? <CheckResult items={check} /> : null,
+          after: hubMode ? (
+            <HubPairing
+              hubUrl={valueOf("HUB_URL")}
+              paired={
+                view.values.SLACK_CONNECTION === "hub" &&
+                Boolean(view.secrets.HUB_TOKEN?.set)
+              }
+              onPaired={(text) => {
+                // Pairing saved the connection itself; drop those drafts and show what is saved now.
+                setDraft((prev) => {
+                  const next = { ...prev };
+                  delete next.SLACK_CONNECTION;
+                  delete next.HUB_URL;
+                  return next;
+                });
+                setCheck(undefined);
+                load();
+                setNotice({ tone: "ok", text });
+              }}
+              onDisconnected={() => {
+                setCheck(undefined);
+                load();
+                setNotice({
+                  tone: "ok",
+                  text: "Disconnected this desktop from the hub.",
+                });
+              }}
+            />
+          ) : undefined,
         })}
         {card("access")}
       </>
@@ -859,6 +894,202 @@ function credentialsHelp(reasoner: string): string {
   return reasoner === "codex"
     ? "The codex login passed into each sandbox container. Your own CLI login on this Mac is not used there."
     : "The claude login passed into each sandbox container. Your own CLI login on this Mac is not used there.";
+}
+
+type PairState =
+  | { step: "idle"; note?: string }
+  | { step: "starting" }
+  | { step: "waiting"; code: string }
+  | { step: "bound"; user: HubUser }
+  | { step: "confirming"; user: HubUser }
+  | { step: "error"; message: string };
+
+/**
+ * Pairs this desktop with the team hub: get a code, send "@orbly connect <code>" in Slack, then confirm the Slack
+ * member who sent it. Confirming is what makes it count, so a code someone else saw and sent first is turned down here.
+ */
+function HubPairing({
+  hubUrl,
+  paired,
+  onPaired,
+  onDisconnected,
+}: {
+  hubUrl: string;
+  paired: boolean;
+  onPaired: (notice: string) => void;
+  onDisconnected: () => void;
+}) {
+  const hub = window.orblyDesktop?.hub;
+  const [state, setState] = useState<PairState>({ step: "idle" });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (state.step !== "waiting" || !hub) return;
+    const timer = setInterval(() => {
+      void hub.pairStatus().then((res) => {
+        if ("error" in res) setState({ step: "error", message: res.error });
+        else if (res.status === "bound") setState({ step: "bound", user: res.user });
+        else if (res.status === "expired")
+          setState({
+            step: "error",
+            message: "The code expired. Connect again for a new one.",
+          });
+      });
+    }, 2_000);
+    return () => clearInterval(timer);
+  }, [state.step, hub]);
+  // Leaving the screen cancels a pairing that was not confirmed.
+  useEffect(() => () => void hub?.pairCancel(), [hub]);
+
+  if (!hub) return null;
+  const start = () => {
+    setState({ step: "starting" });
+    void hub
+      .pairStart(hubUrl)
+      .then((res) =>
+        setState(
+          "error" in res
+            ? { step: "error", message: res.error }
+            : { step: "waiting", code: res.code }
+        )
+      );
+  };
+  const cancel = (note?: string) => {
+    void hub.pairCancel();
+    setState({ step: "idle", note });
+  };
+  const confirm = (user: HubUser) => {
+    setState({ step: "confirming", user });
+    void hub.pairConfirm().then((res) => {
+      if ("error" in res) return setState({ step: "error", message: res.error });
+      if (res.issues.length > 0)
+        return setState({
+          step: "error",
+          message: res.issues.map((i) => i.message).join(" "),
+        });
+      setState({ step: "idle" });
+      onPaired(
+        `Paired with the hub as ${res.user.name} @ ${res.team.name}.${res.started ? " Started the bot." : ""}`
+      );
+    });
+  };
+  const disconnect = () => {
+    setBusy(true);
+    void hub
+      .disconnect()
+      .then((res) => {
+        if ("error" in res) setState({ step: "error", message: res.error });
+        else onDisconnected();
+      })
+      .finally(() => setBusy(false));
+  };
+
+  const body = (() => {
+    switch (state.step) {
+      case "idle":
+        return paired ? (
+          <div className="flex items-center gap-3">
+            <CircleCheck className="size-4 shrink-0 text-status-succeeded" />
+            <p className="min-w-0 flex-1 text-sm">
+              This desktop is paired with the hub. Use Check connection to see as whom.
+            </p>
+            <Button size="sm" variant="outline" onClick={disconnect} disabled={busy}>
+              {busy && <LoaderCircle className="animate-spin" />}
+              Disconnect
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Pair this desktop</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {state.note ??
+                  "You get a code to send to Orbly in Slack. Mentions you make then come to this desktop."}
+              </p>
+            </div>
+            <Button size="sm" onClick={start} disabled={!hubUrl}>
+              <Plug />
+              Connect
+            </Button>
+          </div>
+        );
+      case "starting":
+        return (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <LoaderCircle className="size-4 animate-spin" />
+            Getting a code from the hub
+          </p>
+        );
+      case "waiting":
+        return (
+          <div className="space-y-2.5">
+            <p className="text-sm">
+              In Slack, mention Orbly with this code in any channel it is in:
+            </p>
+            <div className="flex items-center gap-3">
+              <code className="rounded-lg bg-card px-3 py-2 font-mono text-base font-semibold tracking-wide shadow-xs select-all">
+                @orbly connect {state.code}
+              </code>
+              <Button size="sm" variant="ghost" onClick={() => cancel()}>
+                Cancel
+              </Button>
+            </div>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <LoaderCircle className="size-3.5 animate-spin" />
+              Waiting for the code. It expires in 10 minutes.
+            </p>
+          </div>
+        );
+      case "bound":
+      case "confirming":
+        return (
+          <div className="flex items-center gap-3">
+            <p className="min-w-0 flex-1 text-sm">
+              <b>{state.user.name}</b>{" "}
+              <span className="font-mono text-xs text-muted-foreground">
+                ({state.user.id})
+              </span>{" "}
+              sent the code. Is this your Slack account?
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={state.step === "confirming"}
+              onClick={() =>
+                cancel(
+                  "Cancelled. If someone else sent your code, connect again to get a new one."
+                )
+              }
+            >
+              No
+            </Button>
+            <Button
+              size="sm"
+              disabled={state.step === "confirming"}
+              onClick={() => confirm(state.user)}
+            >
+              {state.step === "confirming" && <LoaderCircle className="animate-spin" />}
+              Yes, pair
+            </Button>
+          </div>
+        );
+      case "error":
+        return (
+          <div className="flex items-center gap-3">
+            <TriangleAlert className="size-4 shrink-0 text-status-failed" />
+            <p className="min-w-0 flex-1 text-sm text-status-failed">{state.message}</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setState({ step: "idle" })}
+            >
+              Try again
+            </Button>
+          </div>
+        );
+    }
+  })();
+  return <div className="border-t border-canvas bg-well/60 px-4 py-3">{body}</div>;
 }
 
 /** Conditions a feature needs, each with a way to the section that fixes it */

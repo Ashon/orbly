@@ -3,7 +3,7 @@ import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import type { AppMentionEvent } from "@slack/types";
 import type { WebClient } from "@slack/web-api";
-import type { Config } from "../config.js";
+import { type Config, slackFileAccess } from "../config.js";
 import type { HistoryStore, RunHandle } from "../history/recorder.js";
 import type { RunAttachment } from "../history/types.js";
 import type { Logger } from "../logger.js";
@@ -358,7 +358,7 @@ export class MentionResponder {
       const resolved = await this.resolveFiles(candidates);
       const { planned, skipped } = planAttachments(resolved);
       const { images, documents, failed } = await loadAttachments(planned, {
-        token: config.slack.botToken,
+        ...slackFileAccess(config.slack),
         dir: attachmentsDir,
         extractPdfText: this.deps.extractPdfText,
       });

@@ -91,8 +91,8 @@ MENTION_ALLOWED_USERS='U1, U2'
 
 describe("setting fields", () => {
   it("puts every field in the bot or broker config with matching defaults", () => {
-    const tokens = { SLACK_BOT_TOKEN: "xoxb-1", SLACK_APP_TOKEN: "xapp-1" };
-    const botDefaults = EnvSchema.parse(tokens) as Record<string, unknown>;
+    // Slack credentials depend on SLACK_CONNECTION, so the schema itself requires none of them.
+    const botDefaults = EnvSchema.parse({}) as Record<string, unknown>;
     const brokerDefaults = BrokerEnvSchema.parse({}) as Record<string, unknown>;
     for (const field of SETTING_FIELDS) {
       const inBot = field.key in EnvSchema.shape;

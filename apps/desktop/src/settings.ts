@@ -14,6 +14,7 @@ import {
   type SettingsIssue,
   type SettingsView,
 } from "../../../src/settings/fields.js";
+import { checkHub } from "../../../src/hub/client.js";
 import { checkSlackTokens, type SlackCheckItem } from "../../../src/slack/check.js";
 
 const FIELDS = new Map(SETTING_FIELDS.map((field) => [field.key, field]));
@@ -82,15 +83,21 @@ export class SettingsStore {
     }
   }
 
-  /** Checks the connection with the new tokens (or the current values if unchanged). */
+  /** Checks the connection with the new values (or the current ones if unchanged): the team hub, or the own app's tokens. */
   async checkSlack(raw: unknown): Promise<SlackCheckItem[]> {
     const parsed = this.parseChanges(raw);
     const changes = "issues" in parsed ? {} : parsed.changes;
     const env = { ...this.candidate(changes), ...this.options.env };
+    if (env.SLACK_CONNECTION === "hub") return checkHub(env.HUB_URL, env.HUB_TOKEN);
     return checkSlackTokens({
       botToken: env.SLACK_BOT_TOKEN,
       appToken: env.SLACK_APP_TOKEN,
     });
+  }
+
+  /** The settings in effect: the settings file under the app's environment */
+  effectiveEnv(): NodeJS.ProcessEnv {
+    return { ...this.candidate({}), ...this.options.env };
   }
 
   private candidate(changes: SettingsChanges): Record<string, string> {
