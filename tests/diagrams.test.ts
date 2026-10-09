@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { systemPrompt } from "../src/mention/responder.js";
+import { systemPrompt } from "../src/mention/prompt.js";
+import type { MessengerProfile } from "../src/messengers/types.js";
 import {
   composeAnswer,
   extractDiagrams,
@@ -80,10 +81,17 @@ describe("renderArgs", () => {
   });
 });
 
+const slack: MessengerProfile = {
+  name: "Slack",
+  venues: "public channels",
+  markup: "Slack mrkdwn",
+  public: true,
+};
+
 describe("systemPrompt", () => {
   it("adds diagram instructions only when a renderer is available", () => {
-    expect(systemPrompt(false, false, false)).not.toContain("```mermaid");
-    expect(systemPrompt(false, false, true)).toContain("```mermaid");
+    expect(systemPrompt(slack)).not.toContain("```mermaid");
+    expect(systemPrompt(slack, { diagrams: true })).toContain("```mermaid");
   });
 });
 
@@ -112,7 +120,7 @@ describe("generated images", () => {
       await import("node:fs");
     const { tmpdir } = await import("node:os");
     const path = await import("node:path");
-    const { collectGeneratedImages } = await import("../src/mention/responder.js");
+    const { collectGeneratedImages } = await import("../src/mention/generated.js");
     const dir = mkdtempSync(path.join(tmpdir(), "gen-"));
     mkdirSync(path.join(dir, "thread-1"));
     writeFileSync(path.join(dir, "thread-1", "b.png"), "B");
@@ -128,8 +136,10 @@ describe("generated images", () => {
   });
 
   it("adds image generation instructions only for codex", () => {
-    expect(systemPrompt(false, false, true, true)).toContain("image generation tool");
-    expect(systemPrompt(false, false, true, false)).not.toContain(
+    expect(systemPrompt(slack, { diagrams: true, imageGeneration: true })).toContain(
+      "image generation tool"
+    );
+    expect(systemPrompt(slack, { diagrams: true })).not.toContain(
       "image generation tool"
     );
   });

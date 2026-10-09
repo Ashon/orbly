@@ -18,12 +18,12 @@ const SLACK_NEEDS = {
   app: {
     keys: ["SLACK_APP_TOKEN", "SLACK_BOT_TOKEN"],
     message:
-      "Slack is not connected yet. In Settings > Slack, connect to your team's hub or enter your own Slack app's tokens.",
+      "Slack is not connected yet. In Settings > Messengers > Slack, connect to your team's hub or enter your own Slack app's tokens.",
   },
   hub: {
     keys: ["HUB_URL", "HUB_TOKEN"],
     message:
-      "This desktop is not paired with the team hub yet. Connect it in Settings > Slack to start the bot.",
+      "This desktop is not paired with the team hub yet. Connect it in Settings > Messengers > Slack to start the bot.",
   },
 };
 
@@ -47,7 +47,7 @@ export function setupProblem(
 /** Slack API errors that mean the token itself is wrong, revoked, or belongs to a disabled account */
 const SLACK_AUTH_ERROR =
   /\b(invalid_auth|not_authed|account_inactive|token_revoked|token_expired|invalid_token)\b/;
-/** The team hub no longer accepts this desktop (src/slack/hub-receiver.ts, src/hub/server.ts) */
+/** The team hub no longer accepts this desktop (src/messengers/slack/hub-receiver.ts, src/hub/server.ts) */
 const HUB_AUTH_ERROR = /\b(hub_unauthorized|hub_revoked)\b/;
 
 /**
@@ -60,7 +60,7 @@ export function startFailureProblem(output: readonly string[]): SetupProblem | u
     if (hub) {
       return {
         kind: "slack",
-        message: `The team hub no longer accepts this desktop (${hub}). Connect it again in Settings > Slack.`,
+        message: `The team hub no longer accepts this desktop (${hub}). Connect it again in Settings > Messengers > Slack.`,
         issues: [],
       };
     }

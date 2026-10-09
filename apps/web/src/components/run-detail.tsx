@@ -1,4 +1,5 @@
 import type { RunRecord } from "@history/types";
+import { MESSENGER_NAMES } from "@src/messengers/ids";
 import {
   Coins,
   Cpu,
@@ -90,17 +91,17 @@ function RunHeader({ run }: { run: RunRecord }) {
           <StatusBadge status={run.status} />
           {run.attempts > 1 && <Badge variant="secondary">{run.attempts} attempts</Badge>}
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate">{run.slack.channelLabel}</span>
+            <span className="truncate">{run.origin.conversationLabel}</span>
             <span className="text-muted-foreground/60">·</span>
-            <span className="truncate">@{run.slack.userName ?? run.slack.userId}</span>
+            <span className="truncate">@{run.origin.userName ?? run.origin.userId}</span>
             <span className="text-muted-foreground/60">·</span>
             <span className="shrink-0 tabular-nums">{formatDateTime(run.startedAt)}</span>
           </span>
-          {run.slack.permalink && (
+          {run.origin.permalink && (
             <Button asChild variant="outline" size="xs" className="ml-auto shrink-0">
-              <a href={run.slack.permalink} target="_blank" rel="noreferrer">
+              <a href={run.origin.permalink} target="_blank" rel="noreferrer">
                 <ExternalLink />
-                View in Slack
+                View in {MESSENGER_NAMES[run.origin.messenger]}
               </a>
             </Button>
           )}

@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  chunkText,
   escapeSlackText,
   extractUserIds,
-  formatTime,
   renderSlackText,
   toSlackMrkdwn,
-} from "../src/slack/format.js";
+} from "../src/messengers/slack/format.js";
+import { chunkText, formatTime } from "../src/messengers/text.js";
 
 describe("chunkText", () => {
   it("splits on line boundaries and force-splits lines that are too long", () => {
@@ -21,7 +20,7 @@ describe("chunkText", () => {
   });
 
   it("returns one chunk even for empty text", () => {
-    expect(chunkText("")).toEqual([""]);
+    expect(chunkText("", 10)).toEqual([""]);
   });
 });
 

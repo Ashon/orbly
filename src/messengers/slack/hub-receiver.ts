@@ -1,8 +1,8 @@
 import type { App, Receiver } from "@slack/bolt";
 import WebSocket from "ws";
-import { HUB_CLOSE, HUB_PATHS, type HubMessage, PING, PONG } from "../hub/protocol.js";
-import type { Logger } from "../logger.js";
-import type { SocketState } from "../runtime/types.js";
+import { HUB_CLOSE, HUB_PATHS, type HubMessage, PING, PONG } from "../../hub/protocol.js";
+import type { Logger } from "../../logger.js";
+import type { SocketState } from "../../runtime/types.js";
 
 const PING_EVERY_MS = 30_000;
 const PONG_TIMEOUT_MS = 10_000;
@@ -77,7 +77,7 @@ export class HubReceiver implements Receiver {
       if (res.statusCode === 401)
         refuse(
           new Error(
-            "The team hub does not recognize this desktop (hub_unauthorized). Connect again in Settings > Slack."
+            "The team hub does not recognize this desktop (hub_unauthorized). Connect again in Settings > Messengers > Slack."
           )
         );
       else log.warn(`The hub answered HTTP ${res.statusCode}; retrying.`);
@@ -119,7 +119,7 @@ export class HubReceiver implements Receiver {
       if (code === HUB_CLOSE.revoked)
         return refuse(
           new Error(
-            "This desktop was disconnected from the team hub (hub_revoked). Connect again in Settings > Slack."
+            "This desktop was disconnected from the team hub (hub_revoked). Connect again in Settings > Messengers > Slack."
           )
         );
       if (code === HUB_CLOSE.replaced) {

@@ -5,7 +5,7 @@
  *   which allows only what the thread routed to them needs. (src/hub/policy.ts)
  * - A desktop pairs once: it shows a code, the member sends "@orbly connect <code>" in Slack, and the desktop
  *   confirms the Slack user who sent it. The desktop then keeps a token only the hub can check (it stores a hash).
- * Shared by the hub (src/hub) and the desktop (src/slack/hub-receiver.ts, src/hub/client.ts), so it has no Node APIs.
+ * Shared by the hub (src/hub) and the desktop (src/messengers/slack/hub-receiver.ts, src/hub/client.ts), so it has no Node APIs.
  */
 
 export interface HubUser {

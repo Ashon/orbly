@@ -55,7 +55,7 @@ export const EnvSchema = z.object({
       "Must be an https URL (http only for localhost)"
     )
     .optional(),
-  /** This desktop's token for the hub, set by pairing in Settings > Slack */
+  /** This desktop's token for the hub, set by pairing in Settings > Messengers > Slack */
   HUB_TOKEN: z
     .string()
     .regex(/^[0-9a-f]{64}$/, "Must be the token pairing stored (64 hex characters)")
@@ -304,7 +304,7 @@ function slackConnection(e: z.infer<typeof EnvSchema>): Config["slack"] {
     if (!e.HUB_TOKEN)
       throw new MissingSettingError(
         "HUB_TOKEN",
-        "HUB_TOKEN is missing: this desktop is not paired with the hub yet. Connect in Settings > Slack.",
+        "HUB_TOKEN is missing: this desktop is not paired with the hub yet. Connect in Settings > Messengers > Slack.",
         "0000000000000000000000000000000000000000000000000000000000000000"
       );
     return { kind: "hub", hubUrl: e.HUB_URL.replace(/\/+$/, ""), hubToken: e.HUB_TOKEN };
@@ -331,16 +331,6 @@ function slackConnection(e: z.infer<typeof EnvSchema>): Config["slack"] {
       pingPongLogging: e.SOCKET_PING_PONG_LOG === "on",
     },
   };
-}
-
-/** How files are downloaded: with the bot token, or through the hub with this desktop's hub token */
-export function slackFileAccess(slack: Config["slack"]): {
-  token: string;
-  hubUrl?: string;
-} {
-  return slack.kind === "hub"
-    ? { token: slack.hubToken, hubUrl: slack.hubUrl }
-    : { token: slack.botToken };
 }
 
 function isDirectory(dir: string): boolean {

@@ -17,7 +17,7 @@ export function StatusBar({
   onOpenSettings,
 }: {
   onOpenBot: () => void;
-  /** Opens Settings at a route such as #/settings/slack */
+  /** Opens Settings at a route such as #/settings/messengers */
   onOpenSettings: (route: string) => void;
 }) {
   const { data } = useBotStatus();

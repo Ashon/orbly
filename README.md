@@ -17,7 +17,7 @@ member's mentions to that member's own Orbly.
 
 ```
 @bot mention in a public channel
-  -> Bolt (Socket Mode, app_mention event)
+  -> messenger adapter (Slack: Bolt, Socket Mode or the team hub, app_mention event) -> Mention
   -> check allowed users / public channel
   -> post "Working on an answer..." in the thread
   -> collect thread context (the whole thread, or the last 10 messages outside a thread)
@@ -71,14 +71,15 @@ Illustrations and photo-like images are made with codex's image generation (`ima
 
 | Path | Role |
 | --- | --- |
-| `src/index.ts` | App assembly, event wiring |
-| `src/mention/responder.ts` | Mention handling, context collection, answer posting |
+| `src/index.ts` | App assembly: connects the messenger and hands its mentions to the responder |
+| `src/messengers/types.ts` | The messenger interface: receiving mentions, context, files, posting, editing, uploads, formatting, links |
+| `src/messengers/slack/` | The Slack adapter: connection (Socket Mode or the team hub), user/channel cache, mrkdwn conversion, file downloads |
+| `src/mention/` | The messenger-neutral pipeline: allowlist and venue checks, prompt, attachments, run history, resuming after a restart |
 | `src/reasoner/` | `claude -p` and `codex exec` wrappers, host/docker executors |
 | `src/broker/` | ops-broker: SSH host checks, k8s queries, work directory reads (MCP server) |
 | `src/tools/sandbox-job.ts` | Sandbox apply jobs: image builds, proxy, broker (mount preparation, host list), kubeconfig. Shared by the app and `pnpm sandbox:*` |
 | `scripts/bundle.mjs` | Bundles the bot, the sandbox jobs and the broker with their dependencies (`pnpm bundle`; used by the packaged app and the broker image) |
 | `apps/desktop/scripts/package-mac.mjs` | Installable macOS app and its release zip (`pnpm package:mac`) |
-| `src/slack/` | User/channel info cache, mrkdwn conversion |
 | `src/tools/check-slack.ts` | Slack app config check (`pnpm slack:check`) |
 | `sandbox/` | Reasoner container image, egress proxy, compose |
 | `deploy/homebrew/` | Homebrew cask template (`Casks/orbly.rb`), tap update script, release runbook |
@@ -223,11 +224,11 @@ Slack <--Socket Mode--> hub (deploy/hub: Slack tokens, paired desktops) <--WebSo
   2 hours after the mention. Other calls are refused with errors like `thread_not_granted` or `method_not_allowed_by_hub`.
 - Routing: a mention goes to the desktop of the member who wrote it. Members without a paired desktop, or whose desktop is
   offline, get a message only they can see that says so.
-- Pairing: in Orbly, Settings > Slack > Team hub, enter the hub URL and choose Connect. Orbly shows a code; send
+- Pairing: in Orbly, Settings > Messengers > Slack > Team hub, enter the hub URL and choose Connect. Orbly shows a code; send
   `@orbly connect <code>` in a channel Orbly is in, then confirm in Orbly that the Slack account shown is yours.
   The confirmation is what counts, so a code someone else saw and sent first is turned down on the desktop.
   The desktop keeps a random token in `.env` (`HUB_TOKEN`); the hub stores only its SHA-256.
-- One desktop per member: pairing again replaces the previous desktop. Settings > Slack > Disconnect unpairs it.
+- One desktop per member: pairing again replaces the previous desktop. Settings > Messengers > Slack > Disconnect unpairs it.
 - The hub sees mentions and thread content in transit (as Slack's own servers do) and stores only paired desktops.
   Grants are kept in memory, so restarting the hub ends edits to answers in progress.
 
@@ -268,7 +269,7 @@ brew install --cask orbly
 
 - The app carries the bot, the sandbox jobs and its own Node, so it needs no repository, Node or pnpm. It needs Docker
   (Docker Desktop, OrbStack or colima) for the sandbox, a `claude` or `codex` CLI login, and `gh` and `git` for the ops tools.
-- After creating the Slack app, open Orbly, enter the Slack tokens in Settings > Slack, then run "Build sandbox images"
+- After creating the Slack app, open Orbly, enter the Slack tokens in Settings > Messengers > Slack, then run "Build sandbox images"
   and "Restart proxy" in Settings > Sandbox.
 - Config, run history and the allowed domains list live in `~/.orbly` (`ORBLY_HOME`), outside the app, so they survive
   upgrades and uninstall.
@@ -397,7 +398,7 @@ Settings:
   | Section | What it holds |
   | --- | --- |
   | General | Theme, starting the bot with the app, the settings file and run history folder |
-  | Slack | The connection (team hub with pairing, or your own app's tokens) with "Check connection", allowed users, Socket Mode keepalive (advanced) |
+  | Messengers | Each chat app under its own heading with how it is connected. Slack: the connection (team hub with pairing, or your own app's tokens) with "Check connection", allowed users, Socket Mode keepalive (advanced) |
   | Answers | Reasoner CLI, model, timeout, concurrent requests, time zone, reference directory, diagrams and images |
   | Sandbox | Run environment (on this Mac or the docker sandbox), limits, the reasoner login, allowed domains, status and apply jobs |
   | Ops tools | The on/off switch with what it needs, then one card per integration: files, GitHub and pull requests, Jira, Kubernetes, SSH hosts |
@@ -527,3 +528,19 @@ To migrate by hand:
 pnpm check   # typecheck (bot, UI, app) + lint + format:check + test
 pnpm test
 ```
+
+### Adding a messenger
+
+The mention pipeline (`src/mention`) talks to chat apps only through `Messenger` in `src/messengers/types.ts`, so a new
+app is an adapter, not a change to the pipeline:
+
+1. Add its id to `src/messengers/ids.ts`.
+2. Write `src/messengers/<id>/`: a `Messenger` (who may ask and where, the readable request and context, file lookups
+   and downloads, posting, editing, uploads, rendering Markdown into the app's markup) and a `MessengerConnection` that
+   turns the app's events into `Mention`s. `src/messengers/slack/` is the reference.
+3. Connect it in `src/index.ts` and pass its messenger to `MentionResponder`.
+4. Give its settings groups `messenger: "<id>"` in `src/settings/fields.ts`; the Messengers section shows them under
+   the app's heading.
+
+Run history (`origin.messenger`) and interrupted requests (`inflight.json`) already record which messenger a request
+came from.

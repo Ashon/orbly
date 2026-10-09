@@ -50,11 +50,11 @@ export function Timeline({ run }: { run: RunRecord }) {
       <Bubble
         avatar={
           <span className="grid size-7 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
-            {(run.slack.userName ?? "?").slice(0, 1).toUpperCase()}
+            {(run.origin.userName ?? "?").slice(0, 1).toUpperCase()}
           </span>
         }
-        title={`@${run.slack.userName ?? run.slack.userId}`}
-        meta={`${run.slack.channelLabel} / ${formatDateTime(run.startedAt)}`}
+        title={`@${run.origin.userName ?? run.origin.userId}`}
+        meta={`${run.origin.conversationLabel} / ${formatDateTime(run.startedAt)}`}
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
           {run.request || (

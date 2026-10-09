@@ -12,8 +12,9 @@ import {
   type SettingsView,
 } from "@src/settings/fields";
 import type { HubUser } from "@src/hub/protocol";
+import { MESSENGER_IDS, MESSENGER_NAMES, type MessengerId } from "@src/messengers/ids";
 import type { BrokerHealth } from "@src/sandbox/types";
-import type { SlackCheckItem } from "@src/slack/check";
+import type { SlackCheckItem } from "@src/messengers/slack/check";
 import {
   Box,
   ChevronRight,
@@ -23,6 +24,7 @@ import {
   History,
   KeyRound,
   LoaderCircle,
+  MessagesSquare,
   Monitor,
   Moon,
   Plug,
@@ -63,7 +65,7 @@ const bridge = () => window.orblyDesktop?.settings;
 type Section = SettingSection | "general";
 
 const SECTION_ICON: Record<SettingSection, LucideIcon> = {
-  slack: Plug,
+  messengers: MessagesSquare,
   answers: Sparkles,
   sandbox: Box,
   ops: Wrench,
@@ -100,10 +102,11 @@ const SLACK_APP_TOKENS = ["SLACK_APP_TOKEN", "SLACK_BOT_TOKEN"];
 
 /**
  * #/settings/<section> picks the section; plain #/settings opens the first one, General. ("Setup needed" links straight
- * to the section to fix, such as #/settings/slack.)
+ * to the section to fix, such as #/settings/messengers.) #/settings/slack is the Messengers section's name from before.
  */
 function readSection(): Section {
   const id = /^#\/settings\/([a-z]+)/.exec(window.location.hash)?.[1];
+  if (id === "slack") return "messengers";
   return id && id in SECTION_INFO ? (id as Section) : "general";
 }
 
@@ -330,14 +333,20 @@ export function SettingsPage() {
   const pending = sandbox.status?.pending ?? [];
   const opsReady = docker && isSet("MENTION_ALLOWED_USERS");
   const hubMode = valueOf("SLACK_CONNECTION") === "hub";
+  const slackReady = hubMode
+    ? isSet("HUB_URL") && isSet("HUB_TOKEN")
+    : isSet("SLACK_APP_TOKEN") && isSet("SLACK_BOT_TOKEN");
+  /** How each messenger is connected, beside its heading */
+  const messengerChips: Record<MessengerId, React.ReactNode> = {
+    slack: slackReady ? (
+      <Chip tone="ok">{hubMode ? "Team hub" : "Your own app"}</Chip>
+    ) : (
+      <Chip tone="warn">{hubMode ? "Not paired" : "Not connected"}</Chip>
+    ),
+  };
   const hints: Partial<Record<Section, Hint>> = {
-    slack: (
-      hubMode
-        ? isSet("HUB_URL") && isSet("HUB_TOKEN")
-        : isSet("SLACK_APP_TOKEN") && isSet("SLACK_BOT_TOKEN")
-    )
-      ? undefined
-      : { tone: "warn", text: hubMode ? "Not paired" : "Not connected" },
+    // Short enough to sit beside "Messengers"; the Slack heading says what is missing.
+    messengers: slackReady ? undefined : { tone: "warn", text: "Set up" },
     sandbox: !docker
       ? { tone: "muted", text: "Off" }
       : sandbox.status && !sandbox.status.docker.ok
@@ -403,7 +412,8 @@ export function SettingsPage() {
     });
   };
 
-  const content: Record<Section, React.ReactNode> = {
+  /** Each messenger's cards, shown under its heading in the Messengers section */
+  const messengerCards: Record<MessengerId, React.ReactNode> = {
     slack: (
       <>
         {card("slack", {
@@ -456,6 +466,15 @@ export function SettingsPage() {
         {card("access")}
       </>
     ),
+  };
+
+  const content: Record<Section, React.ReactNode> = {
+    messengers: MESSENGER_IDS.map((id) => (
+      <div key={id} className="space-y-3">
+        <SubHeading title={MESSENGER_NAMES[id]} chip={messengerChips[id]} />
+        {messengerCards[id]}
+      </div>
+    )),
     answers: (
       <>
         {card("reasoner")}
@@ -521,7 +540,7 @@ export function SettingsPage() {
                     : "Limit who can ask, since the tools use your credentials.",
                   action: isSet("MENTION_ALLOWED_USERS")
                     ? undefined
-                    : { label: "Open Slack", section: "slack" },
+                    : { label: "Open Messengers", section: "messengers" },
                 },
               ]}
               onOpen={go}
@@ -844,10 +863,21 @@ function NavItem({
   );
 }
 
-function SubHeading({ title, help }: { title: string; help?: string }) {
+function SubHeading({
+  title,
+  help,
+  chip,
+}: {
+  title: string;
+  help?: string;
+  chip?: React.ReactNode;
+}) {
   return (
     <div className="px-1 pt-3">
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <h3 className="flex items-center gap-2 text-sm font-semibold">
+        {title}
+        {chip}
+      </h3>
       {help && <p className="mt-0.5 text-xs text-muted-foreground">{help}</p>}
     </div>
   );
@@ -944,6 +974,27 @@ const STATE_CHIP = {
   },
   off: { label: "Off", className: "bg-muted text-muted-foreground" },
 };
+
+const CHIP_TONE = {
+  ok: "bg-status-succeeded/12 text-status-succeeded",
+  warn: "bg-status-interrupted/12 text-status-interrupted",
+};
+
+function Chip({
+  tone,
+  children,
+}: {
+  tone: keyof typeof CHIP_TONE;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn("rounded px-1.5 text-[10px] leading-4 font-medium", CHIP_TONE[tone])}
+    >
+      {children}
+    </span>
+  );
+}
 
 function StateChip({ state, title }: { state: keyof typeof STATE_CHIP; title?: string }) {
   return (

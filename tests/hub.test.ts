@@ -13,7 +13,7 @@ import { fileIdOf, Grants } from "../src/hub/policy.js";
 import { HUB_CLOSE, type HubMessage } from "../src/hub/protocol.js";
 import { HubServer, type SlackGateway } from "../src/hub/server.js";
 import { DesktopStore } from "../src/hub/store.js";
-import { HubReceiver } from "../src/slack/hub-receiver.js";
+import { HubReceiver } from "../src/messengers/slack/hub-receiver.js";
 
 const root = mkdtempSync(path.join(tmpdir(), "orbly-hub-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -319,7 +319,7 @@ describe("hub server", () => {
     await hub.handleMention(mention("U0BOB", "<@B1> hello"));
     expect(notices.at(-1)).toEqual({
       user: "U0BOB",
-      text: expect.stringContaining("Settings > Slack"),
+      text: expect.stringContaining("Settings > Messengers > Slack"),
     });
 
     // Disconnecting unpairs the desktop and closes its connection.
@@ -452,7 +452,7 @@ describe("desktop side of the hub", () => {
     ).toEqual([
       {
         key: "HUB_TOKEN",
-        message: expect.stringContaining("Settings > Slack"),
+        message: expect.stringContaining("Settings > Messengers > Slack"),
         missing: true,
       },
     ]);

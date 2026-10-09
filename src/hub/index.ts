@@ -1,7 +1,7 @@
 import path from "node:path";
 import { App, SocketModeReceiver } from "@slack/bolt";
 import { consoleSink, createLogger } from "../logger.js";
-import { slackLogger } from "../slack/logger.js";
+import { slackLogger } from "../messengers/slack/logger.js";
 import { loadHubConfig } from "./config.js";
 import { slackGateway } from "./gateway.js";
 import { Pairings } from "./pairing.js";

@@ -22,6 +22,7 @@ import {
   RUNS_DIR,
 } from "./layout.js";
 import {
+  normalizeRunRecord,
   RUN_RECORD_VERSION,
   type RunEvent,
   type RunRecord,
@@ -40,7 +41,7 @@ const clip = (text: string, max: number) =>
     ? `${text.slice(0, max)}\n... (truncated, ${text.length} chars total)`
     : text;
 
-export type RunInit = Pick<RunRecord, "slack" | "request" | "backend">;
+export type RunInit = Pick<RunRecord, "origin" | "request" | "backend">;
 
 /** Writes run history files. Used only in the bot process. */
 export class HistoryStore {
@@ -82,7 +83,9 @@ export class HistoryStore {
     const dir = this.runDir(id);
     if (!dir) return undefined;
     try {
-      return JSON.parse(readFileSync(path.join(dir, RUN_FILE), "utf8")) as RunRecord;
+      return normalizeRunRecord(
+        JSON.parse(readFileSync(path.join(dir, RUN_FILE), "utf8")) as RunRecord
+      );
     } catch {
       return undefined;
     }

@@ -15,7 +15,10 @@ import {
   type SettingsView,
 } from "../../../src/settings/fields.js";
 import { checkHub } from "../../../src/hub/client.js";
-import { checkSlackTokens, type SlackCheckItem } from "../../../src/slack/check.js";
+import {
+  checkSlackTokens,
+  type SlackCheckItem,
+} from "../../../src/messengers/slack/check.js";
 
 const FIELDS = new Map(SETTING_FIELDS.map((field) => [field.key, field]));
 

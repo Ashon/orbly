@@ -3,7 +3,7 @@
 import type { SupervisorState } from "@runtime/types";
 import type { HubTeam, HubUser, PairStartResponse, PairStatus } from "@src/hub/protocol";
 import type { SettingsChanges, SettingsIssue, SettingsView } from "@src/settings/fields";
-import type { SlackCheckItem } from "@src/slack/check";
+import type { SlackCheckItem } from "@src/messengers/slack/check";
 import type {
   AllowlistIssue,
   SandboxJob,

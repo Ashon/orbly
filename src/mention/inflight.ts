@@ -1,30 +1,63 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { toMessageFile, type SlackFileRef } from "../messengers/slack/files.js";
+import { mentionKey, type Mention } from "../messengers/types.js";
 
 /**
  * Record of in-progress mentions. When a bot restart (deploy, tsx watch, crash) cuts off an answer,
  * the next start resumes it in the same placeholder message or reports the failure.
  */
-export interface InflightEvent {
-  channel: string;
-  ts: string;
-  thread_ts?: string;
-  user: string;
-  text: string;
-  files?: unknown[];
-}
-
 export interface InflightEntry {
+  /** mentionKey(mention) */
   key: string;
-  event: InflightEvent;
-  threadTs: string;
+  mention: Mention;
+  /** Where it was asked, as the run history shows it ("#ops") */
   label: string;
-  placeholderTs: string;
+  /** The bot's message the answer goes into */
+  placeholder: string;
   /** Run id. When resuming, writing continues in the same run. */
   runId?: string;
   /** Number of times processing has started so far */
   attempts: number;
   startedAt: number;
+}
+
+/** An entry as written before messengers existed (Slack only, through v0.2) */
+interface SlackEntry {
+  key: string;
+  event: {
+    channel: string;
+    ts: string;
+    thread_ts?: string;
+    user: string;
+    text: string;
+    files?: unknown[];
+  };
+  threadTs: string;
+  label: string;
+  placeholderTs: string;
+  runId?: string;
+  attempts: number;
+  startedAt: number;
+}
+
+function fromSlackEntry({
+  event,
+  threadTs,
+  placeholderTs,
+  ...rest
+}: SlackEntry): InflightEntry {
+  const mention: Mention = {
+    messenger: "slack",
+    conversation: event.channel,
+    message: event.ts,
+    thread: threadTs,
+    inThread: Boolean(event.thread_ts),
+    userId: event.user,
+    text: event.text,
+    files: ((event.files ?? []) as SlackFileRef[]).map(toMessageFile),
+  };
+  return { ...rest, key: mentionKey(mention), mention, placeholder: placeholderTs };
 }
 
 /** Maximum number of times processing can start for one request (1 initial + 1 resume after a restart) */
@@ -47,7 +80,10 @@ export class InflightStore {
     if (!existsSync(this.file)) return [];
     try {
       const parsed = JSON.parse(readFileSync(this.file, "utf8")) as unknown;
-      return Array.isArray(parsed) ? (parsed as InflightEntry[]) : [];
+      if (!Array.isArray(parsed)) return [];
+      return (parsed as (InflightEntry | SlackEntry)[]).map((entry) =>
+        "event" in entry ? fromSlackEntry(entry) : entry
+      );
     } catch {
       return [];
     }

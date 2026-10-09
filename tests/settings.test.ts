@@ -12,8 +12,14 @@ import {
   updateEnvText,
   writeEnvFile,
 } from "../src/settings/env-file.js";
-import { maskSecret, SETTING_FIELDS } from "../src/settings/fields.js";
-import { checkSlackTokens } from "../src/slack/check.js";
+import { MESSENGER_IDS } from "../src/messengers/ids.js";
+import {
+  maskSecret,
+  SETTING_FIELDS,
+  SETTING_GROUPS,
+  setupSettingsRoute,
+} from "../src/settings/fields.js";
+import { checkSlackTokens } from "../src/messengers/slack/check.js";
 
 const root = mkdtempSync(path.join(tmpdir(), "orbly-settings-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -109,6 +115,21 @@ describe("setting fields", () => {
         field.default,
       ]);
     }
+  });
+
+  it("keeps every messenger's groups in the Messengers section, which setup opens first", () => {
+    const messengerGroups = SETTING_GROUPS.filter((group) => group.messenger);
+    expect(messengerGroups.map((group) => group.section)).toEqual(
+      messengerGroups.map(() => "messengers")
+    );
+    expect(
+      MESSENGER_IDS.every((id) => messengerGroups.some((g) => g.messenger === id))
+    ).toBe(true);
+    expect(setupSettingsRoute()).toBe("#/settings/messengers");
+    expect(setupSettingsRoute([{ key: "MENTION_ALLOWED_USERS" }])).toBe(
+      "#/settings/messengers"
+    );
+    expect(setupSettingsRoute([{ key: "OPS_TOOLS" }])).toBe("#/settings/ops");
   });
 
   it("shows only the prefix and last 4 characters of secrets", () => {

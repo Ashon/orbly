@@ -1,3 +1,4 @@
+import type { MessengerId } from "../messengers/ids.js";
 import type { SandboxComponent } from "../sandbox/types.js";
 
 /**
@@ -9,13 +10,13 @@ import type { SandboxComponent } from "../sandbox/types.js";
  * Settings screen sections, in navigation order. Each holds a few groups (cards) of fields.
  * The desktop app's own preferences (theme, autostart) are not .env entries and have a "general" section of their own on the screen.
  */
-export type SettingSection = "slack" | "answers" | "sandbox" | "ops" | "logs";
+export type SettingSection = "messengers" | "answers" | "sandbox" | "ops" | "logs";
 
 export const SETTING_SECTIONS: { id: SettingSection; label: string; help: string }[] = [
   {
-    id: "slack",
-    label: "Slack",
-    help: "Connects the bot to your Slack workspace and sets who it answers. Changes apply when the bot restarts.",
+    id: "messengers",
+    label: "Messengers",
+    help: "The chat apps the bot answers in, and who can ask there. Changes apply when the bot restarts.",
   },
   {
     id: "answers",
@@ -83,6 +84,8 @@ export interface SettingField {
 export interface SettingGroupInfo {
   id: SettingGroup;
   section: SettingSection;
+  /** In the Messengers section: the chat app the group belongs to, shown under that app's heading */
+  messenger?: MessengerId;
   label: string;
   help: string;
   /** For an optional integration: the fields that must all be set for it to turn on */
@@ -92,13 +95,15 @@ export interface SettingGroupInfo {
 export const SETTING_GROUPS: SettingGroupInfo[] = [
   {
     id: "slack",
-    section: "slack",
+    section: "messengers",
+    messenger: "slack",
     label: "Connection",
     help: "How this desktop reaches Slack: through your team's hub, or a Slack app of your own.",
   },
   {
     id: "access",
-    section: "slack",
+    section: "messengers",
+    messenger: "slack",
     label: "Who can ask",
     help: "Mentions from anyone else are ignored.",
   },
@@ -188,12 +193,12 @@ export const SETTING_GROUPS: SettingGroupInfo[] = [
 ];
 
 /**
- * Settings route for a bot waiting for setup: the section of its first issue, or Slack when there is none
- * (the tokens are missing or Slack rejected them).
+ * Settings route for a bot waiting for setup: the section of its first issue, or Messengers when there is none
+ * (the Slack tokens are missing or Slack rejected them).
  */
 export function setupSettingsRoute(issues: readonly { key?: string }[] = []): string {
   const section = issues.map((issue) => settingSectionOf(issue.key)).find(Boolean);
-  return `#/settings/${section ?? "slack"}`;
+  return `#/settings/${section ?? "messengers"}`;
 }
 
 /** Section that holds a field, for jumping to a validation issue. */

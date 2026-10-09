@@ -8,11 +8,16 @@ import {
   escapeBoundary,
   LIMITS,
   loadAttachments,
-  needsFileInfo,
   planAttachments,
   safeFileName,
   type FileCandidate,
 } from "../src/mention/attachments.js";
+import {
+  downloadSlackFile,
+  needsFileInfo,
+  settle,
+  toMessageFile,
+} from "../src/messengers/slack/files.js";
 import { dockerRunArgs, pdfExtractArgs } from "../src/reasoner/executor.js";
 import {
   claudeArgs,
@@ -31,7 +36,7 @@ const candidate = (
     name,
     mimetype,
     size: 1000,
-    url_private_download: `https://files.slack.com/${name}`,
+    handle: `https://files.slack.com/${name}`,
     ...extra,
   },
   source: "request message",
@@ -39,24 +44,55 @@ const candidate = (
 
 describe("classify", () => {
   it("distinguishes images, PDFs, text types, and other formats", () => {
-    expect(classify({ mimetype: "image/png" })).toBe("image");
-    expect(classify({ mimetype: "application/pdf" })).toBe("pdf");
+    expect(classify({ name: "a", mimetype: "image/png" })).toBe("image");
+    expect(classify({ name: "a", mimetype: "application/pdf" })).toBe("pdf");
     expect(classify({ mimetype: "text/plain", name: "app.log" })).toBe("text");
-    expect(classify({ mimetype: "application/json" })).toBe("text");
+    expect(classify({ name: "a", mimetype: "application/json" })).toBe("text");
     expect(classify({ mimetype: "application/octet-stream", name: "values.yaml" })).toBe(
       "text"
     );
     expect(
-      classify({ mimetype: "text/plain", mode: "snippet", filetype: "python" })
+      classify({ name: "a", mimetype: "application/octet-stream", snippet: true })
     ).toBe("text");
+    expect(classify({ name: "a", filetype: "python" })).toBe("text");
     expect(classify({ mimetype: "application/zip", name: "a.zip" })).toBe("unsupported");
     expect(classify({ mimetype: "image/svg+xml", name: "a.svg" })).toBe("text");
   });
+});
 
+describe("Slack files", () => {
   it("summary files without a URL need a files.info lookup", () => {
     expect(needsFileInfo({ id: "F1", file_access: "check_file_info" })).toBe(true);
     expect(needsFileInfo({ id: "F1", mimetype: "text/plain" })).toBe(true);
-    expect(needsFileInfo(candidate("a.txt", "text/plain").file)).toBe(false);
+    expect(
+      needsFileInfo({ id: "F1", mimetype: "text/plain", url_private_download: "u" })
+    ).toBe(false);
+  });
+
+  it("describes Slack files for the pipeline, with the reasons it cannot read some", () => {
+    expect(
+      toMessageFile({
+        id: "F1",
+        title: "snippet",
+        mimetype: "text/plain",
+        mode: "snippet",
+        url_private_download: "u",
+      })
+    ).toMatchObject({ id: "F1", name: "snippet", snippet: true, handle: "u" });
+    expect(toMessageFile({ id: "F2", file_access: "check_file_info" })).toMatchObject({
+      name: "F2",
+      partial: true,
+    });
+    expect(
+      toMessageFile({ name: "drive.doc", is_external: true, url_private_download: "u" })
+        .unreadable
+    ).toContain("External files");
+    expect(
+      settle(toMessageFile({ name: "nourl.txt", mimetype: "text/plain" })).unreadable
+    ).toContain("No download URL");
+    expect(
+      settle(toMessageFile({ name: "a.txt", url_private_download: "u" })).unreadable
+    ).toBeUndefined();
   });
 });
 
@@ -69,9 +105,8 @@ describe("planAttachments", () => {
       candidate("a.zip", "application/zip", { filetype: "zip" }),
       candidate("big.log", "text/plain", { size: 3 * 1024 * 1024 }),
       candidate("drive.doc", "application/vnd.google-apps.document", {
-        is_external: true,
+        unreadable: "External files (Google Drive, etc.) cannot be read",
       }),
-      candidate("nourl.txt", "text/plain", { url_private_download: undefined }),
       ...["b", "c", "d", "e"].map((n) => candidate(`${n}.png`, "image/png")),
     ]);
     expect(planned.map((p) => `${p.file.name}:${p.kind}`)).toEqual([
@@ -86,7 +121,6 @@ describe("planAttachments", () => {
       "a.zip": expect.stringContaining("Unsupported format"),
       "big.log": expect.stringContaining("Size limit"),
       "drive.doc": expect.stringContaining("External files"),
-      "nourl.txt": expect.stringContaining("No download URL"),
       "e.png": "Count limit exceeded",
     });
   });
@@ -145,9 +179,8 @@ describe("loadAttachments", () => {
       })
     );
     const result = await loadAttachments(planned.slice(0, 5), {
-      token: "xoxb-test",
       dir,
-      fetchImpl,
+      download: (file) => downloadSlackFile(file, { token: "xoxb-test" }, fetchImpl),
       extractPdfText: async (pdfPath) => {
         expect(readFileSync(pdfPath, "latin1").startsWith("%PDF-")).toBe(true);
         return "PDF body";
@@ -168,9 +201,8 @@ describe("loadAttachments", () => {
   it("rejects non-text content", async () => {
     const { planned } = planAttachments([candidate("bin.log", "text/plain")]);
     const result = await loadAttachments(planned, {
-      token: "xoxb-test",
       dir,
-      fetchImpl,
+      download: (file) => downloadSlackFile(file, { token: "xoxb-test" }, fetchImpl),
       extractPdfText: async () => "",
     });
     expect(result.failed[0]?.reason).toContain("Not a text file");

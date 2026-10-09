@@ -1,12 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { Download, MessageFile } from "../messengers/types.js";
 
 /**
- * Turns mention/thread attachments into model input.
+ * Turns mention/thread attachments into model input, for any messenger (it supplies the download).
  * - Images: saved as files and passed to the CLI as images.
  * - Text (logs, config, code, snippets): the content goes into the prompt as data.
  * - PDF: only the text is extracted, in a container without network access.
- * - Other formats, external files: reports why they could not be read.
+ * - Other formats, files the messenger cannot give out: reports why they could not be read.
  */
 
 export const IMAGE_TYPES: Record<string, string> = {
@@ -89,21 +90,8 @@ const TEXT_EXTENSION =
 
 export type AttachmentKind = "image" | "text" | "pdf" | "unsupported";
 
-export interface SlackFileRef {
-  id?: string;
-  name?: string;
-  title?: string;
-  mimetype?: string;
-  filetype?: string;
-  mode?: string;
-  size?: number;
-  is_external?: boolean;
-  file_access?: string;
-  url_private_download?: string;
-}
-
 export interface FileCandidate {
-  file: SlackFileRef;
+  file: MessageFile;
   /** Source shown in the prompt (e.g. request message, thread 10/08, 14:20 @alice) */
   source: string;
 }
@@ -133,20 +121,15 @@ export interface LoadedDocument {
   totalChars: number;
 }
 
-/** When the event's file info arrives as a summary without a URL, it must be looked up again with files.info. */
-export function needsFileInfo(file: SlackFileRef): boolean {
-  return (
-    file.file_access === "check_file_info" || !file.url_private_download || !file.mimetype
-  );
-}
-
-export function classify(file: SlackFileRef): AttachmentKind {
+export function classify(
+  file: Pick<MessageFile, "name" | "mimetype" | "filetype" | "snippet">
+): AttachmentKind {
   const mimetype = (file.mimetype ?? "").toLowerCase();
   const filetype = (file.filetype ?? "").toLowerCase();
   if (mimetype in IMAGE_TYPES) return "image";
   if (mimetype === "application/pdf" || filetype === "pdf") return "pdf";
   if (
-    file.mode === "snippet" ||
+    file.snippet ||
     mimetype.startsWith("text/") ||
     TEXT_MIME.has(mimetype) ||
     TEXT_FILETYPES.has(filetype) ||
@@ -156,8 +139,6 @@ export function classify(file: SlackFileRef): AttachmentKind {
   }
   return "unsupported";
 }
-
-const displayName = (file: SlackFileRef) => file.name ?? file.title ?? file.id ?? "file";
 
 /** Picks the files to read by format, size, and count limits. Earlier candidates take priority. */
 export function planAttachments(candidates: FileCandidate[]): {
@@ -170,19 +151,9 @@ export function planAttachments(candidates: FileCandidate[]): {
   let documents = 0;
   for (const candidate of candidates) {
     const { file } = candidate;
-    const name = displayName(file);
-    if (file.is_external) {
-      skipped.push({
-        name,
-        reason: "External files (Google Drive, etc.) cannot be read",
-      });
-      continue;
-    }
-    if (!file.url_private_download) {
-      skipped.push({
-        name,
-        reason: "No download URL (files:read scope or file access restriction)",
-      });
+    const name = file.name;
+    if (file.unreadable) {
+      skipped.push({ name, reason: file.unreadable });
       continue;
     }
     const kind = classify(file);
@@ -241,51 +212,29 @@ export function escapeBoundary(text: string): string {
   return text.replace(/<\/attached_file/gi, "</attached_file_");
 }
 
-export interface DownloadDeps {
-  token: string;
-  /** With the team hub, files are fetched through it (GET <hub>/files?url=...) with the desktop's hub token */
-  hubUrl?: string;
+export interface LoadDeps {
   dir: string;
+  /** The messenger's download (Messenger.download) */
+  download(file: MessageFile): Promise<Download>;
   /** Extracts text from a PDF. (sandbox container or host) */
   extractPdfText(pdfPath: string): Promise<string>;
-  fetchImpl?: typeof fetch;
 }
 
-/**
- * Downloads files with the bot token (files:read).
- * Without permission Slack returns a login HTML page with 200, so failures are detected by Content-Type.
- */
+/** Downloads the planned files through the messenger and checks that each is what it claims to be. */
 export async function loadAttachments(
   planned: PlannedFile[],
-  deps: DownloadDeps
+  deps: LoadDeps
 ): Promise<{ images: SavedImage[]; documents: LoadedDocument[]; failed: SkippedFile[] }> {
   await mkdir(deps.dir, { recursive: true });
-  const fetchImpl = deps.fetchImpl ?? fetch;
   const images: SavedImage[] = [];
   const documents: LoadedDocument[] = [];
   const failed: SkippedFile[] = [];
   let remainingChars = LIMITS.charsTotal;
 
   for (const [index, item] of planned.entries()) {
-    const name = displayName(item.file);
+    const name = item.file.name;
     try {
-      const fileUrl = item.file.url_private_download!;
-      const res = await fetchImpl(
-        deps.hubUrl ? `${deps.hubUrl}/files?url=${encodeURIComponent(fileUrl)}` : fileUrl,
-        {
-          headers: { Authorization: `Bearer ${deps.token}` },
-          signal: AbortSignal.timeout(30_000),
-        }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const type = (res.headers.get("content-type") ?? "").toLowerCase();
-      const isHtmlFile = (item.file.filetype ?? "") === "html";
-      if (type.startsWith("text/html") && !isHtmlFile) {
-        throw new Error(
-          "Got a login page instead of the file (check the files:read scope)"
-        );
-      }
-      const buffer = Buffer.from(await res.arrayBuffer());
+      const { contentType: type, data: buffer } = await deps.download(item.file);
 
       if (item.kind === "image") {
         if (!type.startsWith("image/")) throw new Error("Response is not an image");

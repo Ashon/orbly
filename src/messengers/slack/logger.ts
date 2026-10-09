@@ -1,6 +1,6 @@
 import { inspect } from "node:util";
 import { LogLevel as SlackLogLevel, type Logger as SlackLogger } from "@slack/bolt";
-import type { Logger, LogLevel } from "../logger.js";
+import type { Logger, LogLevel } from "../../logger.js";
 
 const TO_SLACK: Record<LogLevel, SlackLogLevel> = {
   debug: SlackLogLevel.DEBUG,

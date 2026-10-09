@@ -66,7 +66,7 @@ const sha256 = (text: string) => createHash("sha256").update(text).digest("hex")
 const NOTICES = {
   notPaired:
     "This Slack workspace answers through each member's own Orbly desktop app, and yours is not connected yet. " +
-    "In Orbly, open Settings > Slack, choose the team hub and connect, then send me the code it shows.",
+    "In Orbly, open Settings > Messengers > Slack, choose the team hub and connect, then send me the code it shows.",
   offline:
     "Your Orbly desktop is not connected to the hub right now. Open Orbly on your computer and mention me again.",
   notAllowed:
@@ -74,7 +74,7 @@ const NOTICES = {
   paired: (label: string) =>
     `Code accepted for "${label}". Confirm the pairing in your Orbly app to finish.`,
   unknownCode:
-    "That code is not valid or has expired. Start again in Orbly (Settings > Slack) for a new one.",
+    "That code is not valid or has expired. Start again in Orbly (Settings > Messengers > Slack) for a new one.",
   takenCode: "Someone else already sent that code. Start again in Orbly for a new one.",
 };
 

@@ -10,6 +10,7 @@ import {
   RUNS_DIR,
 } from "./layout.js";
 import {
+  normalizeRunRecord,
   summarize,
   type RunQuery,
   type RunRecord,
@@ -120,7 +121,9 @@ export class HistoryReader {
       const { mtimeMs } = statSync(file);
       const cached = this.cache.get(file);
       if (cached?.mtimeMs === mtimeMs) return cached.record;
-      const record = JSON.parse(readFileSync(file, "utf8")) as RunRecord;
+      const record = normalizeRunRecord(
+        JSON.parse(readFileSync(file, "utf8")) as RunRecord
+      );
       this.cache.set(file, { mtimeMs, record });
       return record;
     } catch {
@@ -137,8 +140,8 @@ export class HistoryReader {
 function matches(record: RunRecord, q: string): boolean {
   return [
     record.request,
-    record.slack.channelLabel,
-    record.slack.userName ?? "",
+    record.origin.conversationLabel,
+    record.origin.userName ?? "",
     record.answer ?? "",
     record.error ?? "",
     record.id,

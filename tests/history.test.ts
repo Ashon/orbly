@@ -12,7 +12,8 @@ import { handleLocalApi } from "../src/local-api.js";
 import { dayOf, isSafeArtifactName, runIdFor } from "../src/history/layout.js";
 import { HistoryReader } from "../src/history/reader.js";
 import { HistoryStore } from "../src/history/recorder.js";
-import { slackPermalink } from "../src/mention/responder.js";
+import { normalizeRunRecord, type RunRecord } from "../src/history/types.js";
+import { slackPermalink } from "../src/messengers/slack/format.js";
 import { parseCodexOutput } from "../src/reasoner/index.js";
 
 const AT = "2026-10-08T05:00:00.000Z";
@@ -138,11 +139,12 @@ describe("run history", () => {
   const store = new HistoryStore(root);
   const reader = new HistoryReader(root);
   const init = {
-    slack: {
-      channel: "C1",
-      channelLabel: "#ops",
-      threadTs: "1.0",
-      eventTs: "1.0",
+    origin: {
+      messenger: "slack" as const,
+      conversation: "C1",
+      conversationLabel: "#ops",
+      thread: "1.0",
+      message: "1.0",
       userId: "U1",
     },
     request: "check web-01 status",
@@ -232,6 +234,37 @@ describe("run history", () => {
   });
 });
 
+describe("normalizeRunRecord", () => {
+  it("reads a version 1 record's Slack fields as its origin", () => {
+    const record = normalizeRunRecord({
+      version: 1,
+      slack: {
+        channel: "C1",
+        channelLabel: "#ops",
+        threadTs: "1.0",
+        eventTs: "1.5",
+        placeholderTs: "1.6",
+        permalink: "https://x.slack.com/archives/C1/p16",
+        userId: "U1",
+        userName: "alice",
+      },
+    } as unknown as RunRecord);
+    expect(record.origin).toEqual({
+      messenger: "slack",
+      conversation: "C1",
+      conversationLabel: "#ops",
+      thread: "1.0",
+      message: "1.5",
+      placeholder: "1.6",
+      permalink: "https://x.slack.com/archives/C1/p16",
+      userId: "U1",
+      userName: "alice",
+    });
+    expect("slack" in record).toBe(false);
+    expect(normalizeRunRecord(record)).toBe(record);
+  });
+});
+
 describe("slackPermalink", () => {
   it("builds a thread reply link", () => {
     expect(
@@ -262,11 +295,12 @@ describe("query API", () => {
 
   it("serves list, detail, outputs, and stats read-only", async () => {
     const run = store.start({
-      slack: {
-        channel: "C1",
-        channelLabel: "#ops",
-        threadTs: "1.0",
-        eventTs: "1.0",
+      origin: {
+        messenger: "slack",
+        conversation: "C1",
+        conversationLabel: "#ops",
+        thread: "1.0",
+        message: "1.0",
         userId: "U1",
       },
       request: "draw a diagram",

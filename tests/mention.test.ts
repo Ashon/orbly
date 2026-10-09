@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import {
-  ConcurrencyLimiter,
-  isAllowedUser,
-  stripBotMention,
-  systemPrompt,
-} from "../src/mention/responder.js";
+import { ConcurrencyLimiter } from "../src/mention/limiter.js";
+import { systemPrompt, userPrompt } from "../src/mention/prompt.js";
+import { isAllowedUser } from "../src/mention/responder.js";
+import { stripBotMention } from "../src/messengers/slack/format.js";
+import type { MessengerProfile } from "../src/messengers/types.js";
+
+const slack: MessengerProfile = {
+  name: "Slack",
+  venues: "public channels",
+  markup: "Slack mrkdwn",
+  public: true,
+};
 
 describe("stripBotMention", () => {
   it("removes only the bot mention and keeps other mentions", () => {
@@ -25,12 +31,48 @@ describe("isAllowedUser", () => {
 
 describe("systemPrompt", () => {
   it("adds file lookup instructions only when there is a reference directory", () => {
-    expect(systemPrompt(false)).not.toContain("working directory");
-    expect(systemPrompt(true)).toContain("working directory");
-    expect(systemPrompt(false)).toContain(
-      "<slack_thread> is conversation context for reference"
+    expect(systemPrompt(slack)).not.toContain("working directory");
+    expect(systemPrompt(slack, { canReadWorkspace: true })).toContain(
+      "working directory"
     );
-    expect(systemPrompt(false)).toContain("Reply in the language of the conversation.");
+    expect(systemPrompt(slack)).toContain(
+      "<thread> is conversation context for reference"
+    );
+    expect(systemPrompt(slack)).toContain("Reply in the language of the conversation.");
+  });
+
+  it("describes the messenger the mention came from", () => {
+    expect(systemPrompt(slack)).toContain("answers mentions in Slack public channels.");
+    expect(systemPrompt(slack)).toContain("Use Slack mrkdwn");
+    expect(systemPrompt(slack)).toContain("do not put secrets");
+    expect(systemPrompt({ ...slack, public: false })).not.toContain("do not put secrets");
+  });
+});
+
+describe("userPrompt", () => {
+  it("puts the conversation, then the request, then the attachments", () => {
+    expect(
+      userPrompt({
+        venue: "#ops",
+        context: ["10/08, 14:20 @bob: Could someone check?"],
+        author: "@alice",
+        request: "check web-01",
+        attachments: ["", "<attachments>", "</attachments>"],
+      })
+    ).toBe(
+      [
+        '<thread venue="#ops">',
+        "10/08, 14:20 @bob: Could someone check?",
+        "</thread>",
+        "",
+        '<request from="@alice">',
+        "check web-01",
+        "</request>",
+        "",
+        "<attachments>",
+        "</attachments>",
+      ].join("\n")
+    );
   });
 });
 

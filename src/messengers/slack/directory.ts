@@ -1,5 +1,5 @@
 import type { WebClient } from "@slack/web-api";
-import type { Logger } from "../logger.js";
+import type { Logger } from "../../logger.js";
 
 const TTL_MS = 60 * 60 * 1000;
 const FAILURE_TTL_MS = 60 * 1000;

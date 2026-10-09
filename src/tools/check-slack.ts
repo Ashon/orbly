@@ -1,8 +1,8 @@
 import { pathToFileURL } from "node:url";
 import { loadEnv } from "../settings/load-env.js";
-import { checkSlackTokens } from "../slack/check.js";
+import { checkSlackTokens } from "../messengers/slack/check.js";
 
-export { missingScopes, REQUIRED_BOT_SCOPES } from "../slack/check.js";
+export { missingScopes, REQUIRED_BOT_SCOPES } from "../messengers/slack/check.js";
 
 /** Checks with the .env tokens that the Slack app settings fit this bot. Sends no messages. */
 async function main(): Promise<void> {

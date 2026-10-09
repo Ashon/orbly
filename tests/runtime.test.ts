@@ -20,7 +20,7 @@ import {
   readBotStatus,
   STATUS_FILE,
 } from "../src/runtime/status.js";
-import { slackLogger } from "../src/slack/logger.js";
+import { slackLogger } from "../src/messengers/slack/logger.js";
 
 const root = mkdtempSync(path.join(tmpdir(), "orbly-runtime-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));

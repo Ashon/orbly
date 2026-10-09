@@ -155,7 +155,7 @@ function RunListItem({
           {run.request || <span className="text-muted-foreground">(empty request)</span>}
         </span>
         <span className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span className="truncate">{run.channelLabel}</span>
+          <span className="truncate">{run.conversationLabel}</span>
           <span className="shrink-0 text-muted-foreground/60">·</span>
           <span className="shrink-0 tabular-nums">
             {today ? formatRelative(run.startedAt) : formatHourMinute(run.startedAt)}

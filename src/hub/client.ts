@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { SlackCheckItem } from "../slack/check.js";
+import type { SlackCheckItem } from "../messengers/slack/check.js";
 import {
   HUB_PATHS,
   type HubMe,
