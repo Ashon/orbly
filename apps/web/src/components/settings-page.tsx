@@ -95,6 +95,8 @@ const GROUP = Object.fromEntries(SETTING_GROUPS.map((info) => [info.id, info])) 
   SettingGroupInfo
 >;
 const FIELD = new Map(SETTING_FIELDS.map((field) => [field.key, field]));
+/** What your own Slack app needs before the bot can start */
+const SLACK_APP_TOKENS = ["SLACK_APP_TOKEN", "SLACK_BOT_TOKEN"];
 
 /**
  * #/settings/<section> picks the section; plain #/settings opens the first one, General. ("Setup needed" links straight
@@ -205,6 +207,22 @@ export function SettingsPage() {
     (!field.shownWhen || valueOf(field.shownWhen.key) === field.shownWhen.equals);
 
   const set = (key: string, value: string) => setDraft((d) => ({ ...d, [key]: value }));
+  /** Opens a secret's input, or closes it and drops what was typed. */
+  const edit = (key: string, on: boolean) => {
+    setEditing((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+    if (!on) {
+      setDraft((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
   const reset = () => {
     setDraft({});
     setEditing(new Set());
@@ -248,6 +266,46 @@ export function SettingsPage() {
                 text: `Saved. Restart the bot to apply.${brokerNote}`,
                 restart: Boolean(supervisor),
               }
+        );
+      })
+      .finally(() => setSaving(false));
+  };
+  // A secret's own Save: stores just that value and closes its input, leaving the other unsaved changes as they are.
+  const saveField = (field: SettingField) => {
+    const value = draft[field.key]?.trim();
+    if (!value) return;
+    setSaving(true);
+    void settings
+      .save({ [field.key]: value }, false)
+      .then(({ issues: found }) => {
+        if (found.length > 0) {
+          setIssues(found);
+          return;
+        }
+        edit(field.key, false);
+        load();
+        sandbox.refresh();
+        const label = field.label.charAt(0).toLowerCase() + field.label.slice(1);
+        // Your own Slack app needs both tokens before the bot can start.
+        const other = SLACK_APP_TOKENS.includes(field.key)
+          ? SLACK_APP_TOKENS.find((key) => key !== field.key && !view.secrets[key]?.set)
+          : undefined;
+        setNotice(
+          field.applies === "broker"
+            ? {
+                tone: "warn",
+                text: `Saved the ${label}. Apply it with "${APPLY_LABEL.broker}".`,
+              }
+            : other
+              ? {
+                  tone: "ok",
+                  text: `Saved the ${label}. Enter the ${FIELD.get(other)?.label.toLowerCase()} next.`,
+                }
+              : {
+                  tone: "warn",
+                  text: `Saved the ${label}. ${botLive ? "Restart" : "Start"} the bot to use it.`,
+                  restart: true,
+                }
         );
       })
       .finally(() => setSaving(false));
@@ -306,21 +364,9 @@ export function SettingsPage() {
       editing={editing.has(field.key)}
       issue={issueOf(field.key)}
       onChange={(value) => set(field.key, value)}
-      onEdit={(on) => {
-        setEditing((prev) => {
-          const next = new Set(prev);
-          if (on) next.add(field.key);
-          else next.delete(field.key);
-          return next;
-        });
-        if (!on) {
-          setDraft((prev) => {
-            const next = { ...prev };
-            delete next[field.key];
-            return next;
-          });
-        }
-      }}
+      onEdit={(on) => edit(field.key, on)}
+      onSave={() => saveField(field)}
+      saving={saving}
     />
   );
   /** A group's card with only the fields the current values call for. Nothing when none are left. */
@@ -646,10 +692,13 @@ export function SettingsPage() {
                     onClick={() => {
                       const control = botControl();
                       void (botLive ? control?.restart() : control?.start());
-                      setNotice({ tone: "ok", text: "Restarting the bot." });
+                      setNotice({
+                        tone: "ok",
+                        text: botLive ? "Restarting the bot." : "Starting the bot.",
+                      });
                     }}
                   >
-                    Restart now
+                    {botLive ? "Restart now" : "Start bot"}
                   </Button>
                 )}
               </div>
@@ -1311,6 +1360,8 @@ function FieldRow({
   issue,
   onChange,
   onEdit,
+  onSave,
+  saving,
 }: {
   field: SettingField;
   view: SettingsView;
@@ -1320,6 +1371,8 @@ function FieldRow({
   issue?: string;
   onChange: (value: string) => void;
   onEdit: (on: boolean) => void;
+  onSave: () => void;
+  saving: boolean;
 }) {
   const overridden = view.overridden.includes(field.key);
   const label = (
@@ -1358,6 +1411,8 @@ function FieldRow({
         editing={editing}
         onChange={onChange}
         onEdit={onEdit}
+        onSave={onSave}
+        saving={saving}
       />
     </Row>
   );
@@ -1425,6 +1480,8 @@ function Control({
   editing,
   onChange,
   onEdit,
+  onSave,
+  saving,
 }: {
   field: SettingField;
   view: SettingsView;
@@ -1432,6 +1489,9 @@ function Control({
   editing: boolean;
   onChange: (value: string) => void;
   onEdit: (on: boolean) => void;
+  /** Saves just this secret (Enter); Escape cancels */
+  onSave: () => void;
+  saving: boolean;
 }) {
   switch (field.type) {
     case "secret": {
@@ -1454,7 +1514,7 @@ function Control({
         );
       }
       return (
-        <div className="flex w-72 max-w-full items-center gap-1.5">
+        <div className="flex w-80 max-w-full items-center gap-1.5">
           <Input
             type="password"
             autoFocus
@@ -1463,8 +1523,20 @@ function Control({
             value={value}
             placeholder={field.placeholder}
             onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && value.trim() && !saving) {
+                e.preventDefault();
+                onSave();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                onEdit(false);
+              }
+            }}
             className="h-7 font-mono text-xs"
           />
+          <Button size="xs" onClick={onSave} disabled={!value.trim() || saving}>
+            Save
+          </Button>
           <Button size="xs" variant="ghost" onClick={() => onEdit(false)}>
             Cancel
           </Button>

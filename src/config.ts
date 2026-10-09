@@ -204,6 +204,22 @@ export interface ConfigIssue {
   /** The env var at fault. For problems involving several values, the main one */
   key?: string;
   message: string;
+  /**
+   * The setting is required but not filled in yet (a Slack credential, the sandbox's login). Saving a partial setup is
+   * fine, since the bot shows "Setup needed" until it is complete; a wrong value is not marked so and blocks saving.
+   */
+  missing?: boolean;
+}
+
+/** A required setting that is still empty. Carries a valid stand-in so the remaining rules can still be checked. */
+export class MissingSettingError extends Error {
+  constructor(
+    readonly key: string,
+    message: string,
+    readonly standIn: string
+  ) {
+    super(message);
+  }
 }
 
 /** Validation for the settings screen. Uses the same rules as loadConfig and returns problems per env var. */
@@ -215,15 +231,25 @@ export function checkConfig(env: NodeJS.ProcessEnv): ConfigIssue[] {
       message: issue.message,
     }));
   }
-  try {
-    loadConfig(env);
-    return [];
-  } catch (err) {
-    const message = (err as Error).message;
-    // Treats the first env var name in the message as the main one.
-    const keys = new Set(Object.keys(EnvSchema.shape));
-    const key = message.match(/[A-Z][A-Z0-9_]+/g)?.find((word) => keys.has(word));
-    return [{ key, message }];
+  // A missing setting is reported and then stood in for, so the rules behind it are checked as well.
+  const issues: ConfigIssue[] = [];
+  const probe: NodeJS.ProcessEnv = { ...env };
+  for (;;) {
+    try {
+      loadConfig(probe);
+      return issues;
+    } catch (err) {
+      if (err instanceof MissingSettingError && probe[err.key] !== err.standIn) {
+        issues.push({ key: err.key, message: err.message, missing: true });
+        probe[err.key] = err.standIn;
+        continue;
+      }
+      const message = (err as Error).message;
+      // Treats the first env var name in the message as the main one.
+      const keys = new Set(Object.keys(EnvSchema.shape));
+      const key = message.match(/[A-Z][A-Z0-9_]+/g)?.find((word) => keys.has(word));
+      return [...issues, { key, message }];
+    }
   }
 }
 
@@ -270,20 +296,30 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 function slackConnection(e: z.infer<typeof EnvSchema>): Config["slack"] {
   if (e.SLACK_CONNECTION === "hub") {
     if (!e.HUB_URL)
-      throw new Error("HUB_URL is required to connect through the team hub.");
+      throw new MissingSettingError(
+        "HUB_URL",
+        "HUB_URL is required to connect through the team hub.",
+        "https://hub.invalid"
+      );
     if (!e.HUB_TOKEN)
-      throw new Error(
-        "HUB_TOKEN is missing: this desktop is not paired with the hub yet. Connect in Settings > Slack."
+      throw new MissingSettingError(
+        "HUB_TOKEN",
+        "HUB_TOKEN is missing: this desktop is not paired with the hub yet. Connect in Settings > Slack.",
+        "0000000000000000000000000000000000000000000000000000000000000000"
       );
     return { kind: "hub", hubUrl: e.HUB_URL.replace(/\/+$/, ""), hubToken: e.HUB_TOKEN };
   }
   if (!e.SLACK_BOT_TOKEN)
-    throw new Error(
-      "SLACK_BOT_TOKEN is required for your own Slack app (SLACK_CONNECTION=app)."
+    throw new MissingSettingError(
+      "SLACK_BOT_TOKEN",
+      "SLACK_BOT_TOKEN is required for your own Slack app (SLACK_CONNECTION=app).",
+      "xoxb-stand-in"
     );
   if (!e.SLACK_APP_TOKEN)
-    throw new Error(
-      "SLACK_APP_TOKEN is required for your own Slack app (SLACK_CONNECTION=app)."
+    throw new MissingSettingError(
+      "SLACK_APP_TOKEN",
+      "SLACK_APP_TOKEN is required for your own Slack app (SLACK_CONNECTION=app).",
+      "xapp-stand-in"
     );
   return {
     kind: "app",
@@ -352,8 +388,10 @@ function buildReasonerConfig(e: Env): Config["reasoner"] {
     claudeEnv.ANTHROPIC_API_KEY = e.SANDBOX_ANTHROPIC_API_KEY;
   }
   if (e.REASONER === "claude" && Object.keys(claudeEnv).length === 0) {
-    throw new Error(
-      "Using claude with REASONER_SANDBOX=docker requires SANDBOX_CLAUDE_OAUTH_TOKEN (claude setup-token) or SANDBOX_ANTHROPIC_API_KEY."
+    throw new MissingSettingError(
+      "SANDBOX_CLAUDE_OAUTH_TOKEN",
+      "Using claude with REASONER_SANDBOX=docker requires SANDBOX_CLAUDE_OAUTH_TOKEN (claude setup-token) or SANDBOX_ANTHROPIC_API_KEY.",
+      "sk-ant-oat01-stand-in"
     );
   }
 

@@ -63,10 +63,16 @@ export class SettingsStore {
     return this.check(parsed.changes);
   }
 
-  /** Validates the bot settings and broker settings together. */
+  /**
+   * Validates the bot settings and broker settings together. Settings that are only missing (a Slack token not entered
+   * yet) do not block saving: a setup can be saved a piece at a time, and the bot shows "Setup needed" until it is done.
+   */
   private check(changes: SettingsChanges): SettingsIssue[] {
     const env = { ...this.candidate(changes), ...this.options.env };
-    return [...checkConfig(env), ...checkBrokerEnv(env)];
+    return [
+      ...checkConfig(env).filter((issue) => !issue.missing),
+      ...checkBrokerEnv(env),
+    ];
   }
 
   save(raw: unknown): SettingsIssue[] {

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { loadConfig } from "../src/config.js";
+import { checkConfig, loadConfig } from "../src/config.js";
 import { defaultHome } from "../src/settings/legacy.js";
 
 const dir = mkdtempSync(path.join(tmpdir(), "orbly-ws-"));
@@ -98,5 +98,31 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...env, SLACK_BOT_TOKEN: "xoxp-1" })).toThrow(
       /SLACK_BOT_TOKEN/
     );
+  });
+});
+
+describe("checkConfig", () => {
+  it("marks settings that are only missing, and still checks the rules behind them", () => {
+    expect(
+      checkConfig({ REASONER_SANDBOX: "docker", OPS_TOOLS: "on" }).map(
+        ({ key, missing }) => ({
+          key,
+          missing,
+        })
+      )
+    ).toEqual([
+      { key: "SLACK_BOT_TOKEN", missing: true },
+      { key: "SLACK_APP_TOKEN", missing: true },
+      { key: "OPS_TOOLS", missing: undefined },
+    ]);
+    expect(checkConfig({ ...env, REASONER_SANDBOX: "docker" })).toEqual([
+      expect.objectContaining({ key: "SANDBOX_CLAUDE_OAUTH_TOKEN", missing: true }),
+    ]);
+  });
+
+  it("does not mark a wrong value as missing", () => {
+    expect(checkConfig({ ...env, SLACK_BOT_TOKEN: "xoxp-1" })).toEqual([
+      expect.not.objectContaining({ missing: true }),
+    ]);
   });
 });

@@ -288,7 +288,7 @@ function updateTray(): void {
       .filter(Boolean)
       .join(" ")
   );
-  // The tray holds only the status and quick actions. Bot control is on the Bot screen; app settings (start automatically, run history folder) are on the Settings screen.
+  // The tray opens the app first, then the status and quick actions. Bot control is on the Bot screen; app settings (start automatically, run history folder) are on the Settings screen.
   const live = phase === "running" || phase === "starting";
   // When setup is needed, the quick action is opening Settings rather than a Start that would stop again.
   const controls: MenuItemConstructorOptions[] = supervisor
@@ -306,11 +306,12 @@ function updateTray(): void {
                 enabled: phase === "idle" || phase === "failed" || phase === "crashed",
                 click: () => void supervisor.start(),
               },
-        { type: "separator" },
       ]
     : [];
   tray.setContextMenu(
     Menu.buildFromTemplate([
+      { label: `Open ${appName}`, click: () => showMainWindow() },
+      { type: "separator" },
       { label: `Bot: ${summary.label}`, enabled: false },
       ...(summary.active > 0
         ? [
@@ -320,9 +321,7 @@ function updateTray(): void {
             },
           ]
         : []),
-      { type: "separator" },
       ...controls,
-      { label: `Open ${appName}`, click: () => showMainWindow() },
       { type: "separator" },
       { label: `Quit ${appName}`, click: () => app.quit() },
     ])

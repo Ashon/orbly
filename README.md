@@ -373,7 +373,7 @@ Bot management:
   Environment variables are read from the config file (`~/.orbly/.env`) like `node --env-file`, and existing environment variables take precedence.
   PATH comes from the login shell. (So docker, codex and pnpm are found even when the app is launched from Finder)
 - The Bot screen has "Start", "Stop", "Restart" and "Rebuild and restart" (development runs only). The number of requests in progress is shown next to the menu bar icon.
-- The menu bar (tray) holds only status and quick actions: bot status ("Bot: ..."), "Start bot" (when stopped) or "Restart bot", "Open Orbly", "Quit Orbly".
+- The menu bar (tray) holds only "Open Orbly" at the top, then the bot status ("Bot: ...") with "Start bot" (when stopped) or "Restart bot", and "Quit Orbly".
   App settings (automatic start, run history folder) are in Settings.
 - Stop and app quit send SIGTERM. The bot waits up to 20 seconds for requests in progress, and the rest resume on the next start.
 - Before launching the bot, the app checks the settings with the bot's own rules. When the Slack tokens are missing (a first run) or a
@@ -411,9 +411,12 @@ Settings:
   and what the running broker reports. Rarely changed values are collapsed under "Advanced".
   Fields, groups and sections are defined only in `src/settings/fields.ts`, and a test checks that their defaults match the bot config (`src/config.ts`).
 - Secret values such as tokens are never sent to the UI. Only the prefix and the last 4 characters are shown; enter a new value to change one.
+  The Save button next to the input (or Enter) saves just that value and closes the input; Esc cancels.
 - "Check connection" checks the bot token, the bot scopes, that both tokens belong to the same app, and Socket Mode, with the entered tokens (or the current ones).
   (The same checks as `pnpm slack:check`; it only fetches the connection URL and does not connect)
 - Before saving, values are validated with the same rules as the bot. Problems are shown next to the field and nothing is saved.
+  A value that is only missing (a Slack token, the hub pairing, the sandbox's claude token) does not block saving the rest, so a setup
+  can be saved a piece at a time; the bot shows "Setup needed" until it is complete.
 - Saving keeps comments, order, and entries the settings screen does not handle (such as personal API keys). Fields reset to their default are emptied as `KEY=`.
   New entries are appended at the end, and the file mode (600) is kept.
 - Saved settings take effect after the bot restarts. "Save and restart bot" does both at once.

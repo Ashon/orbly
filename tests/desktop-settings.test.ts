@@ -50,13 +50,10 @@ describe("settings store", () => {
         message: "This entry cannot be changed from the Settings screen.",
       },
     ]);
-    // Clearing a token your own Slack app needs is refused by the bot's own rule.
-    expect(s.validate({ SLACK_BOT_TOKEN: " " })).toEqual([
-      {
-        key: "SLACK_BOT_TOKEN",
-        message:
-          "SLACK_BOT_TOKEN is required for your own Slack app (SLACK_CONNECTION=app).",
-      },
+    // A token not entered yet does not block saving the rest (the bot shows "Setup needed"), but a wrong one does.
+    expect(s.validate({ SLACK_BOT_TOKEN: " " })).toEqual([]);
+    expect(s.validate({ SLACK_BOT_TOKEN: "xapp-1-wrong-kind" })).toEqual([
+      expect.objectContaining({ key: "SLACK_BOT_TOKEN" }),
     ]);
     expect(s.validate("bad")).toEqual([{ message: "The changes format is invalid." }]);
   });
@@ -88,12 +85,8 @@ TIMEZONE=UTC
       REASONER_SANDBOX: "docker",
       MENTION_ALLOWED_USERS: "U1",
     });
-    // claude + docker requires a sandbox token.
-    expect(s.validate({})).toEqual([
-      expect.objectContaining({
-        message: expect.stringContaining("SANDBOX_CLAUDE_OAUTH_TOKEN"),
-      }),
-    ]);
+    // claude + docker needs a sandbox token, which can be saved later.
+    expect(s.validate({})).toEqual([]);
     expect(s.validate({ SANDBOX_CLAUDE_OAUTH_TOKEN: "sk-ant-oat01-xxxx" })).toEqual([]);
   });
 });

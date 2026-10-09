@@ -450,7 +450,11 @@ describe("desktop side of the hub", () => {
     expect(
       checkConfig({ SLACK_CONNECTION: "hub", HUB_URL: "https://hub.example.com" })
     ).toEqual([
-      { key: "HUB_TOKEN", message: expect.stringContaining("Settings > Slack") },
+      {
+        key: "HUB_TOKEN",
+        message: expect.stringContaining("Settings > Slack"),
+        missing: true,
+      },
     ]);
     expect(
       checkConfig({
