@@ -5,7 +5,7 @@ import { SandboxHealth } from "../src/runtime/sandbox-health.js";
 /** A logger that keeps its lines, to check what the bot log would say */
 function recordingLogger() {
   const lines: string[] = [];
-  const log = createLogger("info", "orbly", [
+  const log = createLogger("info", "pacenote", [
     (_level: LogLevel, line: string) => void lines.push(line.replace(/^\S+ /, "")),
   ]);
   return { log, lines };
@@ -33,8 +33,8 @@ describe("sandbox health while the bot runs", () => {
       [[]],
     ]);
     expect(lines).toEqual([
-      "ERROR [orbly] Sandbox: The egress proxy is not running. (pnpm sandbox:up)",
-      "INFO  [orbly] Sandbox ready: the earlier check issues are resolved.",
+      "ERROR [pacenote] Sandbox: The egress proxy is not running. (pnpm sandbox:up)",
+      "INFO  [pacenote] Sandbox ready: the earlier check issues are resolved.",
     ]);
   });
 

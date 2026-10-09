@@ -55,7 +55,7 @@ async function launch(world: World): Promise<Page> {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
       (entry): entry is [string, string] =>
-        entry[1] !== undefined && !/^(ORBLY|VERDA|SLACK|HUB)_/.test(entry[0])
+        entry[1] !== undefined && !/^(PACENOTE|ORBLY|VERDA|SLACK|HUB)_/.test(entry[0])
     )
   );
   app = await _electron.launch({
@@ -63,12 +63,12 @@ async function launch(world: World): Promise<Page> {
     args: [path.join(REPO, "apps/desktop")],
     env: {
       ...env,
-      // Its own HOME, so the bot lock does not see a real Orbly running from ~/.orbly or ~/.verda.
+      // Its own HOME, so the bot lock does not see a real Pacenote, Orbly or Verda running from its home.
       HOME: world.root,
-      ORBLY_HOME: world.home,
-      ORBLY_DATA_DIR: world.home,
-      ORBLY_DESKTOP_USER_DATA: path.join(world.root, "user-data"),
-      ORBLY_DESKTOP_THEME: "light",
+      PACENOTE_HOME: world.home,
+      PACENOTE_DATA_DIR: world.home,
+      PACENOTE_DESKTOP_USER_DATA: path.join(world.root, "user-data"),
+      PACENOTE_DESKTOP_THEME: "light",
     },
   });
   const page = await app.firstWindow();

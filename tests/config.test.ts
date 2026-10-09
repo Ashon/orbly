@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { checkConfig, loadConfig } from "../src/config.js";
 import { defaultHome } from "../src/settings/legacy.js";
 
-const dir = mkdtempSync(path.join(tmpdir(), "orbly-ws-"));
+const dir = mkdtempSync(path.join(tmpdir(), "pacenote-ws-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 const env = { SLACK_BOT_TOKEN: "xoxb-1", SLACK_APP_TOKEN: "xapp-1" };
@@ -24,7 +24,7 @@ describe("loadConfig", () => {
       concurrency: 2,
     });
     expect(config.render).toMatchObject({ enabled: true, generatedMaxPx: 512 });
-    // The default home: ~/.orbly, or ~/.verda before migrating (tests/legacy.test.ts)
+    // The default home: ~/.pacenote, or ~/.orbly or ~/.verda before migrating (tests/legacy.test.ts)
     expect(config.dataDir).toBe(defaultHome());
     expect(config.history).toEqual({ retentionDays: 30 });
     expect(loadConfig({ ...env, HISTORY: "off" }).history).toBeUndefined();

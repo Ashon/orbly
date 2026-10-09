@@ -16,7 +16,7 @@ import { HubServer, type SlackGateway } from "../src/hub/server.js";
 import { DesktopStore } from "../src/hub/store.js";
 import { HubReceiver } from "../src/messengers/slack/hub-receiver.js";
 
-const root = mkdtempSync(path.join(tmpdir(), "orbly-hub-"));
+const root = mkdtempSync(path.join(tmpdir(), "pacenote-hub-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
@@ -488,7 +488,7 @@ describe("desktop side of the hub", () => {
     });
     expect(
       startFailureProblem([
-        "ERROR [orbly] Startup failed: An API error occurred: hub_unauthorized",
+        "ERROR [pacenote] Startup failed: An API error occurred: hub_unauthorized",
       ])
     ).toMatchObject({
       kind: "slack",

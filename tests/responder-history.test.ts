@@ -15,7 +15,7 @@ import { SlackMessenger } from "../src/messengers/slack/messenger.js";
 import type { Mention, Messenger, Upload } from "../src/messengers/types.js";
 import type { Reasoner, ReasonRequest } from "../src/reasoner/index.js";
 
-const root = mkdtempSync(path.join(tmpdir(), "orbly-responder-"));
+const root = mkdtempSync(path.join(tmpdir(), "pacenote-responder-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 function setup(complete: (request: ReasonRequest) => Promise<string>) {
@@ -64,7 +64,7 @@ function setup(complete: (request: ReasonRequest) => Promise<string>) {
   const messenger = new SlackMessenger({
     client,
     directory,
-    botUserId: "U0ORBLY",
+    botUserId: "U0PACEY",
     workspaceUrl: "https://example.slack.com/",
     files: { token: "xoxb-1" },
     allowedUsers: [],
@@ -89,7 +89,7 @@ const mention = (ts: string): Mention =>
     ts,
     thread_ts: "1791443475.275049",
     user: "U0BOSS",
-    text: "<@U0ORBLY> check the status of web-01",
+    text: "<@U0PACEY> check the status of web-01",
     event_ts: ts,
   } as AppMentionEvent)!;
 

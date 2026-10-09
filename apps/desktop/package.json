@@ -1,5 +1,5 @@
 {
-  "name": "@orbly/desktop",
+  "name": "@pacenote/desktop",
   "version": "0.2.2",
   "private": true,
   "description": "Orbly desktop app: runs the bot and shows its status, logs and run history",
@@ -7,7 +7,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "pnpm typecheck && node scripts/build.mjs",
-    "dev": "node scripts/build.mjs && ORBLY_WEB_DEV_URL=http://127.0.0.1:5179 electron .",
+    "dev": "node scripts/build.mjs && PACENOTE_WEB_DEV_URL=http://127.0.0.1:5179 electron .",
     "start": "electron .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "icon": "swift scripts/icon.swift ../../assets"

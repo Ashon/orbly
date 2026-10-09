@@ -14,7 +14,7 @@ import type {
 declare global {
   interface Window {
     /** Present only in the desktop app (preload). */
-    orblyDesktop?: {
+    pacenoteDesktop?: {
       platform: string;
       /** Runs from the repository (Orbly Dev) rather than the installed app */
       dev?: boolean;

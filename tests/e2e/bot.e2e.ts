@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { eventually, sleep, startBot } from "./support/processes.js";
 import { World } from "./support/world.js";
 
-/** The bot on a Slack app of its own (Socket Mode), the way a member uses Orbly alone */
+/** The bot on a Slack app of its own (Socket Mode), the way a member uses Pacenote alone */
 
 let world: World | undefined;
 afterEach(async () => {

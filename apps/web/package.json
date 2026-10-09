@@ -1,5 +1,5 @@
 {
-  "name": "@orbly/web",
+  "name": "@pacenote/web",
   "version": "0.2.2",
   "private": true,
   "description": "Orbly UI for status, settings and run history (bundled into the desktop app)",

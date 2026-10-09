@@ -14,13 +14,13 @@ import {
   legacyHomeWarning,
   warnOnce,
 } from "../settings/legacy.js";
-import { allowlistPath, envFilePath, orblyHome } from "../settings/paths.js";
+import { allowlistPath, envFilePath, pacenoteHome } from "../settings/paths.js";
 
 /**
  * Sandbox apply jobs. The desktop app and the terminal (pnpm sandbox:*) use the same steps.
  * Usage: sandbox-job <images|proxy|broker|kubeconfig> [--dry-run]
- * - The sandbox directory is ORBLY_SANDBOX_DIR (the sandbox inside the bundle for the app), otherwise sandbox in the current directory
- * - Settings are read from the config file (ORBLY_HOME/.env), and existing environment variables take precedence. (Same as node --env-file)
+ * - The sandbox directory is PACENOTE_SANDBOX_DIR (the sandbox inside the bundle for the app), otherwise sandbox in the current directory
+ * - Settings are read from the config file (PACENOTE_HOME/.env), and existing environment variables take precedence. (Same as node --env-file)
  * - The compose project name (orbly-sandbox) is the same, so the repository and the app manage the same containers.
  */
 export const JOB_KINDS = ["images", "proxy", "broker", "kubeconfig"] as const;
@@ -78,8 +78,8 @@ export function planJob(kind: JobKind, ctx: JobContext): JobStep[] {
 
 /**
  * Overlays the current environment variables on the config file values and maps the names from before the
- * rename (VERDA_* -> ORBLY_*, reported through warn). ORBLY_HOME is always passed resolved, so compose uses
- * the same location as the app even when it is still ~/.verda.
+ * renames (ORBLY_*, VERDA_* -> PACENOTE_*, reported through warn). PACENOTE_HOME is always passed resolved, so
+ * compose uses the same location as the app even when it is still ~/.orbly or ~/.verda.
  */
 export function jobEnv(
   base: NodeJS.ProcessEnv,
@@ -98,7 +98,7 @@ export function jobEnv(
     ),
     warn
   );
-  merged.ORBLY_HOME = orblyHome(base, home);
+  merged.PACENOTE_HOME = pacenoteHome(base, home);
   return merged;
 }
 

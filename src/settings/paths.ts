@@ -3,13 +3,14 @@ import path from "node:path";
 import { defaultHome, envValue } from "./legacy.js";
 
 /**
- * Orbly settings location outside the repository. Holds the config file (.env) and ops-broker runtime files (host list, kubeconfig).
+ * Pacenote settings location outside the repository. Holds the config file (.env) and ops-broker runtime files (host list, kubeconfig).
  * It is kept out of the repository so values from target environments do not end up in it.
- * Change the location with the ORBLY_HOME environment variable (VERDA_HOME from before the rename is still read).
- * The default is ~/.orbly, or ~/.verda while ~/.orbly does not exist. (sandbox/compose.yaml defaults to ~/.orbly;
+ * Change the location with the PACENOTE_HOME environment variable (ORBLY_HOME and VERDA_HOME from before the renames
+ * are still read). The default is ~/.pacenote, or ~/.orbly or ~/.verda while it does not exist. (sandbox/compose.yaml
+ * defaults to ~/.pacenote;
  * the prep commands always pass the resolved location)
  */
-export function orblyHome(
+export function pacenoteHome(
   env: NodeJS.ProcessEnv = process.env,
   home = homedir()
 ): string {
@@ -25,7 +26,7 @@ export function envFilePath(
   env: NodeJS.ProcessEnv = process.env,
   home = homedir()
 ): string {
-  return path.join(orblyHome(env, home), ".env");
+  return path.join(pacenoteHome(env, home), ".env");
 }
 
 /** Egress allowlist. Mounted by the egress proxy. Created from sandbox/proxy/allowed-domains.txt if missing. */
@@ -33,7 +34,7 @@ export function allowlistPath(
   env: NodeJS.ProcessEnv = process.env,
   home = homedir()
 ): string {
-  return path.join(orblyHome(env, home), "sandbox", "allowed-domains.txt");
+  return path.join(pacenoteHome(env, home), "sandbox", "allowed-domains.txt");
 }
 
 /** Generated files the broker mounts (hosts.json, kubeconfig) and empty placeholders for unset mounts (unset/) */
@@ -41,5 +42,5 @@ export function brokerRuntimeDir(
   env: NodeJS.ProcessEnv = process.env,
   home = homedir()
 ): string {
-  return path.join(orblyHome(env, home), "ops-broker");
+  return path.join(pacenoteHome(env, home), "ops-broker");
 }

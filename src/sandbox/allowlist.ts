@@ -68,7 +68,7 @@ export function updateAllowlist(text: string, domains: string[]): string {
   const added = [...wanted].filter((domain) => !kept.has(domain));
   if (added.length > 0) {
     if (out.length > 0 && out.at(-1) !== "") out.push("");
-    out.push("# Added from the Orbly app settings screen", ...added);
+    out.push("# Added from the Pacenote app settings screen", ...added);
   }
   return `${out.join("\n")}\n`;
 }

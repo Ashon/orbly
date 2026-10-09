@@ -10,9 +10,9 @@ import { defaultHome, envValue } from "../../src/settings/legacy";
 /** The dev server also reads real history through the same /api as the desktop app. (read-only, 127.0.0.1 only) */
 function historyApi(): Plugin {
   return {
-    name: "orbly-history-api",
+    name: "pacenote-history-api",
     configureServer(server) {
-      // ORBLY_DATA_DIR (or VERDA_DATA_DIR from before the rename), else the default home
+      // PACENOTE_DATA_DIR (or ORBLY_DATA_DIR, VERDA_DATA_DIR from before the renames), else the default home
       const raw = envValue(process.env, "DATA_DIR") ?? defaultHome();
       const root = raw.startsWith("~") ? path.join(homedir(), raw.slice(1)) : raw;
       const reader = new HistoryReader(path.resolve(root));

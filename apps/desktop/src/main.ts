@@ -24,6 +24,7 @@ import { setupSettingsRoute } from "../../../src/settings/fields.js";
 import {
   applyLegacyEnv,
   defaultHome,
+  envNames,
   legacyHomeWarning,
   warnOnce,
 } from "../../../src/settings/legacy.js";
@@ -37,30 +38,30 @@ import { SettingsStore } from "./settings.js";
 
 /**
  * Orbly desktop app. Runs and manages the bot (Slack Socket Mode) as a child process and shows its status, logs, and run history.
- * - The UI (apps/web build) and the query API are served only over the orbly://app protocol, so no external port is opened.
+ * - The UI (apps/web build) and the query API are served only over the pacenote://app protocol, so no external port is opened.
  * - Bot control (start, stop, restart) goes only through the preload IPC.
  * - Closing the window hides it to the tray and the bot keeps running. Quitting the app lets the bot finish active requests and then stops it.
  */
-// Variables from before the rename (VERDA_*) are read as ORBLY_*, with a warning. This runs before anything reads them.
+// Variables from before the renames (ORBLY_*, VERDA_*) are read as PACENOTE_*, with a warning. This runs before anything reads them.
 warnOnce(applyLegacyEnv(process.env), (message) =>
-  console.warn(`[orbly-desktop] ${message}`)
+  console.warn(`[pacenote-desktop] ${message}`)
 );
 const distDir = path.dirname(fileURLToPath(import.meta.url));
 /** Dev runs use the repository build output; the packaged app (Orbly.app) uses the bundled files inside the app. */
 const paths = resolveAppPaths(distDir, app.isPackaged);
 const webDistDir = paths.webDist;
-/** The settings file lives outside the repository. (ORBLY_HOME, default ~/.orbly) */
+/** The settings file lives outside the repository. (PACENOTE_HOME, default ~/.pacenote) */
 const envFile = envFilePath();
-const webDevUrl = app.isPackaged ? undefined : process.env.ORBLY_WEB_DEV_URL;
+const webDevUrl = app.isPackaged ? undefined : process.env.PACENOTE_WEB_DEV_URL;
 /** Saves the window as a PNG and quits. (for checking builds) */
-const captureFile = process.env.ORBLY_DESKTOP_CAPTURE;
+const captureFile = process.env.PACENOTE_DESKTOP_CAPTURE;
 const dataDir = resolveDataDir();
 const reader = new HistoryReader(dataDir);
 /**
- * With ORBLY_DESKTOP_BOT=off the app does not manage the bot and only shows history.
- * Screen captures leave the bot alone. (ORBLY_DESKTOP_BOT=on manages it during captures too)
+ * With PACENOTE_DESKTOP_BOT=off the app does not manage the bot and only shows history.
+ * Screen captures leave the bot alone. (PACENOTE_DESKTOP_BOT=on manages it during captures too)
  */
-const botSetting = process.env.ORBLY_DESKTOP_BOT;
+const botSetting = process.env.PACENOTE_DESKTOP_BOT;
 const manageBot = botSetting === "on" || (botSetting !== "off" && !captureFile);
 
 /**
@@ -71,16 +72,16 @@ const appName = app.isPackaged ? "Orbly" : "Orbly Dev";
 /** Dock and window icon: dev runs get the one with the DEV tag. */
 const appIcon = path.join(distDir, app.isPackaged ? "icon.png" : "icon-dev.png");
 app.setName(appName);
-// Screen captures and end-to-end tests (ORBLY_DESKTOP_USER_DATA) use a user data folder of their own, so they do
+// Screen captures and end-to-end tests (PACENOTE_DESKTOP_USER_DATA) use a user data folder of their own, so they do
 // not hit the running app's single-instance lock.
 const userData =
-  process.env.ORBLY_DESKTOP_USER_DATA ||
-  (captureFile ? path.join(tmpdir(), "orbly-desktop-capture") : undefined);
+  process.env.PACENOTE_DESKTOP_USER_DATA ||
+  (captureFile ? path.join(tmpdir(), "pacenote-desktop-capture") : undefined);
 if (userData) app.setPath("userData", userData);
 else if (!app.isPackaged)
   app.setPath("userData", path.join(app.getPath("appData"), appName));
 // UI theme: system (default), light, dark
-const themeSource = process.env.ORBLY_DESKTOP_THEME;
+const themeSource = process.env.PACENOTE_DESKTOP_THEME;
 if (themeSource === "light" || themeSource === "dark")
   nativeTheme.themeSource = themeSource;
 
@@ -95,14 +96,14 @@ function toolPath(): string {
   try {
     const output = execFileSync(
       process.env.SHELL || "/bin/zsh",
-      ["-ilc", 'printf "\\nORBLY_PATH=%s\\n" "$PATH"'],
+      ["-ilc", 'printf "\\nPACENOTE_PATH=%s\\n" "$PATH"'],
       { encoding: "utf8", timeout: 5_000, stdio: ["ignore", "pipe", "ignore"] }
     );
     const line = output
       .split("\n")
       .reverse()
-      .find((l) => l.startsWith("ORBLY_PATH="));
-    if (line) toolPathCache = line.slice("ORBLY_PATH=".length);
+      .find((l) => l.startsWith("PACENOTE_PATH="));
+    if (line) toolPathCache = line.slice("PACENOTE_PATH=".length);
   } catch {
     // Falls back to the default paths below.
   }
@@ -150,27 +151,27 @@ const supervisor = manageBot
       envFile,
       dataDir,
       toolPath,
-      log: (message) => console.log(`[orbly-desktop] ${message}`),
+      log: (message) => console.log(`[pacenote-desktop] ${message}`),
     })
   : undefined;
 
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: "orbly",
+    scheme: "pacenote",
     privileges: { standard: true, secure: true, supportFetchAPI: true },
   },
 ]);
 
 /**
- * Resolved from the environment variable, then ORBLY_DATA_DIR (or VERDA_DATA_DIR from before the rename) in the
- * settings file, then the default home (~/.orbly, or ~/.verda while ~/.orbly does not exist).
+ * Resolved from the environment variable, then PACENOTE_DATA_DIR (or ORBLY_DATA_DIR, VERDA_DATA_DIR from before the
+ * renames) in the settings file, then the default home (~/.pacenote, or ~/.orbly or ~/.verda while it does not exist).
  */
 function resolveDataDir(): string {
-  let value = process.env.ORBLY_DATA_DIR;
+  let value = process.env.PACENOTE_DATA_DIR;
   if (!value) {
     try {
       const lines = readFileSync(envFile, "utf8").split("\n");
-      for (const key of ["ORBLY_DATA_DIR", "VERDA_DATA_DIR"]) {
+      for (const key of envNames("DATA_DIR")) {
         value = lines
           .find((l) => l.startsWith(`${key}=`))
           ?.slice(key.length + 1)
@@ -185,7 +186,7 @@ function resolveDataDir(): string {
   if (!value) {
     warnOnce(
       [legacyHomeWarning()].filter((m): m is string => m !== undefined),
-      (m) => console.warn(`[orbly-desktop] ${m}`)
+      (m) => console.warn(`[pacenote-desktop] ${m}`)
     );
     return defaultHome();
   }
@@ -205,7 +206,7 @@ const CSP = [
 ].join("; ");
 
 function registerAppProtocol(): void {
-  protocol.handle("orbly", async (request) => {
+  protocol.handle("pacenote", async (request) => {
     const url = new URL(request.url);
     if (url.hostname !== "app") return new Response("Not found", { status: 404 });
     if (url.pathname.startsWith("/api/")) {
@@ -344,32 +345,32 @@ function createTray(): void {
 function registerBotIpc(): void {
   const fromMainWindow = (event: Electron.IpcMainInvokeEvent) =>
     event.sender === mainWindow?.webContents;
-  ipcMain.handle("orbly:bot:state", (event) =>
+  ipcMain.handle("pacenote:bot:state", (event) =>
     fromMainWindow(event) && supervisor ? supervisor.current : null
   );
-  ipcMain.handle("orbly:bot:start", async (event) => {
+  ipcMain.handle("pacenote:bot:start", async (event) => {
     if (fromMainWindow(event)) await supervisor?.start();
   });
-  ipcMain.handle("orbly:bot:stop", async (event) => {
+  ipcMain.handle("pacenote:bot:stop", async (event) => {
     if (fromMainWindow(event)) await supervisor?.stop();
   });
-  ipcMain.handle("orbly:bot:restart", async (event, rebuild: unknown) => {
+  ipcMain.handle("pacenote:bot:restart", async (event, rebuild: unknown) => {
     if (fromMainWindow(event)) await supervisor?.restart({ rebuild: rebuild === true });
   });
-  ipcMain.handle("orbly:bot:auto-start", (event, value: unknown) => {
+  ipcMain.handle("pacenote:bot:auto-start", (event, value: unknown) => {
     if (fromMainWindow(event) && typeof value === "boolean")
       supervisor?.setAutoStart(value);
   });
-  ipcMain.handle("orbly:bot:open-logs", (event) => {
+  ipcMain.handle("pacenote:bot:open-logs", (event) => {
     if (fromMainWindow(event)) void shell.openPath(path.join(dataDir, "logs"));
   });
-  ipcMain.handle("orbly:settings:get", (event) =>
+  ipcMain.handle("pacenote:settings:get", (event) =>
     fromMainWindow(event) ? settings.view() : null
   );
-  ipcMain.handle("orbly:settings:validate", (event, changes: unknown) =>
+  ipcMain.handle("pacenote:settings:validate", (event, changes: unknown) =>
     fromMainWindow(event) ? settings.validate(changes) : []
   );
-  ipcMain.handle("orbly:settings:check-slack", (event, changes: unknown) =>
+  ipcMain.handle("pacenote:settings:check-slack", (event, changes: unknown) =>
     fromMainWindow(event) ? settings.checkSlack(changes) : []
   );
   // New settings take effect only after the bot restarts. A stopped bot is started fresh.
@@ -388,7 +389,7 @@ function registerBotIpc(): void {
     return true;
   };
   ipcMain.handle(
-    "orbly:settings:save",
+    "pacenote:settings:save",
     async (event, changes: unknown, restart: unknown) => {
       if (!fromMainWindow(event)) return { issues: [], restarted: false };
       const issues = settings.save(changes);
@@ -408,60 +409,60 @@ function registerBotIpc(): void {
       return { error: (err as Error).message };
     }
   };
-  ipcMain.handle("orbly:hub:pair-start", (event, url: unknown) =>
+  ipcMain.handle("pacenote:hub:pair-start", (event, url: unknown) =>
     hubCall(event, () => hubPairing.start(url))
   );
-  ipcMain.handle("orbly:hub:pair-status", (event) =>
+  ipcMain.handle("pacenote:hub:pair-status", (event) =>
     hubCall(event, () => hubPairing.status())
   );
-  ipcMain.handle("orbly:hub:pair-confirm", (event) =>
+  ipcMain.handle("pacenote:hub:pair-confirm", (event) =>
     hubCall(event, async () => {
       const confirmed = await hubPairing.confirm();
       const started = confirmed.issues.length === 0 && (await applySettings());
       return { ...confirmed, started };
     })
   );
-  ipcMain.handle("orbly:hub:pair-cancel", (event) => {
+  ipcMain.handle("pacenote:hub:pair-cancel", (event) => {
     if (fromMainWindow(event)) hubPairing.cancel();
   });
-  ipcMain.handle("orbly:hub:disconnect", (event) =>
+  ipcMain.handle("pacenote:hub:disconnect", (event) =>
     hubCall(event, async () => {
       const issues = await hubPairing.disconnect(settings.effectiveEnv());
       if (issues.length === 0) await applySettings();
       return { issues };
     })
   );
-  ipcMain.handle("orbly:settings:open-data-dir", (event) => {
+  ipcMain.handle("pacenote:settings:open-data-dir", (event) => {
     if (fromMainWindow(event)) void shell.openPath(dataDir);
   });
-  ipcMain.handle("orbly:settings:reveal-env", (event) => {
+  ipcMain.handle("pacenote:settings:reveal-env", (event) => {
     if (fromMainWindow(event)) shell.showItemInFolder(envFile);
   });
-  ipcMain.handle("orbly:sandbox:status", (event) =>
+  ipcMain.handle("pacenote:sandbox:status", (event) =>
     fromMainWindow(event) ? sandbox.status() : null
   );
-  ipcMain.handle("orbly:sandbox:job", (event) =>
+  ipcMain.handle("pacenote:sandbox:job", (event) =>
     fromMainWindow(event) ? (sandbox.job ?? null) : null
   );
-  ipcMain.handle("orbly:sandbox:run", (event, kind: unknown) =>
+  ipcMain.handle("pacenote:sandbox:run", (event, kind: unknown) =>
     fromMainWindow(event) ? sandbox.run(kind) : { error: "Denied" }
   );
-  ipcMain.handle("orbly:sandbox:save-allowlist", (event, domains: unknown) =>
+  ipcMain.handle("pacenote:sandbox:save-allowlist", (event, domains: unknown) =>
     fromMainWindow(event) ? sandbox.saveAllowlist(domains) : []
   );
-  ipcMain.handle("orbly:sandbox:claude-token", (event) =>
+  ipcMain.handle("pacenote:sandbox:claude-token", (event) =>
     fromMainWindow(event) ? claudeToken.run() : { ok: false, error: "Not allowed." }
   );
-  ipcMain.handle("orbly:sandbox:claude-token-cancel", (event) => {
+  ipcMain.handle("pacenote:sandbox:claude-token-cancel", (event) => {
     if (fromMainWindow(event)) claudeToken.cancel();
   });
   sandbox.on("job", (job) => {
-    mainWindow?.webContents.send("orbly:sandbox:job-changed", job);
+    mainWindow?.webContents.send("pacenote:sandbox:job-changed", job);
     // A finished job may have started or stopped the proxy or the broker; the bot checks the sandbox again.
     if (job.state !== "running") supervisor?.recheckSandbox();
   });
   supervisor?.on("change", (state) => {
-    mainWindow?.webContents.send("orbly:bot:changed", state);
+    mainWindow?.webContents.send("pacenote:bot:changed", state);
     updateTray();
   });
 }
@@ -473,8 +474,8 @@ async function createWindow(route = ""): Promise<void> {
   }
   const window = new BrowserWindow({
     // For captures the size can be changed: a narrow width for tight layouts, a tall height for long screens.
-    width: (captureFile && Number(process.env.ORBLY_DESKTOP_CAPTURE_WIDTH)) || 1360,
-    height: (captureFile && Number(process.env.ORBLY_DESKTOP_CAPTURE_HEIGHT)) || 880,
+    width: (captureFile && Number(process.env.PACENOTE_DESKTOP_CAPTURE_WIDTH)) || 1360,
+    height: (captureFile && Number(process.env.PACENOTE_DESKTOP_CAPTURE_HEIGHT)) || 880,
     minWidth: 600,
     minHeight: 600,
     show: false,
@@ -489,7 +490,7 @@ async function createWindow(route = ""): Promise<void> {
       sandbox: true,
       preload: path.join(distDir, "preload.cjs"),
       // Tells the UI it runs from the repository (preload reads it from argv).
-      additionalArguments: app.isPackaged ? [] : ["--orbly-dev"],
+      additionalArguments: app.isPackaged ? [] : ["--pacenote-dev"],
     },
   });
   mainWindow = window;
@@ -509,12 +510,12 @@ async function createWindow(route = ""): Promise<void> {
     return { action: "deny" };
   });
   window.webContents.on("will-navigate", (event, url) => {
-    if (!url.startsWith("orbly://app/") && !(webDevUrl && url.startsWith(webDevUrl))) {
+    if (!url.startsWith("pacenote://app/") && !(webDevUrl && url.startsWith(webDevUrl))) {
       event.preventDefault();
     }
   });
   if (webDevUrl) await waitForUrl(webDevUrl);
-  await window.loadURL(`${webDevUrl ?? "orbly://app/"}${route}`);
+  await window.loadURL(`${webDevUrl ?? "pacenote://app/"}${route}`);
   if (captureFile) await capture(window, captureFile);
 }
 
@@ -532,11 +533,11 @@ async function waitForUrl(url: string): Promise<void> {
 }
 
 async function capture(window: BrowserWindow, file: string): Promise<void> {
-  const hash = process.env.ORBLY_DESKTOP_CAPTURE_HASH;
+  const hash = process.env.PACENOTE_DESKTOP_CAPTURE_HASH;
   if (hash)
     await window.webContents.executeJavaScript(`location.hash = ${JSON.stringify(hash)}`);
   await new Promise((resolve) =>
-    setTimeout(resolve, Number(process.env.ORBLY_DESKTOP_CAPTURE_DELAY) || 2_500)
+    setTimeout(resolve, Number(process.env.PACENOTE_DESKTOP_CAPTURE_DELAY) || 2_500)
   );
   const image = await window.webContents.capturePage();
   writeFileSync(file, image.toPNG());

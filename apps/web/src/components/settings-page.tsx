@@ -59,7 +59,7 @@ import {
   SandboxStatusCard,
 } from "./sandbox-panel";
 
-const bridge = () => window.orblyDesktop?.settings;
+const bridge = () => window.pacenoteDesktop?.settings;
 
 /** Settings sections: the bot's own (.env), then the desktop app's preferences. */
 type Section = SettingSection | "general";
@@ -582,7 +582,7 @@ export function SettingsPage() {
           <div className="divide-y divide-canvas">
             <Row
               label="Theme"
-              help="System follows the macOS appearance. ORBLY_DESKTOP_THEME in the environment overrides it."
+              help="System follows the macOS appearance. PACENOTE_DESKTOP_THEME in the environment overrides it."
             >
               <ThemePicker />
             </Row>
@@ -621,7 +621,7 @@ export function SettingsPage() {
             </Row>
             <Row
               label="Run history folder"
-              help="ORBLY_DATA_DIR. To change it, edit the settings file and relaunch the app."
+              help="PACENOTE_DATA_DIR. To change it, edit the settings file and relaunch the app."
             >
               <PathControl
                 path={view.dataDir}
@@ -1055,7 +1055,7 @@ function ClaudeTokenSetup({
   hasToken: boolean;
   onSaved: () => void;
 }) {
-  const bridge = window.orblyDesktop?.sandbox;
+  const bridge = window.pacenoteDesktop?.sandbox;
   const [state, setState] = useState<
     { step: "idle" } | { step: "waiting" } | { step: "error"; message: string }
   >({ step: "idle" });
@@ -1161,7 +1161,7 @@ function HubPairing({
   onPaired: (notice: string) => void;
   onDisconnected: () => void;
 }) {
-  const hub = window.orblyDesktop?.hub;
+  const hub = window.pacenoteDesktop?.hub;
   const [state, setState] = useState<PairState>({ step: "idle" });
   const [busy, setBusy] = useState(false);
 

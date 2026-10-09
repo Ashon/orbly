@@ -7,7 +7,7 @@ import {
   updateAllowlist,
 } from "../src/sandbox/allowlist.js";
 import { brokerExpected, checkBrokerEnv } from "../src/sandbox/env.js";
-import { brokerRuntimeDir, envFilePath, orblyHome } from "../src/settings/paths.js";
+import { brokerRuntimeDir, envFilePath, pacenoteHome } from "../src/settings/paths.js";
 import { computePending, parseHealthz, pickEnv } from "../src/sandbox/status.js";
 
 const ALLOWLIST = `# Domains the sandbox containers can reach
@@ -53,7 +53,7 @@ chatgpt.com
 auth.openai.com
 api.openai.com
 
-# Added from the Orbly app settings screen
+# Added from the Pacenote app settings screen
 api.example.com
 `);
   });
@@ -111,20 +111,20 @@ describe("broker settings", () => {
     );
   });
 
-  it("keeps the config file and broker generated files outside the repository (ORBLY_HOME, default ~/.orbly)", () => {
-    expect(orblyHome({}, "/home/me")).toBe("/home/me/.orbly");
-    expect(envFilePath({}, "/home/me")).toBe("/home/me/.orbly/.env");
-    expect(brokerRuntimeDir({}, "/home/me")).toBe("/home/me/.orbly/ops-broker");
-    expect(envFilePath({ ORBLY_HOME: "~/work/orbly" }, "/home/me")).toBe(
-      "/home/me/work/orbly/.env"
+  it("keeps the config file and broker generated files outside the repository (PACENOTE_HOME, default ~/.pacenote)", () => {
+    expect(pacenoteHome({}, "/home/me")).toBe("/home/me/.pacenote");
+    expect(envFilePath({}, "/home/me")).toBe("/home/me/.pacenote/.env");
+    expect(brokerRuntimeDir({}, "/home/me")).toBe("/home/me/.pacenote/ops-broker");
+    expect(envFilePath({ PACENOTE_HOME: "~/work/pacenote" }, "/home/me")).toBe(
+      "/home/me/work/pacenote/.env"
     );
-    expect(brokerRuntimeDir({ ORBLY_HOME: "/srv/orbly " }, "/home/me")).toBe(
-      "/srv/orbly/ops-broker"
+    expect(brokerRuntimeDir({ PACENOTE_HOME: "/srv/pacenote " }, "/home/me")).toBe(
+      "/srv/pacenote/ops-broker"
     );
   });
 
   it("turns off empty features without defaults and points mounts at empty placeholders", () => {
-    const runtime = "/home/me/.orbly/ops-broker";
+    const runtime = "/home/me/.pacenote/ops-broker";
     expect(brokerExpected({}, runtime)).toEqual({
       sshUser: "",
       allowedCidr: "",
@@ -250,7 +250,7 @@ describe("status evaluation", () => {
   it("derives the config fingerprint only from bot settings, not the data location", () => {
     const base = { SLACK_BOT_TOKEN: "xoxb-1", SLACK_APP_TOKEN: "xapp-1", PATH: "/bin" };
     expect(configFingerprint(base)).toBe(
-      configFingerprint({ ...base, PATH: "/usr/bin", ORBLY_DATA_DIR: "/x" })
+      configFingerprint({ ...base, PATH: "/usr/bin", PACENOTE_DATA_DIR: "/x" })
     );
     expect(configFingerprint(base)).not.toBe(
       configFingerprint({ ...base, LOG_LEVEL: "debug" })

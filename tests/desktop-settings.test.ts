@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { SettingsStore } from "../apps/desktop/src/settings.js";
 
-const root = mkdtempSync(path.join(tmpdir(), "orbly-desktop-settings-"));
+const root = mkdtempSync(path.join(tmpdir(), "pacenote-desktop-settings-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const ENV = `# Personal settings
@@ -19,7 +19,10 @@ REASONER=claude
 function store(env: NodeJS.ProcessEnv = {}) {
   const envFile = path.join(root, `${Math.random().toString(36).slice(2)}.env`);
   writeFileSync(envFile, ENV, { mode: 0o600 });
-  return { envFile, store: new SettingsStore({ envFile, dataDir: "/tmp/orbly", env }) };
+  return {
+    envFile,
+    store: new SettingsStore({ envFile, dataDir: "/tmp/pacenote", env }),
+  };
 }
 
 describe("settings store", () => {

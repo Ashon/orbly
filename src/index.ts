@@ -26,11 +26,11 @@ let startupLog: Logger | undefined;
 let running = false;
 
 async function main(): Promise<void> {
-  // The settings file and the names from before the rename (VERDA_*, ~/.verda); warnings go to the log below.
+  // The settings file and the names from before the renames (ORBLY_*, VERDA_*, ~/.orbly, ~/.verda); warnings go to the log below.
   const envWarnings = loadEnv();
   const config = loadConfig();
-  // Logs to ORBLY_DATA_DIR/logs/bot.log as well as the console. The desktop app shows this file.
-  const log = createLogger(config.logLevel, "orbly", [
+  // Logs to PACENOTE_DATA_DIR/logs/bot.log as well as the console. The desktop app shows this file.
+  const log = createLogger(config.logLevel, "pacenote", [
     consoleSink,
     fileSink(path.join(config.dataDir, LOG_FILE)),
   ]);
@@ -38,7 +38,7 @@ async function main(): Promise<void> {
   warnOnce(envWarnings, (message) => log.warn(message));
   const status = await BotStatusFile.acquire(
     config.dataDir,
-    process.env.ORBLY_MANAGED_BY === "desktop" ? "desktop" : "terminal",
+    process.env.PACENOTE_MANAGED_BY === "desktop" ? "desktop" : "terminal",
     undefined,
     botLockDirs(config.dataDir).slice(1)
   );
@@ -167,7 +167,7 @@ async function main(): Promise<void> {
       `Received ${signal}, waiting for in-progress requests before shutting down.`
     );
     await connection.stop().catch(() => undefined);
-    // Unfinished requests stay in ORBLY_DATA_DIR/inflight.json and resume on the next start.
+    // Unfinished requests stay in PACENOTE_DATA_DIR/inflight.json and resume on the next start.
     if (!(await responder.drain(20_000)))
       log.warn("Shutting down with requests still in progress.");
     log.info(`Stopped (pid ${process.pid})`);

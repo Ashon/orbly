@@ -91,7 +91,7 @@ export class MentionResponder {
     handled: 0,
   };
 
-  /** Where attachment images are downloaded temporarily. Uses the data folder under home (ORBLY_DATA_DIR) so Docker can mount it. */
+  /** Where attachment images are downloaded temporarily. Uses the data folder under home (PACENOTE_DATA_DIR) so Docker can mount it. */
   private readonly attachmentsRoot: string;
 
   constructor(private readonly deps: MentionResponderDeps) {

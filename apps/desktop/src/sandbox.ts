@@ -128,7 +128,7 @@ export class SandboxService extends EventEmitter<{ job: [SandboxJob] }> {
       env: {
         ...this.commandEnv,
         ELECTRON_RUN_AS_NODE: "1",
-        ORBLY_SANDBOX_DIR: this.options.sandboxDir,
+        PACENOTE_SANDBOX_DIR: this.options.sandboxDir,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });

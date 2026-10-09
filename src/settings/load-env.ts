@@ -5,7 +5,7 @@ import { envFilePath } from "./paths.js";
 /**
  * Prepares the environment of a process started from the terminal (the bot, the prep commands): reads the
  * settings file under the existing environment, as node --env-file does, then maps the variable names from
- * before the rename (VERDA_* -> ORBLY_*). Returns the warnings, to log once a logger exists.
+ * before the renames (ORBLY_*, VERDA_* -> PACENOTE_*). Returns the warnings, to log once a logger exists.
  */
 export function loadEnv(env: NodeJS.ProcessEnv = process.env): string[] {
   for (const [key, value] of Object.entries(

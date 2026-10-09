@@ -40,7 +40,7 @@ export interface ClaudeCall {
  */
 export class World {
   readonly slack = new FakeSlack();
-  readonly root = mkdtempSync(path.join(tmpdir(), "orbly-e2e-"));
+  readonly root = mkdtempSync(path.join(tmpdir(), "pacenote-e2e-"));
   readonly home = path.join(this.root, "home");
   readonly claudeDir = path.join(this.root, "claude");
   /**
@@ -86,8 +86,8 @@ export class World {
   botEnv(extra: Record<string, string> = {}): Record<string, string> {
     return {
       HOME: this.root,
-      ORBLY_HOME: this.home,
-      ORBLY_DATA_DIR: this.home,
+      PACENOTE_HOME: this.home,
+      PACENOTE_DATA_DIR: this.home,
       SLACK_BOT_TOKEN: this.slack.botToken,
       SLACK_APP_TOKEN: this.slack.appToken,
       SLACK_API_URL: this.slack.apiUrl,

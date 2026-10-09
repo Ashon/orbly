@@ -85,7 +85,7 @@ describe("parseCodexDefaults", () => {
 });
 
 describe("loadConfig sandbox", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "orbly-codex-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "pacenote-codex-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
   const env = {
     SLACK_BOT_TOKEN: "xoxb-1",

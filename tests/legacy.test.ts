@@ -15,16 +15,17 @@ import {
   applyLegacyEnv,
   botLockDirs,
   defaultHome,
+  envNames,
   envValue,
   legacyHomeWarning,
   warnOnce,
 } from "../src/settings/legacy.js";
 import { loadEnv } from "../src/settings/load-env.js";
 import { loadBrokerEnv } from "../src/sandbox/env.js";
-import { orblyHome } from "../src/settings/paths.js";
+import { pacenoteHome } from "../src/settings/paths.js";
 import { jobEnv } from "../src/tools/sandbox-job.js";
 
-const root = mkdtempSync(path.join(tmpdir(), "orbly-legacy-"));
+const root = mkdtempSync(path.join(tmpdir(), "pacenote-legacy-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 /** A home folder with the given dot folders in it */
@@ -34,25 +35,39 @@ function homeWith(...dirs: string[]): string {
   return home;
 }
 
-describe("names from before the rename (Verda)", () => {
-  it("reads VERDA_* as ORBLY_* unless ORBLY_* is set, with a message per old name", () => {
+describe("names from before the renames (Orbly, Verda)", () => {
+  it("reads ORBLY_* and VERDA_* as PACENOTE_* unless a newer name is set, with a message per old name", () => {
     const env: NodeJS.ProcessEnv = {
       VERDA_DATA_DIR: "/data/old",
+      ORBLY_SANDBOX_DIR: "/sandbox/orbly",
+      VERDA_SANDBOX_DIR: "/sandbox/verda",
       VERDA_DESKTOP_THEME: "dark",
-      ORBLY_DESKTOP_THEME: "light",
-      VERDA_EMPTY: " ",
+      PACENOTE_DESKTOP_THEME: "light",
+      ORBLY_EMPTY: " ",
     };
     const messages = applyLegacyEnv(env);
-    expect(env.ORBLY_DATA_DIR).toBe("/data/old");
-    expect(env.ORBLY_DESKTOP_THEME).toBe("light");
-    expect(env.ORBLY_EMPTY).toBeUndefined();
+    expect(env.PACENOTE_DATA_DIR).toBe("/data/old");
+    // Orbly is newer than Verda, so its value wins.
+    expect(env.PACENOTE_SANDBOX_DIR).toBe("/sandbox/orbly");
+    expect(env.PACENOTE_DESKTOP_THEME).toBe("light");
+    expect(env.PACENOTE_EMPTY).toBeUndefined();
     expect(messages).toEqual([
-      "VERDA_DATA_DIR is deprecated and read as ORBLY_DATA_DIR. Rename it to ORBLY_DATA_DIR.",
-      "VERDA_DESKTOP_THEME is deprecated and ORBLY_DESKTOP_THEME takes its place. Rename or remove VERDA_DESKTOP_THEME.",
+      "ORBLY_SANDBOX_DIR is deprecated and read as PACENOTE_SANDBOX_DIR. Rename it to PACENOTE_SANDBOX_DIR.",
+      "VERDA_DATA_DIR is deprecated and read as PACENOTE_DATA_DIR. Rename it to PACENOTE_DATA_DIR.",
+      "VERDA_SANDBOX_DIR is deprecated and PACENOTE_SANDBOX_DIR takes its place. Rename or remove VERDA_SANDBOX_DIR.",
+      "VERDA_DESKTOP_THEME is deprecated and PACENOTE_DESKTOP_THEME takes its place. Rename or remove VERDA_DESKTOP_THEME.",
+    ]);
+    expect(envNames("DATA_DIR")).toEqual([
+      "PACENOTE_DATA_DIR",
+      "ORBLY_DATA_DIR",
+      "VERDA_DATA_DIR",
     ]);
     expect(envValue({ VERDA_SANDBOX_DIR: "/old" }, "SANDBOX_DIR")).toBe("/old");
     expect(
-      envValue({ ORBLY_SANDBOX_DIR: "/new", VERDA_SANDBOX_DIR: "/old" }, "SANDBOX_DIR")
+      envValue({ ORBLY_SANDBOX_DIR: "/o", VERDA_SANDBOX_DIR: "/v" }, "SANDBOX_DIR")
+    ).toBe("/o");
+    expect(
+      envValue({ PACENOTE_SANDBOX_DIR: "/new", ORBLY_SANDBOX_DIR: "/o" }, "SANDBOX_DIR")
     ).toBe("/new");
   });
 
@@ -63,95 +78,118 @@ describe("names from before the rename (Verda)", () => {
     expect(warn.mock.calls).toEqual([["legacy test A"], ["legacy test B"]]);
   });
 
-  it("uses ~/.verda only while ~/.orbly does not exist, and says how to move it", () => {
+  it("uses an earlier home only while ~/.pacenote does not exist, the newest first, and says how to move it", () => {
     const fresh = homeWith();
-    expect(defaultHome(fresh)).toBe(path.join(fresh, ".orbly"));
+    expect(defaultHome(fresh)).toBe(path.join(fresh, ".pacenote"));
     expect(legacyHomeWarning({}, fresh)).toBeUndefined();
 
-    const old = homeWith(".verda");
-    expect(defaultHome(old)).toBe(path.join(old, ".verda"));
-    expect(orblyHome({}, old)).toBe(path.join(old, ".verda"));
-    expect(legacyHomeWarning({}, old)).toMatch(/mv ~\/\.verda ~\/\.orbly/);
-    // A location that is set is used as is, without the warning.
-    expect(legacyHomeWarning({ ORBLY_HOME: "/srv/orbly" }, old)).toBeUndefined();
-
-    const both = homeWith(".verda", ".orbly");
-    expect(defaultHome(both)).toBe(path.join(both, ".orbly"));
-  });
-
-  it("reads VERDA_HOME when ORBLY_HOME is not set", () => {
-    expect(orblyHome({ VERDA_HOME: "/srv/verda" }, "/home/me")).toBe("/srv/verda");
-    expect(orblyHome({ VERDA_HOME: "/srv/verda", ORBLY_HOME: "~/o" }, "/home/me")).toBe(
-      "/home/me/o"
+    const verda = homeWith(".verda");
+    expect(defaultHome(verda)).toBe(path.join(verda, ".verda"));
+    expect(pacenoteHome({}, verda)).toBe(path.join(verda, ".verda"));
+    expect(legacyHomeWarning({}, verda)).toMatch(
+      /mv ~\/\.verda ~\/\.pacenote, rename the VERDA_\* keys in \.env to PACENOTE_\*/
     );
+
+    const orbly = homeWith(".orbly", ".verda");
+    expect(defaultHome(orbly)).toBe(path.join(orbly, ".orbly"));
+    expect(legacyHomeWarning({}, orbly)).toMatch(
+      /rename to Pacenote[\s\S]*mv ~\/\.orbly ~\/\.pacenote, rename the ORBLY_\* keys/
+    );
+    // A location that is set is used as is, without the warning.
+    expect(legacyHomeWarning({ PACENOTE_HOME: "/srv/pacenote" }, orbly)).toBeUndefined();
+    expect(legacyHomeWarning({ ORBLY_HOME: "/srv/orbly" }, orbly)).toBeUndefined();
+
+    const all = homeWith(".verda", ".orbly", ".pacenote");
+    expect(defaultHome(all)).toBe(path.join(all, ".pacenote"));
+    expect(legacyHomeWarning({}, all)).toBeUndefined();
   });
 
-  it("loads the settings file from the old home and maps its old keys", () => {
+  it("reads ORBLY_HOME, then VERDA_HOME, when PACENOTE_HOME is not set", () => {
+    expect(pacenoteHome({ VERDA_HOME: "/srv/verda" }, "/home/me")).toBe("/srv/verda");
+    expect(
+      pacenoteHome({ VERDA_HOME: "/srv/verda", ORBLY_HOME: "/srv/orbly" }, "/home/me")
+    ).toBe("/srv/orbly");
+    expect(
+      pacenoteHome({ ORBLY_HOME: "/srv/orbly", PACENOTE_HOME: "~/p" }, "/home/me")
+    ).toBe("/home/me/p");
+  });
+
+  it("loads the settings file from an old home and maps its old keys", () => {
     const home = path.join(root, "load-env-home");
     mkdirSync(home, { recursive: true });
     writeFileSync(
       path.join(home, ".env"),
-      "VERDA_DATA_DIR=/data/from-file\nLOG_LEVEL=debug\nREASONER=codex\n"
+      "ORBLY_DATA_DIR=/data/from-file\nLOG_LEVEL=debug\nREASONER=codex\n"
     );
     const env: NodeJS.ProcessEnv = { VERDA_HOME: home, REASONER: "claude" };
     const warnings = loadEnv(env);
     expect(env).toMatchObject({
-      ORBLY_HOME: home,
-      ORBLY_DATA_DIR: "/data/from-file",
+      PACENOTE_HOME: home,
+      PACENOTE_DATA_DIR: "/data/from-file",
       LOG_LEVEL: "debug",
       // The existing environment wins over the file, as with node --env-file.
       REASONER: "claude",
     });
     expect(warnings).toContain(
-      "VERDA_HOME is deprecated and read as ORBLY_HOME. Rename it to ORBLY_HOME."
+      "VERDA_HOME is deprecated and read as PACENOTE_HOME. Rename it to PACENOTE_HOME."
     );
     expect(warnings).toContain(
-      "VERDA_DATA_DIR is deprecated and read as ORBLY_DATA_DIR. Rename it to ORBLY_DATA_DIR."
+      "ORBLY_DATA_DIR is deprecated and read as PACENOTE_DATA_DIR. Rename it to PACENOTE_DATA_DIR."
     );
   });
 
   it("passes compose the resolved home and the mapped keys", () => {
-    const home = homeWith(".verda");
-    const envFile = path.join(home, ".verda", ".env");
-    writeFileSync(envFile, "VERDA_SANDBOX_DIR=/old/sandbox\nOPS_TOOLS=on\n");
+    const home = homeWith(".orbly");
+    const envFile = path.join(home, ".orbly", ".env");
+    writeFileSync(envFile, "ORBLY_SANDBOX_DIR=/old/sandbox\nOPS_TOOLS=on\n");
     const warn = vi.fn();
     const env = jobEnv({ HOME: home }, envFile, warn);
     expect(env).toMatchObject({
-      ORBLY_HOME: path.join(home, ".verda"),
-      ORBLY_SANDBOX_DIR: "/old/sandbox",
+      PACENOTE_HOME: path.join(home, ".orbly"),
+      PACENOTE_SANDBOX_DIR: "/old/sandbox",
       OPS_TOOLS: "on",
     });
     expect(warn.mock.calls.map(([message]) => message as string).join("\n")).toMatch(
-      /mv ~\/\.verda ~\/\.orbly[\s\S]*VERDA_SANDBOX_DIR is deprecated/
+      /mv ~\/\.orbly ~\/\.pacenote[\s\S]*ORBLY_SANDBOX_DIR is deprecated/
     );
   });
 
-  it("sees a bot running from the other home, so old and new never connect together", async () => {
-    const home = homeWith(".verda", ".orbly");
-    const legacy = path.join(home, ".verda");
-    const fresh = path.join(home, ".orbly");
-    expect(botLockDirs(fresh, home)).toEqual([fresh, legacy]);
-    expect(botLockDirs("/data/custom", home)).toEqual(["/data/custom", fresh, legacy]);
+  it("sees a bot running from any earlier home, so old and new never connect together", async () => {
+    const home = homeWith(".verda", ".orbly", ".pacenote");
+    const verda = path.join(home, ".verda");
+    const orbly = path.join(home, ".orbly");
+    const fresh = path.join(home, ".pacenote");
+    expect(botLockDirs(fresh, home)).toEqual([fresh, orbly, verda]);
+    expect(botLockDirs("/data/custom", home)).toEqual([
+      "/data/custom",
+      fresh,
+      orbly,
+      verda,
+    ]);
 
-    // The parent process stands in for an old Verda bot that is still running.
-    writeFileSync(
-      path.join(legacy, STATUS_FILE),
-      JSON.stringify({ version: 1, pid: process.ppid, managedBy: "desktop" })
-    );
-    expect(readRunningBot([fresh, legacy])).toMatchObject({
-      alive: true,
-      status: { pid: process.ppid },
-    });
-    await expect(
-      BotStatusFile.acquire(fresh, "terminal", 0, [legacy])
-    ).rejects.toBeInstanceOf(BotAlreadyRunningError);
+    // The parent process stands in for an old bot that is still running, from each earlier home in turn.
+    for (const legacy of [orbly, verda]) {
+      const status = path.join(legacy, STATUS_FILE);
+      writeFileSync(
+        status,
+        JSON.stringify({ version: 1, pid: process.ppid, managedBy: "desktop" })
+      );
+      expect(readRunningBot([fresh, orbly, verda])).toMatchObject({
+        alive: true,
+        status: { pid: process.ppid },
+      });
+      await expect(
+        BotStatusFile.acquire(fresh, "terminal", 0, [orbly, verda])
+      ).rejects.toBeInstanceOf(BotAlreadyRunningError);
+      rmSync(status);
+    }
   });
 
-  it("shows run history written by Verda", async () => {
+  it("shows run history written by Verda and Orbly (record version 1)", async () => {
     const dataDir = path.join(homeWith(".verda"), ".verda");
     const runDir = path.join(dataDir, "runs", "2026-10-09", "20261009-084701-54e64d");
     mkdirSync(runDir, { recursive: true });
-    // A record as Verda v0.1.x wrote it
+    // A record as Verda v0.1.x and Orbly v0.2.x wrote it
     writeFileSync(
       path.join(runDir, "run.json"),
       JSON.stringify({
@@ -185,7 +223,7 @@ describe("names from before the rename (Verda)", () => {
     );
     const reader = new HistoryReader(dataDir);
     const get = async (pathname: string) =>
-      (await handleLocalApi(reader, "GET", new URL(pathname, "orbly://app"))).json();
+      (await handleLocalApi(reader, "GET", new URL(pathname, "pacenote://app"))).json();
     expect(await get("/api/runs")).toMatchObject([
       { id: "20261009-084701-54e64d", status: "succeeded", reasoner: "claude@docker" },
     ]);

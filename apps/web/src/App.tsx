@@ -58,13 +58,13 @@ export default function App() {
   const [q, setQ] = useState("");
   const selectedId = route.page === "run" ? route.id : undefined;
   const select = (id?: string) => go(id ? `#/runs/${id}` : "#/");
-  const isMacDesktop = window.orblyDesktop?.platform === "darwin";
+  const isMacDesktop = window.pacenoteDesktop?.platform === "darwin";
   const section: Section =
     route.page === "bot" ? "bot" : route.page === "settings" ? "settings" : "overview";
   // The run list belongs to the overview; the bot and settings screens use the full width.
   const showRuns = section === "overview";
   const [listWidth, setListWidth] = useStoredWidth(
-    "orbly.runList.width",
+    "pacenote.runList.width",
     LIST_WIDTH.default
   );
   const windowWidth = useWindowWidth();
@@ -78,7 +78,7 @@ export default function App() {
   // The list sits beside the content when both fit and the viewer has not hidden it. Otherwise it opens
   // as an overlay over the content (the toggle, Cmd+B, or typing a search) and closes on a pick, Esc, or a
   // click outside it.
-  const [listPinned, setListPinned] = useStoredFlag("orbly.runList.pinned", true);
+  const [listPinned, setListPinned] = useStoredFlag("pacenote.runList.pinned", true);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const canDock = windowWidth - RAIL_WIDTH - LIST_WIDTH.min >= CONTENT_MIN_WIDTH;
   const docked = showRuns && listPinned && canDock;
@@ -148,7 +148,7 @@ export default function App() {
                 </button>
               </Tooltip>
             )}
-            {window.orblyDesktop?.dev && (
+            {window.pacenoteDesktop?.dev && (
               <span className="rounded-md bg-status-interrupted/15 px-1.5 py-px text-[11px] font-semibold text-status-interrupted">
                 Dev
               </span>

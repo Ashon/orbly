@@ -197,8 +197,8 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       if (value !== undefined && !key.startsWith("ELECTRON_")) env[key] = value;
     }
     env.PATH = this.options.toolPath();
-    env.ORBLY_MANAGED_BY = "desktop";
-    env.ORBLY_DATA_DIR = this.options.dataDir;
+    env.PACENOTE_MANAGED_BY = "desktop";
+    env.PACENOTE_DATA_DIR = this.options.dataDir;
     env.NODE_ENV = "production";
     return env;
   }

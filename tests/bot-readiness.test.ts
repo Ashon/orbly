@@ -26,8 +26,8 @@ describe("bot readiness", () => {
 
   it("tokens Slack rejects need setup; other start failures do not", () => {
     const rejected = startFailureProblem([
-      "INFO  [orbly] Starting (pid 1, desktop)",
-      "ERROR [orbly] Startup failed: An API error occurred: invalid_auth",
+      "INFO  [pacenote] Starting (pid 1, desktop)",
+      "ERROR [pacenote] Startup failed: An API error occurred: invalid_auth",
     ]);
     expect(rejected).toMatchObject({ kind: "slack" });
     expect(rejected?.message).toMatch(/invalid_auth/);

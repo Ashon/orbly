@@ -17,7 +17,7 @@ export class ManagedProcess {
   constructor(command: string, args: string[], env: Record<string, string>) {
     this.child = spawn(command, args, {
       cwd: REPO,
-      // Only what the test passes, so the developer's own ORBLY_* settings never leak in. Under c8
+      // Only what the test passes, so the developer's own PACENOTE_* settings never leak in. Under c8
       // (pnpm test:e2e:coverage) the process also writes its coverage where c8 collects it.
       env: {
         PATH: process.env.PATH ?? "",

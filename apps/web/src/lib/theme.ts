@@ -8,7 +8,7 @@ import {
 } from "react";
 
 export type ThemeMode = "system" | "light" | "dark";
-const KEY = "orbly.theme";
+const KEY = "pacenote.theme";
 
 const readMode = (): ThemeMode => {
   try {

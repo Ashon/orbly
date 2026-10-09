@@ -21,7 +21,7 @@ import {
 } from "../src/settings/fields.js";
 import { checkSlackTokens } from "../src/messengers/slack/check.js";
 
-const root = mkdtempSync(path.join(tmpdir(), "orbly-settings-"));
+const root = mkdtempSync(path.join(tmpdir(), "pacenote-settings-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const ENV = `# Personal LLM settings
@@ -54,7 +54,7 @@ SLACK_APP_TOKEN=xapp-1-A1-old
 REASONER=codex
 LOG_LEVEL=
 
-# Added from the Orbly app settings screen
+# Added from the Pacenote app settings screen
 MENTION_ALLOWED_USERS='U1, U2'
 `);
     expect(readEnvValues(next)).toMatchObject({
@@ -65,7 +65,7 @@ MENTION_ALLOWED_USERS='U1, U2'
     });
     expect(envKeys(next)).toContain("LLM_API_URL");
     expect(updateEnvText("", { A: "1" })).toBe(
-      "# Added from the Orbly app settings screen\nA=1\n"
+      "# Added from the Pacenote app settings screen\nA=1\n"
     );
   });
 
@@ -161,7 +161,7 @@ describe("connection check", () => {
       const method = String(url).split("/").pop()!;
       calls.push(`${method} ${(init?.headers as Record<string, string>).Authorization}`);
       const bodies: Record<string, object> = {
-        "auth.test": { ok: true, user: "orbly", user_id: "U0V", team: "T", bot_id: "B1" },
+        "auth.test": { ok: true, user: "pacey", user_id: "U0V", team: "T", bot_id: "B1" },
         "bots.info": { ok: true, bot: { app_id: "A0APP" } },
         "apps.connections.open": { ok: true, url: "wss://example/?ticket=t" },
       };
@@ -174,7 +174,7 @@ describe("connection check", () => {
       fetchImpl
     );
     expect(items.map((item) => item.ok)).toEqual([true, false, true, true]);
-    expect(items[0]?.detail).toBe("orbly (U0V) @ T");
+    expect(items[0]?.detail).toBe("pacey (U0V) @ T");
     expect(items[1]?.detail).toContain(
       "channels:read, files:read, files:write, users:read"
     );
