@@ -1,6 +1,6 @@
 {
   "name": "@orbly/web",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "description": "Orbly UI for status, settings and run history (bundled into the desktop app)",
   "type": "module",
