@@ -9,6 +9,7 @@ import {
   readdir,
   rename,
   rm,
+  rmdir,
   writeFile,
 } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -26,9 +27,11 @@ import { parseArgs } from "node:util";
  * Contents/Resources/app, so it runs without the repository, Node or pnpm. Config and run history
  * stay outside the app (VERDA_HOME, default ~/.verda).
  *
- * Output: release/mac-<arch>/Verda.app and release/Verda-v<version>-macos-<arch>.app.zip with a
- * .sha256 sidecar (the Homebrew cask's source, deploy/homebrew). The target arch defaults to this
- * Mac's; the other arch's Electron is downloaded, since the bundles themselves are plain JS.
+ * Output: release/Verda-v<version>-macos-<arch>.app.zip with a .sha256 sidecar (the Homebrew cask's
+ * source, deploy/homebrew; pnpm install:mac unpacks it). The app is assembled in
+ * release/staging.noindex, which Spotlight does not index, and removed once zipped, so Spotlight and
+ * Launchpad only list the installed Verda. The target arch defaults to this Mac's; the other arch's
+ * Electron is downloaded, since the bundles themselves are plain JS.
  *
  * The app gets an ad-hoc signature, good for this Mac (pnpm install:mac).
  */
@@ -46,7 +49,9 @@ const root = path.resolve(desktopDir, "../..");
 const require = createRequire(path.join(desktopDir, "package.json"));
 const { version } = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const releaseDir = path.join(root, "release");
-const outputDir = path.join(releaseDir, `mac-${arch}`);
+// A ".noindex" directory keeps Spotlight (and so Launchpad) from listing the build as an app.
+const stagingDir = path.join(releaseDir, "staging.noindex");
+const outputDir = path.join(stagingDir, `mac-${arch}`);
 const appPath = path.join(outputDir, "Verda.app");
 const resourcesDir = path.join(appPath, "Contents/Resources");
 const appDir = path.join(resourcesDir, "app");
@@ -70,6 +75,9 @@ const plistSet = (file, values) => {
   }
 };
 
+/** Where electronApp() unpacked the other arch's Electron, removed after packaging. */
+let extractedElectron;
+
 /** Electron.app for the target arch: this install's own, or the release zip for the other arch. */
 async function electronApp() {
   const binary = require("electron");
@@ -84,7 +92,8 @@ async function electronApp() {
     arch,
     artifactName: "electron",
   });
-  const dir = path.join(releaseDir, `.electron-${electronVersion}-${arch}`);
+  const dir = path.join(stagingDir, `electron-${electronVersion}-${arch}`);
+  extractedElectron = dir;
   await rm(dir, { recursive: true, force: true });
   run("/usr/bin/ditto", ["-x", "-k", zip, dir]);
   return path.join(dir, "Electron.app");
@@ -203,4 +212,8 @@ const sha256 = createHash("sha256")
   .update(await readFile(zipPath))
   .digest("hex");
 await writeFile(`${zipPath}.sha256`, `${sha256}  ${zipName}\n`);
-console.log(`\nApp: ${appPath}\nZip: ${zipPath}\nInstall locally: pnpm install:mac`);
+// Only the zip stays: an unpacked Verda.app here would show up next to the installed one.
+await rm(outputDir, { recursive: true, force: true });
+if (extractedElectron) await rm(extractedElectron, { recursive: true, force: true });
+await rmdir(stagingDir).catch(() => {}); // still holds another arch's build in progress
+console.log(`\nZip: ${zipPath}\nInstall locally: pnpm install:mac`);

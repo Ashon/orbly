@@ -268,15 +268,17 @@ The UI is `apps/web` (React).
 ```sh
 pnpm desktop        # build the bot, the UI and the app, then run it from the repository (development)
 pnpm desktop:dev    # the UI runs on the Vite dev server (127.0.0.1:5179) and the app opens that address
-pnpm package:mac    # build the installable Verda.app and its release zip into release/
-pnpm install:mac    # install the built Verda.app into /Applications (quit Verda first)
+pnpm package:mac    # build the installable Verda.app as a release zip in release/
+pnpm install:mac    # unpack that zip into /Applications (quit Verda first)
 ```
 
 Packaging:
 
-- `pnpm package:mac` builds `release/mac-<arch>/Verda.app` and `release/Verda-v<version>-macos-<arch>.app.zip` with a
-  `.sha256` file. The arch defaults to this Mac's; `pnpm package:mac --arch x64` builds the Intel app.
-- `pnpm install:mac` copies `release/mac-<arch>/Verda.app` for this Mac's arch to `/Applications`. It refuses to replace a running Verda.
+- `pnpm package:mac` builds `release/Verda-v<version>-macos-<arch>.app.zip` with a `.sha256` file. The arch defaults to
+  this Mac's; `pnpm package:mac --arch x64` builds the Intel app. The app is assembled in `release/staging.noindex` and
+  removed once zipped, so Spotlight and Launchpad list only the installed Verda.
+- `pnpm install:mac` checks the zip for this Mac's arch against its `.sha256` and unpacks it into `/Applications`. It refuses to
+  replace a running Verda, or a Verda installed with Homebrew (`brew uninstall --cask verda` first).
 
 Using the packaged app:
 
