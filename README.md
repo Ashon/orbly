@@ -16,6 +16,11 @@ local `claude` or `codex` CLI on your machine, keeps only what matters now, and 
 Two names, two roles: **Pacenote** is the project and the app; **Pacey** is who you talk to, the Slack bot and the
 voice of the app. (Formerly Orbly and Verda: see [Migrating](docs/migrating.md).)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture-dark.svg">
+  <img alt="Slack, Pacey on your Mac, and the Docker sandbox with the reasoner, the egress proxy, ops-broker and the renderer" src="docs/diagrams/architecture-light.svg">
+</picture>
+
 ## What it does
 
 - Answers mentions in the thread, with the thread and its attachments (text, images, PDFs) as context.
@@ -52,6 +57,7 @@ upgrades and uninstalls. To run from source instead, see [Installation](docs/ins
 
 | Doc | What it covers |
 | --- | --- |
+| [Architecture](docs/architecture.md) | The design in four diagrams: the pieces, one mention, the team hub, the code layout |
 | [How it works](docs/how-it-works.md) | The path from a mention to its answer, attachments, diagrams and images, the reasoner CLIs |
 | [Reasoner sandbox](docs/sandbox.md) | The Docker sandbox, the egress proxy and allowed domains, the sandbox's claude or codex login |
 | [Ops tools](docs/ops-tools.md) | ops-broker: hosts, k8s, work directory, GitHub, Jira, and code changes as draft PRs |

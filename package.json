@@ -21,6 +21,7 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:e2e:coverage": "c8 vitest run --config vitest.e2e.config.ts",
     "test:e2e:app": "pnpm desktop:build && E2E_APP=1 vitest run --config vitest.e2e.config.ts tests/e2e/app.e2e.ts",
+    "docs:diagrams": "node scripts/diagrams.mjs",
     "check": "pnpm typecheck && pnpm --filter @pacenote/web typecheck && pnpm --filter @pacenote/desktop typecheck && pnpm lint && pnpm format:check && pnpm test",
     "sandbox:build": "tsx src/tools/sandbox-job.ts images",
     "sandbox:up": "tsx src/tools/sandbox-job.ts proxy",

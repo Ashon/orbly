@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-label="Pacenote code layout">
+<title>Pacenote code layout</title>
+<defs>
+  <linearGradient id="mark" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#01ab78"/><stop offset="0.46" stop-color="#1fc289"/><stop offset="1" stop-color="#48c89c"/></linearGradient>
+  <linearGradient id="mark-big" gradientUnits="userSpaceOnUse" x1="54" y1="314" x2="458" y2="198"><stop offset="0" stop-color="#01ab78"/><stop offset="0.46" stop-color="#1fc289"/><stop offset="1" stop-color="#48c89c"/></linearGradient>
+  <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1fc289"/><stop offset="1" stop-color="#48c89c"/></linearGradient>
+  <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#000000" flood-opacity="0.45"/></filter>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1.5 1.5L8.5 5L1.5 8.5" fill="none" stroke="#61756d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="arrow-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1.5 1.5L8.5 5L1.5 8.5" fill="none" stroke="#3ccb96" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect width="1200" height="720" rx="28" fill="#09100e"/>
+<g transform="translate(36.359223300970875 30.359223300970875) scale(0.07281553398058252)"><path d="M273.1 92.9A164 164 0 1 0 419.1 238.9" fill="none" stroke="url(#mark-big)" stroke-width="84" stroke-linecap="round"/><circle cx="372" cy="140" r="42" fill="url(#mark-big)"/></g>
+<text x="84" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="url(#wordmark)" text-anchor="start">Pacenote</text>
+<text x="188" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#e1ebe6" text-anchor="start">code layout</text>
+<text x="84" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#93a79e" text-anchor="start">Where things live in the repository, and the one interface every chat app goes through.</text>
+<rect x="40" y="120" width="260" height="120" rx="18" fill="#121c19" filter="url(#shadow)"/>
+<text x="58" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e1ebe6" text-anchor="start">src/index.ts</text>
+<text x="58" y="169" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#93a79e" text-anchor="start">Assembles the bot</text>
+<text x="58" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Connects the messenger, starts</text>
+<text x="58" y="208" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">the responder, the sandbox checks</text>
+<text x="58" y="224" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">and the status file</text>
+<rect x="40" y="266" width="260" height="330" rx="18" fill="#121c19" filter="url(#shadow)"/>
+<text x="58" y="296" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e1ebe6" text-anchor="start">src/messengers/slack</text>
+<text x="58" y="315" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#93a79e" text-anchor="start">The Slack adapter</text>
+<rect x="56" y="322" width="228" height="46" rx="12" fill="#0c1513"/>
+<text x="68" y="341" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">connect.ts</text>
+<text x="68" y="358" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Bolt, Socket Mode or the hub</text>
+<rect x="56" y="374" width="228" height="46" rx="12" fill="#0c1513"/>
+<text x="68" y="393" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">messenger.ts</text>
+<text x="68" y="410" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">SlackMessenger</text>
+<rect x="56" y="426" width="228" height="46" rx="12" fill="#0c1513"/>
+<text x="68" y="445" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">files.ts</text>
+<text x="68" y="462" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Lookups, downloads</text>
+<rect x="56" y="478" width="228" height="46" rx="12" fill="#0c1513"/>
+<text x="68" y="497" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">format.ts</text>
+<text x="68" y="514" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Markdown to mrkdwn</text>
+<rect x="56" y="530" width="228" height="46" rx="12" fill="#0c1513"/>
+<text x="68" y="549" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">directory.ts</text>
+<text x="68" y="566" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Names, channels</text>
+<rect x="350" y="120" width="330" height="476" rx="18" fill="#0f271e" filter="url(#shadow)"/>
+<text x="368" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e1ebe6" text-anchor="start">Messenger</text>
+<text x="368" y="169" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#93a79e" text-anchor="start">src/messengers/types.ts</text>
+<rect x="366" y="176" width="298" height="46" rx="12" fill="#0c1513"/>
+<text x="378" y="195" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">venue / request / context</text>
+<text x="378" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Where, what, and the thread so far</text>
+<rect x="366" y="230" width="298" height="46" rx="12" fill="#0c1513"/>
+<text x="378" y="249" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">resolveFiles / download</text>
+<text x="378" y="266" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Attachments</text>
+<rect x="366" y="284" width="298" height="46" rx="12" fill="#0c1513"/>
+<text x="378" y="303" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">notice / post / update</text>
+<text x="378" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Replies, edits, notes to the asker</text>
+<rect x="366" y="338" width="298" height="46" rx="12" fill="#0c1513"/>
+<text x="378" y="357" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">upload</text>
+<text x="378" y="374" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Generated images, diagrams</text>
+<rect x="366" y="392" width="298" height="46" rx="12" fill="#0c1513"/>
+<text x="378" y="411" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">render</text>
+<text x="378" y="428" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Markdown into the app's markup</text>
+<rect x="366" y="446" width="298" height="46" rx="12" fill="#0c1513"/>
+<text x="378" y="465" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">permalink</text>
+<text x="378" y="482" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Links in the run history</text>
+<rect x="366" y="508" width="214" height="20" rx="10" fill="#112e24" fill-opacity="1"/>
+<text x="473" y="522" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#daf2e6" text-anchor="middle">Mention: plain JSON, resumable</text>
+<text x="366" y="552" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">A new chat app is a new adapter;</text>
+<text x="366" y="569" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">the pipeline does not change.</text>
+<rect x="730" y="120" width="430" height="228" rx="18" fill="#121c19" filter="url(#shadow)"/>
+<text x="748" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e1ebe6" text-anchor="start">src/mention</text>
+<text x="748" y="169" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#93a79e" text-anchor="start">The pipeline, messenger-neutral</text>
+<rect x="746" y="176" width="194" height="46" rx="12" fill="#0c1513"/>
+<text x="758" y="195" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">responder.ts</text>
+<text x="758" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">One mention end to end</text>
+<rect x="948" y="176" width="194" height="46" rx="12" fill="#0c1513"/>
+<text x="960" y="195" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">prompt.ts</text>
+<text x="960" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">System and user prompts</text>
+<rect x="746" y="230" width="194" height="46" rx="12" fill="#0c1513"/>
+<text x="758" y="249" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">attachments.ts</text>
+<text x="758" y="266" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">What to read, and reading it</text>
+<rect x="948" y="230" width="194" height="46" rx="12" fill="#0c1513"/>
+<text x="960" y="249" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">inflight.ts</text>
+<text x="960" y="266" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Resume after a restart</text>
+<rect x="746" y="284" width="194" height="46" rx="12" fill="#0c1513"/>
+<text x="758" y="303" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">limiter.ts</text>
+<text x="758" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Concurrency, queue</text>
+<rect x="948" y="284" width="196" height="46" rx="12" fill="#0c1513"/>
+<text x="960" y="303" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">run-record.ts</text>
+<text x="960" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Into the history</text>
+<rect x="730" y="368" width="212" height="64" rx="14" fill="#121c19" filter="url(#shadow)"/>
+<text x="746" y="394" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">src/reasoner</text>
+<text x="746" y="414" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">claude and codex, host or docker</text>
+<rect x="948" y="368" width="212" height="64" rx="14" fill="#121c19" filter="url(#shadow)"/>
+<text x="964" y="394" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">src/history</text>
+<text x="964" y="414" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">runs/ written and read</text>
+<rect x="730" y="444" width="212" height="64" rx="14" fill="#121c19" filter="url(#shadow)"/>
+<text x="746" y="470" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">src/hub</text>
+<text x="746" y="490" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Server, policy, pairing</text>
+<rect x="948" y="444" width="212" height="64" rx="14" fill="#121c19" filter="url(#shadow)"/>
+<text x="964" y="470" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#e1ebe6" text-anchor="start">src/broker</text>
+<text x="964" y="490" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">ops-broker's MCP tools</text>
+<path d="M300 380 L350 380" fill="none" stroke="#3ccb96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-main)"/>
+<rect x="286.5" y="351" width="77" height="19" rx="9.5" fill="#09100e"/>
+<text x="325" y="365" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#3ccb96" text-anchor="middle">implements</text>
+<path d="M680 250 L730 250" fill="none" stroke="#3ccb96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-main)" marker-start="url(#arrow-main)"/>
+<rect x="685.5" y="221" width="39" height="19" rx="9.5" fill="#09100e"/>
+<text x="705" y="235" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#3ccb96" text-anchor="middle">uses</text>
+<path d="M170 240 L170 266" fill="none" stroke="#61756d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="40" y="616" width="1120" height="72" rx="14" fill="#121c19" filter="url(#shadow)"/>
+<text x="60" y="646" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#e1ebe6" text-anchor="start">apps/desktop</text>
+<text x="60" y="666" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Electron: supervises Pacey, settings store, sandbox jobs, menu bar</text>
+<text x="620" y="646" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#e1ebe6" text-anchor="start">apps/web</text>
+<text x="620" y="666" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">React UI over pacenote://app: status, run history, settings</text>
+</svg>

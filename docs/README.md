@@ -2,6 +2,7 @@
 
 Start with the [project README](../README.md) for what Pacenote is and how to install it.
 
+- [Architecture](architecture.md): the design in four diagrams: the pieces, one mention, the team hub, the code layout
 - [How it works](how-it-works.md): the path from a mention to its answer, attachments, diagrams and images, the reasoner CLIs
 - [Reasoner sandbox](sandbox.md): the Docker sandbox, the egress proxy and allowed domains, the sandbox's claude or codex login
 - [Ops tools](ops-tools.md): ops-broker for hosts, k8s, the work directory, GitHub and Jira, and code changes as draft PRs
