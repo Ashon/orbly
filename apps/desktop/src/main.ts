@@ -458,7 +458,7 @@ async function createWindow(route = ""): Promise<void> {
     // For captures the size can be changed: a narrow width for tight layouts, a tall height for long screens.
     width: (captureFile && Number(process.env.ORBLY_DESKTOP_CAPTURE_WIDTH)) || 1360,
     height: (captureFile && Number(process.env.ORBLY_DESKTOP_CAPTURE_HEIGHT)) || 880,
-    minWidth: 960,
+    minWidth: 600,
     minHeight: 600,
     show: false,
     title: appName,

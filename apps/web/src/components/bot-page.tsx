@@ -42,7 +42,7 @@ export function BotPage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b px-8 pt-6 pb-5">
-        <div className="mx-auto max-w-5xl">
+        <div className="@container mx-auto max-w-5xl">
           <div className="flex items-start gap-4">
             <span
               className={cn(
@@ -63,13 +63,13 @@ export function BotPage() {
                 {status
                   ? `Socket Mode ${SOCKET_LABEL[status.socket.state]} ${formatRelative(status.socket.since)}` +
                     `, ${status.socket.reconnects} ${status.socket.reconnects === 1 ? "reconnect" : "reconnects"}`
-                  : "The process that receives and handles mentions over Slack Socket Mode."}
+                  : "The process that receives your Slack mentions and answers them."}
               </p>
             </div>
             <Controls supervisor={supervisor} />
           </div>
           {supervisor?.message && <Notice supervisor={supervisor} />}
-          <div className="mt-4 grid grid-cols-4 gap-3">
+          <div className="mt-4 grid grid-cols-2 gap-3 @min-[44rem]:grid-cols-4">
             <Info icon={<Bot />} label="Bot account">
               {status?.bot ? `@${status.bot.user}` : "-"}
               <Sub>{status?.bot?.team}</Sub>
@@ -338,7 +338,7 @@ function LogPanel() {
   return (
     <section className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2 border-b px-8 py-2">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-2">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-2 gap-y-1.5">
           <span className="text-sm font-medium">Logs</span>
           <div className="ml-2 flex gap-1">
             {LOG_VIEWS.map((item) => (

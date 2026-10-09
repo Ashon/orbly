@@ -559,15 +559,18 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0">
+    // A narrow screen keeps the section list as icons (@settings), and narrow content stacks each row (@content).
+    <div className="@container/settings flex h-full min-h-0">
       <nav
         aria-label="Settings sections"
-        className="flex w-56 shrink-0 flex-col gap-4 border-r border-sidebar-border px-2.5 py-5"
+        className="flex w-56 shrink-0 flex-col gap-4 border-r border-sidebar-border px-2.5 py-5 @max-[44rem]/settings:w-14 @max-[44rem]/settings:px-2"
       >
-        <h1 className="px-2.5 text-base font-semibold tracking-tight">Settings</h1>
+        <h1 className="px-2.5 text-base font-semibold tracking-tight @max-[44rem]/settings:sr-only">
+          Settings
+        </h1>
         {NAV.map((group) => (
           <div key={group.label} className="space-y-0.5">
-            <p className="px-2.5 pb-1 text-[11px] font-medium text-muted-foreground/80">
+            <p className="px-2.5 pb-1 text-[11px] font-medium text-muted-foreground/80 @max-[44rem]/settings:sr-only">
               {group.label}
             </p>
             {group.items.map((id) => (
@@ -586,9 +589,9 @@ export function SettingsPage() {
         ))}
       </nav>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="@container/content flex min-w-0 flex-1 flex-col">
         <ScrollArea className="min-h-0 flex-1">
-          <div className="max-w-3xl space-y-4 px-8 py-6">
+          <div className="max-w-3xl space-y-4 px-8 py-6 @max-[32rem]/content:px-4">
             <header>
               <h2 className="text-lg font-semibold tracking-tight">
                 {SECTION_INFO[section].label}
@@ -636,8 +639,8 @@ export function SettingsPage() {
         </ScrollArea>
 
         {changeCount > 0 && (
-          <footer className="shrink-0 border-t bg-canvas/95 px-8 py-3 backdrop-blur">
-            <div className="flex max-w-3xl items-center gap-2">
+          <footer className="shrink-0 border-t bg-canvas/95 px-8 py-3 backdrop-blur @max-[32rem]/content:px-4">
+            <div className="flex max-w-3xl flex-wrap items-center gap-2">
               <span className="text-sm font-medium">
                 {changeCount} unsaved {changeCount === 1 ? "change" : "changes"}
               </span>
@@ -713,37 +716,59 @@ function NavItem({
       type="button"
       aria-current={active ? "page" : undefined}
       onClick={onClick}
+      title={label}
       className={cn(
-        "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 @max-[44rem]/settings:justify-center @max-[44rem]/settings:px-0",
         active
           ? "bg-card font-medium text-foreground shadow-xs"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
       )}
     >
-      <Icon className="size-4 shrink-0" strokeWidth={1.75} />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      {issues > 0 ? (
-        <span
-          className="size-1.5 shrink-0 rounded-full bg-status-failed"
-          title={`${issues} ${issues === 1 ? "issue" : "issues"} to fix`}
-        />
-      ) : changes > 0 ? (
-        <span
-          className="shrink-0 rounded-full bg-primary/12 px-1.5 text-[10px] font-semibold text-primary tabular-nums"
-          title={`${changes} unsaved ${changes === 1 ? "change" : "changes"}`}
-        >
-          {changes}
-        </span>
-      ) : hint ? (
-        <span
-          className={cn(
-            "shrink-0 text-[11px] font-normal",
-            hint.tone === "warn" ? "text-status-interrupted" : "text-muted-foreground/70"
-          )}
-        >
-          {hint.text}
-        </span>
-      ) : null}
+      <span className="relative shrink-0">
+        <Icon className="size-4" strokeWidth={1.75} />
+        {/* With the list as icons, a dot stands in for the issue, change count or state text. */}
+        {(issues > 0 || changes > 0 || hint?.tone === "warn") && (
+          <span
+            className={cn(
+              "absolute -top-0.5 -right-0.5 hidden size-1.5 rounded-full @max-[44rem]/settings:block",
+              issues > 0
+                ? "bg-status-failed"
+                : changes > 0
+                  ? "bg-primary"
+                  : "bg-status-interrupted"
+            )}
+          />
+        )}
+      </span>
+      <span className="min-w-0 flex-1 truncate @max-[44rem]/settings:sr-only">
+        {label}
+      </span>
+      <span className="contents @max-[44rem]/settings:hidden">
+        {issues > 0 ? (
+          <span
+            className="size-1.5 shrink-0 rounded-full bg-status-failed"
+            title={`${issues} ${issues === 1 ? "issue" : "issues"} to fix`}
+          />
+        ) : changes > 0 ? (
+          <span
+            className="shrink-0 rounded-full bg-primary/12 px-1.5 text-[10px] font-semibold text-primary tabular-nums"
+            title={`${changes} unsaved ${changes === 1 ? "change" : "changes"}`}
+          >
+            {changes}
+          </span>
+        ) : hint ? (
+          <span
+            className={cn(
+              "shrink-0 text-[11px] font-normal",
+              hint.tone === "warn"
+                ? "text-status-interrupted"
+                : "text-muted-foreground/70"
+            )}
+          >
+            {hint.text}
+          </span>
+        ) : null}
+      </span>
     </button>
   );
 }
@@ -1230,7 +1255,11 @@ function Choice({
 }) {
   const selected = value || field.default || "";
   return (
-    <div role="radiogroup" aria-label={field.label} className="grid grid-cols-2 gap-2">
+    <div
+      role="radiogroup"
+      aria-label={field.label}
+      className="grid grid-cols-2 gap-2 @max-[32rem]/content:grid-cols-1"
+    >
       {field.options?.map((option) => {
         const checked = option.value === selected;
         return (
@@ -1306,7 +1335,7 @@ function Control({
         );
       }
       return (
-        <div className="flex w-72 items-center gap-1.5">
+        <div className="flex w-72 max-w-full items-center gap-1.5">
           <Input
             type="password"
             autoFocus
@@ -1355,7 +1384,7 @@ function Control({
           onChange={(e) => onChange(e.target.value)}
           className={cn(
             "h-7 text-xs",
-            field.type === "number" ? "w-32 text-right tabular-nums" : "w-72"
+            field.type === "number" ? "w-32 text-right tabular-nums" : "w-72 max-w-full"
           )}
         />
       );
@@ -1378,8 +1407,8 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-4 px-4 py-3">
-      <div className="min-w-0 flex-1">
+    <div className="flex items-start gap-4 px-4 py-3 @max-[32rem]/content:flex-col @max-[32rem]/content:gap-2">
+      <div className="min-w-0 flex-1 @max-[32rem]/content:w-full">
         <div className="text-sm font-medium">{label}</div>
         {sub && (
           <div className="font-mono text-[10.5px] text-muted-foreground/80">{sub}</div>
@@ -1387,7 +1416,7 @@ function Row({
         {help && <p className="mt-0.5 text-xs text-muted-foreground">{help}</p>}
         <RowNotes warning={warning} issue={issue} />
       </div>
-      <div className="flex min-h-7 shrink-0 items-center">{children}</div>
+      <div className="flex min-h-7 max-w-full shrink-0 items-center">{children}</div>
     </div>
   );
 }

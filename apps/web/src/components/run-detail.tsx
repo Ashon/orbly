@@ -32,7 +32,7 @@ export function RunDetail({ id }: { id: string }) {
     <Tabs defaultValue="timeline" className="flex h-full min-h-0 flex-col">
       <RunHeader run={run} />
       <ScrollArea className="min-h-0 flex-1">
-        <div className="mx-auto max-w-3xl px-8 py-6">
+        <div className="@container mx-auto max-w-3xl px-8 py-6">
           <RunFacts run={run} />
           <TabsContent value="timeline">
             <Timeline run={run} />
@@ -134,7 +134,8 @@ function RunFacts({ run }: { run: RunRecord }) {
   ).length;
   const duration = run.durationMs ?? Date.now() - Date.parse(run.startedAt);
   return (
-    <div className="surface-card mb-6 grid grid-cols-4 divide-x divide-canvas">
+    // Two columns when the detail is narrow; the 1px gaps over the canvas draw the dividers either way.
+    <div className="surface-card mb-6 grid grid-cols-2 gap-px overflow-hidden bg-canvas @min-[40rem]:grid-cols-4">
       <Fact
         icon={<Timer />}
         label={run.status === "running" ? "Elapsed" : "Duration"}
@@ -177,7 +178,7 @@ function Fact({
   hint?: string;
 }) {
   return (
-    <div className="min-w-0 px-4 py-3">
+    <div className="min-w-0 bg-card px-4 py-3">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground [&_svg]:size-3.5 [&_svg]:shrink-0">
         {icon}
         <span className="truncate">{label}</span>

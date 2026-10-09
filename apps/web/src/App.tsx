@@ -1,10 +1,16 @@
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { BotPage } from "./components/bot-page";
 import { NavRail, type Section } from "./components/nav-rail";
-import { ResizeHandle, useStoredWidth, useWindowWidth } from "./components/resize-handle";
+import {
+  ResizeHandle,
+  useStoredFlag,
+  useStoredWidth,
+  useWindowWidth,
+} from "./components/resize-handle";
 import { Overview } from "./components/overview";
 import { RunDetail } from "./components/run-detail";
 import { RunList } from "./components/run-list";
@@ -42,6 +48,10 @@ function useRoute(): [Route, (hash: string) => void] {
 const LIST_WIDTH = { default: 320, min: 260, max: 560 };
 const RAIL_WIDTH = 56;
 const CONTENT_MIN_WIDTH = 480;
+/** What an open overlay list leaves visible of the content, so it still reads as a layer over it */
+const OVERLAY_GUTTER = 48;
+
+const isMac = /Mac/.test(navigator.platform);
 
 export default function App() {
   const [route, go] = useRoute();
@@ -65,10 +75,51 @@ export default function App() {
   );
   const listShown = Math.min(listMax, Math.max(LIST_WIDTH.min, listWidth));
 
+  // The list sits beside the content when both fit and the viewer has not hidden it. Otherwise it opens
+  // as an overlay over the content (the toggle, Cmd+B, or typing a search) and closes on a pick, Esc, or a
+  // click outside it.
+  const [listPinned, setListPinned] = useStoredFlag("orbly.runList.pinned", true);
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const canDock = windowWidth - RAIL_WIDTH - LIST_WIDTH.min >= CONTENT_MIN_WIDTH;
+  const docked = showRuns && listPinned && canDock;
+  const overlayShown = showRuns && !docked && overlayOpen;
+  const overlayMax = Math.max(
+    LIST_WIDTH.min,
+    Math.min(LIST_WIDTH.max, windowWidth - RAIL_WIDTH - OVERLAY_GUTTER)
+  );
+  const overlayWidth = Math.min(overlayMax, Math.max(LIST_WIDTH.min, listWidth));
+  const toggleList = () => {
+    if (canDock) {
+      setListPinned(!listPinned);
+      setOverlayOpen(false);
+    } else setOverlayOpen(!overlayOpen);
+  };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "b" && (isMac ? e.metaKey : e.ctrlKey) && !e.shiftKey) {
+        e.preventDefault();
+        if (showRuns) toggleList();
+        else {
+          go("#/");
+          if (!(listPinned && canDock)) setOverlayOpen(true);
+        }
+      } else if (e.key === "Escape" && overlayShown) setOverlayOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   const search = (value: string) => {
     setQ(value);
     if (value && !showRuns) go("#/");
+    if (value && !(listPinned && canDock)) setOverlayOpen(true);
   };
+  const pick = (id?: string) => {
+    select(id);
+    setOverlayOpen(false);
+  };
+  const listOpen = docked || overlayShown;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -76,7 +127,27 @@ export default function App() {
         {/* Three columns keep the search centered on the window; the left one clears the traffic lights. */}
         <header className="titlebar-drag grid h-11 shrink-0 grid-cols-[1fr_minmax(0,520px)_1fr] items-center gap-3 border-b border-sidebar-border bg-sidebar px-3">
           {/* The left column clears the traffic lights; a run from the repository is labelled there. */}
-          <div className={cn("flex items-center", isMacDesktop && "pl-[72px]")}>
+          <div className={cn("flex items-center gap-1.5", isMacDesktop && "pl-[72px]")}>
+            {showRuns && (
+              <Tooltip
+                content={`${listOpen ? "Hide" : "Show"} run list (${isMac ? "Cmd" : "Ctrl"}+B)`}
+                side="bottom"
+              >
+                <button
+                  type="button"
+                  aria-label={listOpen ? "Hide run list" : "Show run list"}
+                  aria-expanded={listOpen}
+                  onClick={toggleList}
+                  className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  {listOpen ? (
+                    <PanelLeftClose className="size-4" strokeWidth={1.75} />
+                  ) : (
+                    <PanelLeftOpen className="size-4" strokeWidth={1.75} />
+                  )}
+                </button>
+              </Tooltip>
+            )}
             {window.orblyDesktop?.dev && (
               <span className="rounded-md bg-status-interrupted/15 px-1.5 py-px text-[11px] font-semibold text-status-interrupted">
                 Dev
@@ -86,14 +157,18 @@ export default function App() {
           <SearchField value={q} onChange={search} />
           <div />
         </header>
-        <div className="flex min-h-0 flex-1">
-          <NavRail
-            active={section}
-            onNavigate={(next) =>
-              go(next === "bot" ? "#/bot" : next === "settings" ? "#/settings" : "#/")
-            }
-          />
-          {showRuns && (
+        {/* isolate keeps the rail, overlay and scrim layers inside the body, so the status bar stays above all of them */}
+        <div className="relative isolate flex min-h-0 flex-1">
+          {/* Above the overlay list, which slides out from under it */}
+          <div className="relative z-40 flex">
+            <NavRail
+              active={section}
+              onNavigate={(next) =>
+                go(next === "bot" ? "#/bot" : next === "settings" ? "#/settings" : "#/")
+              }
+            />
+          </div>
+          {docked && (
             <div className="relative shrink-0" style={{ width: listShown }}>
               <RunList q={q} selectedId={selectedId} onSelect={select} />
               <ResizeHandle
@@ -119,6 +194,38 @@ export default function App() {
               </ScrollArea>
             )}
           </main>
+          {showRuns && !docked && (
+            <>
+              <div
+                aria-hidden
+                onClick={() => setOverlayOpen(false)}
+                className={cn(
+                  "absolute inset-y-0 right-0 left-14 z-20 bg-foreground/10 transition-opacity duration-200 motion-reduce:transition-none dark:bg-black/40",
+                  overlayShown ? "opacity-100" : "pointer-events-none opacity-0"
+                )}
+              />
+              <div
+                role="dialog"
+                aria-label="Runs"
+                inert={!overlayShown}
+                style={{ width: overlayWidth }}
+                className={cn(
+                  "absolute inset-y-0 left-14 z-30 border-r border-sidebar-border shadow-xl transition-transform duration-200 ease-out motion-reduce:transition-none",
+                  overlayShown ? "translate-x-0" : "-translate-x-full"
+                )}
+              >
+                <RunList q={q} selectedId={selectedId} onSelect={pick} />
+                <ResizeHandle
+                  value={overlayWidth}
+                  min={LIST_WIDTH.min}
+                  max={overlayMax}
+                  onChange={setListWidth}
+                  onReset={() => setListWidth(LIST_WIDTH.default)}
+                  label="Resize run list"
+                />
+              </div>
+            </>
+          )}
         </div>
         <StatusBar onOpenBot={() => go("#/bot")} onOpenSettings={go} />
       </div>

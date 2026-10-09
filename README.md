@@ -350,6 +350,11 @@ Layout:
 - The left rail switches sections: "Overview" (with the run list), "Bot", and "Settings" at the bottom. The top bar holds the
   run search (Cmd+K focuses it, Esc clears it); the run list shows next to the overview and run details, while the bot and
   settings screens use the full width.
+- The toggle at the left of the top bar (Cmd+B) hides or shows the run list, and the choice is remembered. When the window
+  is too narrow for the list and the content side by side (under about 800 pixels), the list opens over the content
+  instead: the toggle, Cmd+B or typing a search opens it, and picking a run, Esc or a click outside closes it.
+- The window can be as narrow as 600 pixels. Narrow screens stack their cards and rows, and Settings shows its sections as
+  icons.
 - The status bar at the bottom holds status to glance at: bot connection status, reasoner backend, attached tools, startup check issues (when any),
   requests in progress, and last request time. Clicking the bot status item opens the Bot screen.
 

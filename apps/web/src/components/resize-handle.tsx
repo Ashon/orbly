@@ -28,6 +28,30 @@ export function useStoredWidth(
   return [width, save];
 }
 
+/** An on/off choice this browser remembers, with the same quiet fallback as useStoredWidth. */
+export function useStoredFlag(
+  key: string,
+  fallback: boolean
+): [boolean, (value: boolean) => void] {
+  const [value, setValue] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem(key);
+      return stored === null ? fallback : stored === "1";
+    } catch {
+      return fallback;
+    }
+  });
+  const save = (next: boolean) => {
+    setValue(next);
+    try {
+      window.localStorage.setItem(key, next ? "1" : "0");
+    } catch {
+      // Not remembered this time.
+    }
+  };
+  return [value, save];
+}
+
 /** The window's inner width, kept current across resizes. */
 export function useWindowWidth(): number {
   const [width, setWidth] = useState(window.innerWidth);

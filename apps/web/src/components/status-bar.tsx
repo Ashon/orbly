@@ -29,7 +29,7 @@ export function StatusBar({
   const tools = [...(status?.mcp ?? []), ...(status?.diagrams ? ["diagrams"] : [])];
 
   return (
-    <footer className="flex h-7 shrink-0 items-center gap-1 border-t border-sidebar-border bg-sidebar px-2 text-[11px] text-muted-foreground">
+    <footer className="surface-bar flex h-7 shrink-0 items-center gap-1 overflow-hidden border-t border-sidebar-border bg-sidebar px-2 text-[11px] whitespace-nowrap text-muted-foreground">
       {/* When setup is needed, the bot status goes straight to Settings, where it is fixed. */}
       <Item
         tip={
