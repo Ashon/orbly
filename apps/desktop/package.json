@@ -1,6 +1,6 @@
 {
   "name": "@orbly/desktop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Orbly desktop app: runs the bot and shows its status, logs and run history",
   "type": "module",
