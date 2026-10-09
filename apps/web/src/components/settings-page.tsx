@@ -119,6 +119,8 @@ export function SettingsPage() {
     setCheck("running");
     void settings.checkSlack(changes).then(setCheck);
   };
+  // A running bot is restarted to apply settings; a stopped one (or one waiting for setup) is started.
+  const botLive = supervisor?.phase === "running" || supervisor?.phase === "starting";
   const save = (restart: boolean) => {
     setSaving(true);
     void settings
@@ -144,7 +146,7 @@ export function SettingsPage() {
           restarted || !botChanged
             ? {
                 tone: brokerChanged ? "warn" : "ok",
-                text: `${restarted ? "Saved and restarted the bot." : "Saved."}${brokerNote}`,
+                text: `${restarted ? (botLive ? "Saved and restarted the bot." : "Saved and started the bot.") : "Saved."}${brokerNote}`,
               }
             : {
                 tone: "warn",
@@ -414,7 +416,7 @@ export function SettingsPage() {
                   disabled={saving || issues.length > 0}
                 >
                   {saving ? <LoaderCircle className="animate-spin" /> : <Save />}
-                  Save and restart bot
+                  {botLive ? "Save and restart bot" : "Save and start bot"}
                 </Button>
               )}
             </div>

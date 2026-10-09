@@ -38,6 +38,9 @@ export function describeBot(
   const phase = supervisor?.phase;
   if (phase === "building") return { tone: "busy", label: "Building" };
   if (phase === "stopping") return { tone: "busy", label: "Stopping" };
+  // Missing settings are something to do, not an error: amber, and named for what is needed.
+  if (phase === "setup") return { tone: "warn", label: "Setup needed" };
+  if (phase === "failed") return { tone: "error", label: "Failed to start" };
   if (phase === "crashed") return { tone: "error", label: "Crashed" };
   const status = view?.alive ? view.status : undefined;
   if (!status) {

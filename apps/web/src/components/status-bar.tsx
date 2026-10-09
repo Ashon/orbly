@@ -11,7 +11,13 @@ import { describeBot, TONE_CLASS } from "./bot-state";
  * Status bar at the bottom of the window. Holds only bot status to glance at without switching screens.
  * Left: bot (connection, reasoner backend, attached tools, startup check issues). Right: request handling.
  */
-export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
+export function StatusBar({
+  onOpenBot,
+  onOpenSettings,
+}: {
+  onOpenBot: () => void;
+  onOpenSettings: () => void;
+}) {
   const { data } = useBotStatus();
   const supervisor = useSupervisor();
   const { tone, label } = describeBot(data, supervisor);
@@ -22,7 +28,15 @@ export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
 
   return (
     <footer className="flex h-7 shrink-0 items-center gap-1 border-t border-sidebar-border bg-sidebar px-2 text-[11px] text-muted-foreground">
-      <Item tip="Bot status and logs" onClick={onOpenBot}>
+      {/* When setup is needed, the bot status goes straight to Settings, where it is fixed. */}
+      <Item
+        tip={
+          supervisor?.phase === "setup"
+            ? "Open Settings to set up the bot"
+            : "Bot status and logs"
+        }
+        onClick={supervisor?.phase === "setup" ? onOpenSettings : onOpenBot}
+      >
         <span className="relative flex size-2">
           {(tone === "ok" || tone === "busy") && (
             <span

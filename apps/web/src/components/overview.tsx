@@ -4,14 +4,38 @@ import {
   CircleCheck,
   FolderOpen,
   LoaderCircle,
+  Settings,
   Timer,
   Wrench,
 } from "lucide-react";
 import type * as React from "react";
+import { Button } from "@/components/ui/button";
 import { useHealth, useStats } from "@/lib/api";
+import { useSupervisor } from "@/lib/desktop";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { VerdaMark } from "./logo";
+
+/**
+ * The first thing to do when the bot cannot start yet, usually connecting Slack on a first run. It names
+ * what is missing and leads to Settings, where the tokens are entered and checked.
+ */
+function SetupCard({ message }: { message?: string }) {
+  return (
+    <div className="surface-card mb-4 flex items-center gap-4 px-5 py-4">
+      <div className="min-w-0 flex-1">
+        <h2 className="text-sm font-semibold">Set up the bot</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {message ?? "Some settings are missing before the bot can start."}
+        </p>
+      </div>
+      <Button size="sm" onClick={() => (window.location.hash = "#/settings")}>
+        <Settings />
+        Open Settings
+      </Button>
+    </div>
+  );
+}
 
 /** "32.9s" -> ["32.9", "s"]. If the number and unit cannot be split, the whole text goes in the number slot. ("1m 5s") */
 function splitUnit(text: string): [string, string] {
@@ -21,6 +45,7 @@ function splitUnit(text: string): [string, string] {
 
 export function Overview() {
   const stats = useStats();
+  const supervisor = useSupervisor();
   const health = useHealth();
   const data = stats.data;
   const finished = data
@@ -54,6 +79,8 @@ export function Overview() {
           </p>
         </div>
       </div>
+
+      {supervisor?.phase === "setup" && <SetupCard message={supervisor.message} />}
 
       <div className="grid grid-cols-4 gap-4">
         <StatCard

@@ -40,9 +40,22 @@ export interface LogLine {
   message: string;
 }
 
-/** Bot process state managed by the desktop app (sent to the UI over IPC) */
+/**
+ * Bot process state managed by the desktop app (sent to the UI over IPC)
+ * - setup: not launched, because settings are missing or Slack rejected the tokens
+ * - failed: the build failed, or the bot exited right after starting for another reason
+ * - crashed: the bot died after running normally
+ */
 export type BotPhase =
-  "idle" | "building" | "starting" | "running" | "stopping" | "crashed" | "external";
+  | "idle"
+  | "setup"
+  | "building"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "failed"
+  | "crashed"
+  | "external";
 
 export interface SupervisorState {
   phase: BotPhase;
@@ -52,6 +65,8 @@ export interface SupervisorState {
   message?: string;
   /** Last output when start or build fails */
   output: string[];
+  /** In the setup phase: the settings that fail validation (empty when Slack is not set up yet) */
+  issues?: { key?: string; message: string }[];
   autoStart: boolean;
   /** Number of restarts after abnormal exits (last 10 minutes) */
   restarts: number;

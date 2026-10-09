@@ -315,8 +315,13 @@ Bot management:
 - The menu bar (tray) holds only status and quick actions: bot status ("Bot: ..."), "Start bot" (when stopped) or "Restart bot", "Open Verda", "Quit Verda".
   App settings (automatic start, run history folder) are in Settings.
 - Stop and app quit send SIGTERM. The bot waits up to 20 seconds for requests in progress, and the rest resume on the next start.
-- If the bot dies after running normally for 30 seconds or more, it is restarted after 3 seconds (up to 3 times in 10 minutes). If it dies right after starting,
-  it is treated as a config problem: the app stops and shows the cause and the last output on the Bot screen.
+- Before launching the bot, the app checks the settings with the bot's own rules. When the Slack tokens are missing (a first run) or a
+  value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Bot screen, the Overview,
+  the status bar, and the tray menu). Tokens Slack rejects (`invalid_auth` and the like) also end up there. Saving in Settings then
+  starts the bot ("Save and start bot").
+- If the bot dies after running normally for 30 seconds or more, it shows "Crashed" and is restarted after 3 seconds (up to 3 times in
+  10 minutes). If it stops right after starting for another reason, or a dev build fails, it shows "Failed to start" with the cause and
+  the last output on the Bot screen.
 - If a bot is already running from a terminal (`pnpm dev` and so on), the app leaves it alone and only shows its status and logs as "Running in terminal".
   When the terminal bot stops, the app takes over. (It starts the bot right away if automatic start is on)
 - Closing the window hides the app in the tray and the bot keeps running. Quit from the tray menu or with Cmd+Q.

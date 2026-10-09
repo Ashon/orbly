@@ -9,6 +9,7 @@ import {
   Play,
   RotateCw,
   Search,
+  Settings,
   Square,
   TriangleAlert,
 } from "lucide-react";
@@ -66,19 +67,7 @@ export function BotPage() {
             </div>
             <Controls supervisor={supervisor} />
           </div>
-          {supervisor?.message && (
-            <p
-              className={cn(
-                "mt-3 rounded-lg px-3 py-2 text-xs",
-                supervisor.phase === "crashed" ? TONE_CLASS.error.bg : "bg-muted/60",
-                supervisor.phase === "crashed"
-                  ? TONE_CLASS.error.text
-                  : "text-muted-foreground"
-              )}
-            >
-              {supervisor.message}
-            </p>
-          )}
+          {supervisor?.message && <Notice supervisor={supervisor} />}
           <div className="mt-4 grid grid-cols-4 gap-3">
             <Info icon={<Bot />} label="Bot account">
               {status?.bot ? `@${status.bot.user}` : "-"}
@@ -131,7 +120,9 @@ export function BotPage() {
           )}
           {supervisor &&
             supervisor.output.length > 0 &&
-            (supervisor.phase === "crashed" || supervisor.phase === "building") && (
+            (supervisor.phase === "failed" ||
+              supervisor.phase === "crashed" ||
+              supervisor.phase === "building") && (
               <CodeBlock
                 className="mt-3"
                 label="Last output"
@@ -142,6 +133,50 @@ export function BotPage() {
         </div>
       </div>
       <LogPanel />
+    </div>
+  );
+}
+
+/**
+ * The supervisor's notice under the header. Setup needed is amber with a way to Settings (and the
+ * failing values, if any); a failed start or a crash is red; anything else is a quiet note.
+ */
+function Notice({ supervisor }: { supervisor: SupervisorState }) {
+  const { phase, message, issues } = supervisor;
+  const tone =
+    phase === "setup"
+      ? TONE_CLASS.warn
+      : phase === "failed" || phase === "crashed"
+        ? TONE_CLASS.error
+        : undefined;
+  return (
+    <div
+      className={cn(
+        "mt-3 flex items-start gap-3 rounded-lg border px-3 py-2.5 text-xs",
+        tone
+          ? [tone.bg, tone.text]
+          : "border-transparent bg-muted/60 text-muted-foreground"
+      )}
+    >
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <p>{message}</p>
+        {phase === "setup" && issues && issues.length > 0 && (
+          <ul className="space-y-0.5">
+            {issues.map((issue) => (
+              <li key={`${issue.key}:${issue.message}`}>
+                {issue.key && <span className="font-mono font-medium">{issue.key}</span>}{" "}
+                {issue.message}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {phase === "setup" && (
+        <Button size="xs" onClick={() => (window.location.hash = "#/settings")}>
+          <Settings />
+          Open Settings
+        </Button>
+      )}
     </div>
   );
 }
@@ -171,6 +206,8 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
         {!live && (
           <Button
             size="sm"
+            // When setup is needed, the notice's "Open Settings" is the main action; Start only checks again.
+            variant={phase === "setup" ? "outline" : "default"}
             disabled={busy || phase === "external"}
             onClick={() => run(() => control.start())}
           >

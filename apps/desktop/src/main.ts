@@ -199,11 +199,16 @@ function registerAppProtocol(): void {
   });
 }
 
-function showMainWindow(): void {
+/** Shows the window; with a route (e.g. "#/settings") it also switches to that screen. */
+function showMainWindow(route?: string): void {
   if (!mainWindow) {
-    void createWindow().catch(reportStartupError);
+    void createWindow(route).catch(reportStartupError);
     return;
   }
+  if (route)
+    void mainWindow.webContents.executeJavaScript(
+      `location.hash = ${JSON.stringify(route)}`
+    );
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
@@ -211,6 +216,8 @@ function showMainWindow(): void {
 
 const PHASE_LABEL: Record<SupervisorState["phase"], string> = {
   idle: "Stopped",
+  setup: "Setup needed",
+  failed: "Failed to start",
   building: "Building",
   starting: "Starting",
   running: "Running",
@@ -253,15 +260,18 @@ function updateTray(): void {
   );
   // The tray holds only the status and quick actions. Bot control is on the Bot screen; app settings (start automatically, run history folder) are on the Settings screen.
   const live = phase === "running" || phase === "starting";
+  // When setup is needed, the quick action is opening Settings rather than a Start that would stop again.
   const controls: MenuItemConstructorOptions[] = supervisor
     ? [
         live
           ? { label: "Restart bot", click: () => void supervisor.restart() }
-          : {
-              label: "Start bot",
-              enabled: phase === "idle" || phase === "crashed",
-              click: () => void supervisor.start(),
-            },
+          : phase === "setup"
+            ? { label: "Open Settings...", click: () => showMainWindow("#/settings") }
+            : {
+                label: "Start bot",
+                enabled: phase === "idle" || phase === "failed" || phase === "crashed",
+                click: () => void supervisor.start(),
+              },
         { type: "separator" },
       ]
     : [];
@@ -278,7 +288,7 @@ function updateTray(): void {
         : []),
       { type: "separator" },
       ...controls,
-      { label: `Open ${appName}`, click: showMainWindow },
+      { label: `Open ${appName}`, click: () => showMainWindow() },
       { type: "separator" },
       { label: `Quit ${appName}`, click: () => app.quit() },
     ])
@@ -336,7 +346,13 @@ function registerBotIpc(): void {
       // New settings take effect only after the bot restarts. A stopped bot is started fresh.
       const phase = supervisor.current.phase;
       if (phase === "running" || phase === "starting") await supervisor.restart();
-      else if (phase === "idle" || phase === "crashed") await supervisor.start();
+      else if (
+        phase === "idle" ||
+        phase === "setup" ||
+        phase === "failed" ||
+        phase === "crashed"
+      )
+        await supervisor.start();
       else return { issues, restarted: false };
       return { issues, restarted: true };
     }
@@ -368,9 +384,9 @@ function registerBotIpc(): void {
   });
 }
 
-async function createWindow(): Promise<void> {
+async function createWindow(route = ""): Promise<void> {
   if (mainWindow) {
-    showMainWindow();
+    showMainWindow(route || undefined);
     return;
   }
   const window = new BrowserWindow({
@@ -416,7 +432,7 @@ async function createWindow(): Promise<void> {
     }
   });
   if (webDevUrl) await waitForUrl(webDevUrl);
-  await window.loadURL(webDevUrl ?? "verda://app/");
+  await window.loadURL(`${webDevUrl ?? "verda://app/"}${route}`);
   if (captureFile) await capture(window, captureFile);
 }
 
@@ -456,7 +472,7 @@ function reportStartupError(error: unknown): void {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on("second-instance", showMainWindow);
+  app.on("second-instance", () => showMainWindow());
   app
     .whenReady()
     .then(async () => {
@@ -471,7 +487,7 @@ if (!app.requestSingleInstanceLock()) {
         void supervisor.start();
       }
       await createWindow();
-      app.on("activate", showMainWindow);
+      app.on("activate", () => showMainWindow());
     })
     .catch(reportStartupError);
 }

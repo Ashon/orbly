@@ -5,6 +5,7 @@ import path from "node:path";
 import { parseEnv } from "node:util";
 import { utilityProcess, type UtilityProcess } from "electron";
 import { readBotStatus } from "../../../src/runtime/status.js";
+import { setupProblem, startFailureProblem } from "./bot-readiness.js";
 import type { SupervisorState } from "../../../src/runtime/types.js";
 
 export type { SupervisorState };
@@ -14,7 +15,10 @@ export type { SupervisorState };
  * - Runs the bot entry with Electron utilityProcess. Dev runs use the repository's dist/index.js and build first
  *   when the sources are newer. The packaged app uses the bundle inside the app (bot/index.mjs) as is. (app-paths.ts)
  * - If a bot is already running from a terminal (pnpm dev etc.), it is left alone and shown as "external".
- * - A bot that was running fine and dies is restarted a few times. One that dies right after starting is treated as a config problem and left stopped.
+ * - Before launching, the bot's environment is checked with the bot's own rules. Missing settings (a first run)
+ *   or tokens Slack rejected show as "setup" instead of launching a bot that would only exit on them.
+ * - A bot that was running fine and dies is restarted a few times. One that dies right after starting for
+ *   another reason is left stopped as "failed".
  * - Stopping sends SIGTERM. The bot waits up to 20 seconds for active requests and resumes the rest on the next start.
  */
 interface Settings {
@@ -89,6 +93,17 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     this.refreshExternal();
     if (this.state.phase === "external") return;
     this.stopRequested = false;
+    const problem = setupProblem(this.botEnv());
+    if (problem) {
+      this.set({
+        phase: "setup",
+        pid: undefined,
+        message: problem.message,
+        issues: problem.issues,
+        output: [],
+      });
+      return;
+    }
     const { entry } = this.options;
     if (
       this.options.repoRoot &&
@@ -155,7 +170,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
             .slice(-OUTPUT_LINES);
           if (err) {
             this.options.log(`bot build failed: ${err.message}`);
-            this.set({ phase: "crashed", message: "Build failed.", output });
+            this.set({ phase: "failed", message: "The build failed.", output });
             resolve(false);
             return;
           }
@@ -166,9 +181,9 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     });
   }
 
-  private spawn(entry: string): void {
+  /** The bot's environment: the settings file under the app's own environment, as with node --env-file. */
+  private botEnv(): Record<string, string> {
     const env: Record<string, string> = {};
-    // As with node --env-file, existing environment variables take precedence over the settings file.
     const { envFile } = this.options;
     if (existsSync(envFile)) Object.assign(env, parseEnv(readFileSync(envFile, "utf8")));
     for (const [key, value] of Object.entries(process.env)) {
@@ -178,7 +193,11 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     env.VERDA_MANAGED_BY = "desktop";
     env.VERDA_DATA_DIR = this.options.dataDir;
     env.NODE_ENV = "production";
+    return env;
+  }
 
+  private spawn(entry: string): void {
+    const env = this.botEnv();
     const child = utilityProcess.fork(entry, [], {
       cwd: this.options.cwd,
       env,
@@ -187,7 +206,13 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     });
     this.child = child;
     this.childStartedAt = Date.now();
-    this.set({ phase: "starting", pid: undefined, message: undefined, output: [] });
+    this.set({
+      phase: "starting",
+      pid: undefined,
+      message: undefined,
+      issues: undefined,
+      output: [],
+    });
 
     const capture = (chunk: Buffer) => {
       const lines = chunk.toString().split("\n").filter(Boolean);
@@ -222,13 +247,25 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       setTimeout(() => void this.start(), 3_000);
       return;
     }
+    if (uptime < HEALTHY_UPTIME_MS) {
+      // Tokens Slack rejected are a setup problem; anything else is a failed start, with the output kept.
+      const problem = startFailureProblem(this.state.output);
+      this.set(
+        problem
+          ? { phase: "setup", pid: undefined, message: problem.message, issues: [] }
+          : {
+              phase: "failed",
+              pid: undefined,
+              message:
+                `The bot stopped right after starting (code ${code}). ${last}`.trim(),
+            }
+      );
+      return;
+    }
     this.set({
       phase: "crashed",
       pid: undefined,
-      message:
-        uptime < HEALTHY_UPTIME_MS
-          ? `The bot exited right after starting (code ${code}). ${last}`.trim()
-          : `The bot keeps exiting and will not be restarted (code ${code}).`,
+      message: `The bot keeps exiting and will not be restarted (code ${code}).`,
     });
   }
 
