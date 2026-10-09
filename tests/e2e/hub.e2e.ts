@@ -116,7 +116,10 @@ describe("team hub", () => {
       new Set([slack.botToken, slack.appToken])
     );
     expect(slack.callsTo("chat.update")).toHaveLength(1);
-    const [run] = world.runs();
+    // The answer is posted before the run record is closed, so wait for the record.
+    const run = await eventually("the finished run", () =>
+      world!.runs().find((r) => r.status !== "running")
+    );
     expect(run).toMatchObject({ status: "succeeded", origin: { userName: "alice" } });
   });
 

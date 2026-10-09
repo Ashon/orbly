@@ -46,7 +46,10 @@ describe("bot on its own Slack app", () => {
     expect(call!.prompt).toContain("@bob: web-01 is slow, @alice?");
     expect(call!.prompt).toContain('<thread venue="#ops">');
     expect(call!.system).toContain("answers mentions in Slack public channels");
-    const [run] = world.runs();
+    // The answer is posted before the run record is closed, so wait for the record.
+    const run = await eventually("the finished run", () =>
+      world!.runs().find((r) => r.status !== "running")
+    );
     expect(run).toMatchObject({
       status: "succeeded",
       request: "check web-01",
