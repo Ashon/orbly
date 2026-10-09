@@ -21,6 +21,7 @@ import {
   CircleX,
   FolderOpen,
   History,
+  KeyRound,
   LoaderCircle,
   Monitor,
   Moon,
@@ -415,7 +416,24 @@ export function SettingsPage() {
     sandbox: (
       <>
         {card("environment")}
-        {docker && card("credentials", { help: credentialsHelp(valueOf("REASONER")) })}
+        {docker &&
+          card("credentials", {
+            help: credentialsHelp(valueOf("REASONER")),
+            after:
+              valueOf("REASONER") === "claude" ? (
+                <ClaudeTokenSetup
+                  hasToken={Boolean(view.secrets.SANDBOX_CLAUDE_OAUTH_TOKEN?.set)}
+                  onSaved={() => {
+                    load();
+                    setNotice({
+                      tone: "warn",
+                      text: "Saved a new claude token. Restart the bot to use it.",
+                      restart: true,
+                    });
+                  }}
+                />
+              ) : undefined,
+          })}
         {docker && sandbox.available && <AllowlistCard sandbox={sandbox} />}
         {sandbox.available && (
           <>
@@ -919,6 +937,101 @@ function credentialsHelp(reasoner: string): string {
   return reasoner === "codex"
     ? "The codex login passed into each sandbox container. Your own CLI login on this Mac is not used there."
     : "The claude login passed into each sandbox container. Your own CLI login on this Mac is not used there.";
+}
+
+/**
+ * Gets the sandbox's claude token from the Claude subscription: the app runs claude setup-token, the user approves
+ * in the browser, and the token is saved to .env in the main process (it never reaches this screen).
+ */
+function ClaudeTokenSetup({
+  hasToken,
+  onSaved,
+}: {
+  /** A token is already saved; the action then replaces it */
+  hasToken: boolean;
+  onSaved: () => void;
+}) {
+  const bridge = window.orblyDesktop?.sandbox;
+  const [state, setState] = useState<
+    { step: "idle" } | { step: "waiting" } | { step: "error"; message: string }
+  >({ step: "idle" });
+  // Leaving the screen stops a run that is still waiting for the browser.
+  useEffect(() => () => void bridge?.cancelClaudeToken?.(), [bridge]);
+  if (!bridge?.claudeToken) return null;
+
+  const start = () => {
+    setState({ step: "waiting" });
+    void bridge.claudeToken().then((res) => {
+      if (res.ok) {
+        setState({ step: "idle" });
+        onSaved();
+      } else
+        setState(
+          res.error === "Cancelled."
+            ? { step: "idle" }
+            : { step: "error", message: res.error }
+        );
+    });
+  };
+
+  return (
+    <div className="border-t border-canvas bg-well/60 px-4 py-3">
+      {state.step === "waiting" ? (
+        <div className="flex items-center gap-3">
+          <LoaderCircle className="size-4 shrink-0 animate-spin text-muted-foreground" />
+          <p className="min-w-0 flex-1 text-sm">
+            Approve in the browser window that opened. The token is saved here when Claude
+            hands it over.
+          </p>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void bridge.cancelClaudeToken()}
+          >
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          {state.step === "error" && (
+            <TriangleAlert className="size-4 shrink-0 text-status-failed" />
+          )}
+          <div className="min-w-0 flex-1">
+            <p
+              className={cn(
+                "text-sm",
+                state.step === "error" ? "text-status-failed" : "font-medium"
+              )}
+            >
+              {state.step === "error"
+                ? state.message
+                : hasToken
+                  ? "Replace the token with a new one from your Claude subscription"
+                  : "Get the token from your Claude subscription"}
+            </p>
+            {state.step === "idle" && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Runs claude setup-token: approve in the browser and the one-year token is
+                saved here. Needs a Pro, Max, Team or Enterprise plan.
+              </p>
+            )}
+          </div>
+          <Button
+            size="sm"
+            variant={state.step === "error" ? "outline" : "default"}
+            onClick={start}
+          >
+            <KeyRound />
+            {state.step === "error"
+              ? "Try again"
+              : hasToken
+                ? "Get new token"
+                : "Get token from Claude"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 type PairState =

@@ -31,6 +31,7 @@ import { envFilePath } from "../../../src/settings/paths.js";
 import { BotSupervisor, type SupervisorState } from "./bot.js";
 import { SandboxService } from "./sandbox.js";
 import { resolveAppPaths } from "./app-paths.js";
+import { ClaudeTokenSetup } from "./claude-token.js";
 import { HubPairing } from "./hub-pairing.js";
 import { SettingsStore } from "./settings.js";
 
@@ -120,6 +121,11 @@ const settings = new SettingsStore({
   env: process.env,
 });
 const hubPairing = new HubPairing(settings);
+/** Settings > Sandbox "Get token from Claude": runs claude setup-token and saves its token to .env */
+const claudeToken = new ClaudeTokenSetup({
+  toolPath: () => toolPath(),
+  save: (token) => settings.save({ SANDBOX_CLAUDE_OAUTH_TOKEN: token }),
+});
 
 /** Sandbox status, allowed domains, apply jobs */
 const sandbox = new SandboxService({
@@ -440,6 +446,12 @@ function registerBotIpc(): void {
   ipcMain.handle("orbly:sandbox:save-allowlist", (event, domains: unknown) =>
     fromMainWindow(event) ? sandbox.saveAllowlist(domains) : []
   );
+  ipcMain.handle("orbly:sandbox:claude-token", (event) =>
+    fromMainWindow(event) ? claudeToken.run() : { ok: false, error: "Not allowed." }
+  );
+  ipcMain.handle("orbly:sandbox:claude-token-cancel", (event) => {
+    if (fromMainWindow(event)) claudeToken.cancel();
+  });
   sandbox.on("job", (job) =>
     mainWindow?.webContents.send("orbly:sandbox:job-changed", job)
   );

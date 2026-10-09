@@ -43,6 +43,9 @@ contextBridge.exposeInMainWorld("orblyDesktop", {
     run: (kind: string) => ipcRenderer.invoke("orbly:sandbox:run", kind),
     saveAllowlist: (domains: string[]) =>
       ipcRenderer.invoke("orbly:sandbox:save-allowlist", domains),
+    // Runs claude setup-token; the token goes to .env in the main process and never comes back here.
+    claudeToken: () => ipcRenderer.invoke("orbly:sandbox:claude-token"),
+    cancelClaudeToken: () => ipcRenderer.invoke("orbly:sandbox:claude-token-cancel"),
     onJob: (callback: (job: unknown) => void) => {
       const listener = (_event: IpcRendererEvent, job: unknown) => callback(job);
       ipcRenderer.on("orbly:sandbox:job-changed", listener);

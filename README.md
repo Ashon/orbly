@@ -129,6 +129,13 @@ pnpm sandbox:up        # start the egress proxy and the internal network (also r
 claude setup-token     # for the claude backend: issue a subscription token -> SANDBOX_CLAUDE_OAUTH_TOKEN in .env
 ```
 
+In the desktop app, Settings > Sandbox > Reasoner login > "Get token from Claude" does the `claude setup-token` step: it runs
+the command (under `script`, which gives it the terminal it needs), you approve in the browser, and the token it prints is
+saved to `SANDBOX_CLAUDE_OAUTH_TOKEN` without being shown. The token is a one-year token for your own Claude subscription
+(Pro, Max, Team or Enterprise); to keep the bot to your own requests, put your own Slack user ID in `MENTION_ALLOWED_USERS`,
+or use the [team hub](#team-hub), where each member's desktop answers only that member. Mounting `~/.claude` into the sandbox
+is not an alternative: on macOS the login lives in the Keychain, and the folder holds every past session and your hooks.
+
 The CLI versions are pinned by build args in `sandbox/compose.yaml`. When you upgrade the host CLI, bump them too and rebuild.
 
 ## Ops tools (ops-broker)

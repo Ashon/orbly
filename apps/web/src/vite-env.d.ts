@@ -54,6 +54,9 @@ declare global {
         job(): Promise<SandboxJob | null>;
         run(kind: SandboxJobKind): Promise<{ job?: SandboxJob; error?: string }>;
         saveAllowlist(domains: string[]): Promise<AllowlistIssue[]>;
+        /** Runs claude setup-token and saves its token as SANDBOX_CLAUDE_OAUTH_TOKEN */
+        claudeToken(): Promise<{ ok: true } | { ok: false; error: string }>;
+        cancelClaudeToken(): Promise<void>;
         onJob(callback: (job: SandboxJob) => void): () => void;
       };
     };
