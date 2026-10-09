@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @plugin "@tailwindcss/typography";
 
@@ -7,9 +7,9 @@
 
 @theme inline {
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI",
-    "Noto Sans KR", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo',
+    'Segoe UI', 'Noto Sans KR', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -66,7 +66,12 @@
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  --pacenote-gradient: linear-gradient(74deg, #01ab78 0%, #1fc289 46%, #48c89c 100%);
+  --pacenote-gradient: linear-gradient(
+    74deg,
+    #01ab78 0%,
+    #1fc289 46%,
+    #48c89c 100%
+  );
   --background: oklch(0.99 0.004 165);
   --foreground: oklch(0.23 0.025 172);
   --canvas: oklch(0.98 0.006 168);
@@ -102,7 +107,8 @@
   --chart-3: #a8e7d3;
   /* Card shadow: a very faint lift */
   --card-shadow:
-    0 1px 2px oklch(0.3 0.03 170 / 0.05), 0 10px 28px -14px oklch(0.3 0.03 170 / 0.14);
+    0 1px 2px oklch(0.3 0.03 170 / 0.05),
+    0 10px 28px -14px oklch(0.3 0.03 170 / 0.14);
   /* Status bar: lifted over the content, which scrolls under it */
   --bar-shadow: 0 -10px 22px -12px oklch(0.3 0.03 170 / 0.24);
 }
@@ -186,7 +192,7 @@
   }
   input,
   textarea,
-  [contenteditable="true"] {
+  [contenteditable='true'] {
     -webkit-user-select: text;
     user-select: text;
   }
@@ -204,7 +210,7 @@
   .titlebar-drag {
     -webkit-app-region: drag;
   }
-  .titlebar-drag :is(a, button, input, select, textarea, [role="button"]) {
+  .titlebar-drag :is(a, button, input, select, textarea, [role='button']) {
     -webkit-app-region: no-drag;
   }
   .pacenote-gradient {

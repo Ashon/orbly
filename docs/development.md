@@ -8,6 +8,13 @@ pnpm test:e2e:coverage  # the same, with the bot's and the hub's coverage (cover
 pnpm test:e2e:app   # end-to-end through the desktop app's window (builds first; opens a window)
 ```
 
+## Code style
+
+Prettier formats the code (`.prettierrc`: no semicolons, single quotes, 80 columns) and ESLint checks it
+(`eslint.config.js`), with an 80-column limit that also holds for comments; strings, template literals, regexes and
+URLs may run longer. `pnpm format` rewrites; `pnpm lint` and `pnpm format:check` verify, and both are part of
+`pnpm check`.
+
 ## End-to-end tests
 
 `tests/e2e` runs Pacenote the way it runs for real, on this computer and without network access: the bot (and the
