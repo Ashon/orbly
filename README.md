@@ -4,8 +4,8 @@
 
 # Pacenote
 
-[![ci](https://github.com/Ashon/orbly/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ashon/orbly/actions/workflows/ci.yml)
-[![e2e coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FAshon%2Forbly%2Fbadges%2Fe2e-coverage.json)](https://github.com/Ashon/orbly/actions/workflows/ci.yml)
+[![ci](https://github.com/Ashon/pacenote/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ashon/pacenote/actions/workflows/ci.yml)
+[![e2e coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FAshon%2Fpacenote%2Fbadges%2Fe2e-coverage.json)](https://github.com/Ashon/pacenote/actions/workflows/ci.yml)
 
 **You drive. Pacey reads the notes.**
 
@@ -506,9 +506,9 @@ Other:
 
 ## Migrating from Orbly or Verda
 
-The project was renamed twice: Verda (v0.1), then Orbly (v0.2), now Pacenote, with Pacey as the assistant's name. The
-repository is still [Ashon/orbly](https://github.com/Ashon/orbly) until it moves (old links will redirect). The Homebrew
-cask is now `pacenote`. An existing Orbly or Verda setup keeps working, with warnings in the bot log and the terminal:
+The project was renamed twice: Verda (v0.1), then Orbly (v0.2), now Pacenote (v0.3), with Pacey as the assistant's
+name. The repository moved to [Ashon/pacenote](https://github.com/Ashon/pacenote) (old links redirect; for a clone,
+`git remote set-url origin git@github.com:Ashon/pacenote.git`). The Homebrew cask is now `pacenote`. An existing Orbly or Verda setup keeps working, with warnings in the bot log and the terminal:
 
 - `ORBLY_*` and `VERDA_*` environment variables (in the environment or in `.env`) are read as their `PACENOTE_*` names
   when those are not set; an `ORBLY_*` value wins over a `VERDA_*` one.

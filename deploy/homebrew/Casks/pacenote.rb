@@ -9,10 +9,10 @@ cask "pacenote" do
   sha256 arm:   "REPLACE_SHA256_ARM64",
          intel: "REPLACE_SHA256_X64"
 
-  url "https://github.com/Ashon/orbly/releases/download/v#{version}/Pacenote-v#{version}-macos-#{arch}.app.zip"
+  url "https://github.com/Ashon/pacenote/releases/download/v#{version}/Pacenote-v#{version}-macos-#{arch}.app.zip"
   name "Pacenote"
   desc "Slack bot that answers mentions with local claude or codex CLIs in a sandbox"
-  homepage "https://github.com/Ashon/orbly"
+  homepage "https://github.com/Ashon/pacenote"
 
   # Electron 38 and later need macOS 12.
   depends_on macos: :monterey
