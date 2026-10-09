@@ -4,11 +4,11 @@ node_modules/
 # build output
 dist/
 *.tsbuildinfo
-# pnpm bundle 결과 (봇, 샌드박스 작업, broker 이미지용 묶음)와 pnpm package:mac 결과
+# pnpm bundle output (bundles for the bot, the sandbox jobs and the broker image) and pnpm package:mac output
 build/
 sandbox/ops-broker/dist/
 release/
-# 로컬 런타임 데이터 (봇의 기본 데이터 위치는 VERDA_DATA_DIR)
+# local runtime data (the bot's default data location is VERDA_DATA_DIR)
 data/
 
 # environment
@@ -16,7 +16,7 @@ data/
 .env.local
 .env.*.local
 
-# editor / OS, 에이전트 로컬 설정
+# editor / OS, local agent settings
 .claude/
 .DS_Store
 *.swp
