@@ -1,7 +1,7 @@
 #!/bin/sh
-# 사용법: render <mermaid|dot|vega-lite|svg> <입력 파일> <출력 PNG>
-#         render resize <입력 이미지> <출력 PNG> <긴 변 최대 px>
-# 컨테이너는 네트워크 없이, 읽기 전용 루트와 tmpfs(/tmp)로 실행된다.
+# Usage: render <mermaid|dot|vega-lite|svg> <input file> <output PNG>
+#        render resize <input image> <output PNG> <max long side px>
+# The container runs without network, with a read-only root and tmpfs (/tmp).
 set -eu
 format="$1"
 input="$2"
@@ -24,7 +24,7 @@ import vl_convert as vlc
 vlc.register_font_directory("/usr/share/fonts")
 import json
 spec = json.loads(open(sys.argv[1], encoding="utf-8").read())
-# 크기를 지정하지 않은 단일 차트는 Slack 에서 읽기 좋은 크기로 그린다.
+# A single chart without a set size is drawn at a size that reads well in Slack.
 if "mark" in spec:
     spec.setdefault("width", 520)
     spec.setdefault("height", 260)
@@ -36,7 +36,7 @@ PY
     rsvg-convert --format png --zoom 2 --background-color white --output "$output" "$input"
     ;;
   resize)
-    python3 - "$input" "$output" "${4:?긴 변 최대 px 가 필요합니다}" <<'PY'
+    python3 - "$input" "$output" "${4:?max long side px is required}" <<'PY'
 import sys
 from PIL import Image
 src, dst, limit = sys.argv[1], sys.argv[2], int(sys.argv[3])
@@ -48,7 +48,7 @@ with Image.open(src) as img:
 PY
     ;;
   *)
-    echo "지원하지 않는 형식: $format" >&2
+    echo "unsupported format: $format" >&2
     exit 2
     ;;
 esac

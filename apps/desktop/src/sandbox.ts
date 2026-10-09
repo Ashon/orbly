@@ -23,25 +23,25 @@ import { readEnvFile, readEnvValues } from "../../../src/settings/env-file.js";
 import { allowlistPath } from "../../../src/settings/paths.js";
 
 const OUTPUT_LINES = 400;
-/** 터미널 색 코드 (docker 출력) */
+/** Terminal color codes (docker output) */
 const ANSI_ESCAPE = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[A-Za-z]`, "g");
 
 /**
- * 설정 화면의 샌드박스 영역. 상태를 모으고, 허용 도메인 목록을 고치고, 적용 작업을 실행한다.
- * 작업은 src/tools/sandbox-job.ts 묶음을 앱의 Node(ELECTRON_RUN_AS_NODE)로 돌린다. 저장소와 pnpm 이 없어도 된다.
- * 작업은 한 번에 하나만 돌고, 출력은 비밀 값을 가린 뒤 화면으로 보낸다.
- * 프록시와 broker 를 다시 띄우면 진행 중인 도구 호출이 끊기므로 처리 중인 요청이 있으면 막는다.
+ * Sandbox section of the Settings screen. Collects status, edits the allowed domain list, and runs apply jobs.
+ * Jobs run the src/tools/sandbox-job.ts bundle with the app's Node (ELECTRON_RUN_AS_NODE). No repository or pnpm is needed.
+ * Only one job runs at a time, and its output is sent to the UI with secrets masked.
+ * Restarting the proxy or broker cuts off tool calls in progress, so it is blocked while requests are active.
  */
 export class SandboxService extends EventEmitter<{ job: [SandboxJob] }> {
   private current?: SandboxJob;
 
   constructor(
     private readonly options: {
-      /** sandbox/compose.yaml 이 있는 디렉터리 (app-paths.ts) */
+      /** Directory containing sandbox/compose.yaml (app-paths.ts) */
       sandboxDir: string;
-      /** 샌드박스 적용 작업 실행 파일 (app-paths.ts) */
+      /** Sandbox apply job runner (app-paths.ts) */
       jobRunner: string;
-      /** 설정 파일 (저장소 밖, src/settings/paths.ts) */
+      /** Settings file (outside the repository, src/settings/paths.ts) */
       envFile: string;
       dataDir: string;
       env: NodeJS.ProcessEnv;
@@ -71,7 +71,7 @@ export class SandboxService extends EventEmitter<{ job: [SandboxJob] }> {
 
   saveAllowlist(raw: unknown): AllowlistIssue[] {
     if (!Array.isArray(raw) || raw.some((item) => typeof item !== "string")) {
-      return [{ message: "도메인 목록 형식이 올바르지 않습니다." }];
+      return [{ message: "The domain list format is invalid." }];
     }
     const values = {
       ...readEnvValues(readEnvFile(this.options.envFile)),
@@ -93,23 +93,25 @@ export class SandboxService extends EventEmitter<{ job: [SandboxJob] }> {
 
   run(kind: unknown): { job?: SandboxJob; error?: string } {
     if (typeof kind !== "string" || !(kind in SANDBOX_JOBS))
-      return { error: "알 수 없는 작업입니다." };
+      return { error: "Unknown job." };
     const jobKind = kind as SandboxJobKind;
     if (this.current?.state === "running") {
-      return { error: `${SANDBOX_JOBS[this.current.kind].label} 작업이 진행 중입니다.` };
+      return {
+        error: `A job is already in progress: ${SANDBOX_JOBS[this.current.kind].label}.`,
+      };
     }
     if (jobKind === "proxy" || jobKind === "broker") {
       const bot = readBotStatus(this.options.dataDir);
       const active = bot.alive ? (bot.status?.requests.active ?? 0) : 0;
       if (active > 0) {
         return {
-          error: `처리 중인 요청 ${active}건이 끝난 뒤 다시 시도하세요. (진행 중인 도구 호출이 끊깁니다)`,
+          error: `Try again after ${active} active ${active === 1 ? "request finishes" : "requests finish"}. (Tool calls in progress would be cut off)`,
         };
       }
     }
     if (!existsSync(this.options.jobRunner)) {
       return {
-        error: `작업 실행 파일이 없습니다: ${this.options.jobRunner} (저장소에서는 pnpm bundle)`,
+        error: `Job runner not found: ${this.options.jobRunner} (run pnpm bundle in the repository)`,
       };
     }
     const job: SandboxJob = {
@@ -147,7 +149,7 @@ export class SandboxService extends EventEmitter<{ job: [SandboxJob] }> {
     child.stdout.on("data", capture);
     child.stderr.on("data", capture);
     child.on("error", (err) => {
-      job.output.push(`실행 실패: ${err.message}`);
+      job.output.push(`Failed to run: ${err.message}`);
     });
     child.on("close", (code) => {
       if (pendingEmit) clearTimeout(pendingEmit);

@@ -1,26 +1,26 @@
 import path from "node:path";
 
 /**
- * 앱이 쓰는 파일 위치. 개발 실행(저장소에서 electron .)과 패키지 앱(Verda.app)이 다르다.
- * - 개발: 저장소의 빌드 결과를 쓴다. 봇은 dist/index.js (tsc), 소스가 바뀌면 다시 빌드한다.
- * - 패키지: 앱 안(Contents/Resources/app)의 묶음 파일만 쓴다. 저장소, pnpm, 빌드가 필요 없다.
- * 설정과 기록은 두 경우 모두 저장소 밖(VERDA_HOME, VERDA_DATA_DIR)에 있다.
+ * File locations the app uses. Dev runs (electron . in the repository) and the packaged app (Verda.app) differ.
+ * - Dev: uses the repository build output. The bot is dist/index.js (tsc) and is rebuilt when sources change.
+ * - Packaged: uses only the bundled files inside the app (Contents/Resources/app). No repository, pnpm, or build is needed.
+ * In both cases settings and history live outside the repository (VERDA_HOME, VERDA_DATA_DIR).
  */
 export interface AppPaths {
   packaged: boolean;
-  /** 화면 (apps/web 빌드) */
+  /** UI (apps/web build) */
   webDist: string;
-  /** 봇 실행 파일 */
+  /** Bot entry file */
   botEntry: string;
-  /** sandbox/compose.yaml 과 이미지 빌드 파일 */
+  /** sandbox/compose.yaml and image build files */
   sandboxDir: string;
-  /** 샌드박스 적용 작업 (src/tools/sandbox-job.ts 묶음) */
+  /** Sandbox apply job (src/tools/sandbox-job.ts bundle) */
   jobRunner: string;
-  /** 개발 실행에서만: 봇을 다시 빌드할 저장소 */
+  /** Dev runs only: the repository to rebuild the bot from */
   repoRoot?: string;
 }
 
-/** distDir: 앱 main.js 가 있는 디렉터리 */
+/** distDir: the directory containing the app's main.js */
 export function resolveAppPaths(distDir: string, packaged: boolean): AppPaths {
   if (packaged) {
     const appRoot = path.dirname(distDir);

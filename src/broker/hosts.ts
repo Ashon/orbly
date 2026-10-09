@@ -13,7 +13,7 @@ export function ipv4ToInt(ip: string): number | undefined {
   return value;
 }
 
-/** ip 가 cidr(예: 192.168.10.0/24) 안에 있는지 */
+/** Whether ip falls within cidr (e.g. 192.168.10.0/24) */
 export function inCidr(ip: string, cidr: string): boolean {
   const [base, bitsText] = cidr.split("/");
   const bits = Number(bitsText);
@@ -26,8 +26,8 @@ export function inCidr(ip: string, cidr: string): boolean {
 }
 
 /**
- * `ansible -m debug -a var=ansible_host -o` 출력에서 호스트별 주소를 뽑는다.
- * 예: web-01 | SUCCESS => {    "ansible_host": "192.168.10.11",    "changed": false}
+ * Extracts each host's address from `ansible -m debug -a var=ansible_host -o` output.
+ * Example: web-01 | SUCCESS => {    "ansible_host": "192.168.10.11",    "changed": false}
  */
 export function parseAnsibleHosts(output: string): Map<string, string> {
   const hosts = new Map<string, string>();
@@ -38,7 +38,7 @@ export function parseAnsibleHosts(output: string): Map<string, string> {
   return hosts;
 }
 
-/** 허용 대역 안의 호스트만 남긴다. */
+/** Keeps only hosts within the allowed CIDR range. */
 export function filterByCidr(
   hosts: Map<string, string>,
   cidr: string
@@ -46,7 +46,7 @@ export function filterByCidr(
   return new Map([...hosts].filter(([, ip]) => inCidr(ip, cidr)));
 }
 
-/** hosts.json ({ "web-01": "192.168.10.11" }) 을 읽고 허용 대역으로 다시 거른다. */
+/** Reads hosts.json ({ "web-01": "192.168.10.11" }) and filters it again by the allowed CIDR range. */
 export function loadHostMap(file: string, cidr: string): Map<string, string> {
   const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
   const hosts = new Map<string, string>();

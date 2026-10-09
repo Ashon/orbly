@@ -7,16 +7,16 @@ import {
 } from "../src/mention/responder.js";
 
 describe("stripBotMention", () => {
-  it("봇 호출 표기만 지우고 다른 멘션은 남긴다", () => {
-    expect(stripBotMention("<@UBOT> 이 PR <@U1> 리뷰 상태 알려줘", "UBOT")).toBe(
-      "이 PR <@U1> 리뷰 상태 알려줘"
-    );
+  it("removes only the bot mention and keeps other mentions", () => {
+    expect(
+      stripBotMention("<@UBOT> what is the review status of <@U1>'s PR", "UBOT")
+    ).toBe("what is the review status of <@U1>'s PR");
     expect(stripBotMention("<@UBOT|agent>  ", "UBOT")).toBe("");
   });
 });
 
 describe("isAllowedUser", () => {
-  it("목록이 비어 있으면 모두 허용하고, 있으면 목록만 허용한다", () => {
+  it("allows everyone when the list is empty, otherwise only listed users", () => {
     expect(isAllowedUser("U1", [])).toBe(true);
     expect(isAllowedUser("U1", ["U1"])).toBe(true);
     expect(isAllowedUser("U2", ["U1"])).toBe(false);
@@ -24,15 +24,18 @@ describe("isAllowedUser", () => {
 });
 
 describe("systemPrompt", () => {
-  it("참고 디렉터리가 있을 때만 파일 탐색 지시를 넣는다", () => {
-    expect(systemPrompt(false)).not.toContain("작업 디렉터리");
-    expect(systemPrompt(true)).toContain("작업 디렉터리");
-    expect(systemPrompt(false)).toContain("<slack_thread> 는 참고할 대화 맥락이다");
+  it("adds file lookup instructions only when there is a reference directory", () => {
+    expect(systemPrompt(false)).not.toContain("working directory");
+    expect(systemPrompt(true)).toContain("working directory");
+    expect(systemPrompt(false)).toContain(
+      "<slack_thread> is conversation context for reference"
+    );
+    expect(systemPrompt(false)).toContain("Reply in the language of the conversation.");
   });
 });
 
 describe("ConcurrencyLimiter", () => {
-  it("동시 실행 수와 대기열 길이를 지킨다", async () => {
+  it("enforces the concurrency and queue limits", async () => {
     const limiter = new ConcurrencyLimiter(1, 1);
     const releases: (() => void)[] = [];
     let running = 0;
@@ -47,14 +50,14 @@ describe("ConcurrencyLimiter", () => {
         });
       });
 
-    expect(limiter.tryRun(task)).toBe(true); // 실행
-    expect(limiter.tryRun(task)).toBe(true); // 대기
-    expect(limiter.tryRun(task)).toBe(false); // 가득 참
+    expect(limiter.tryRun(task)).toBe(true); // runs
+    expect(limiter.tryRun(task)).toBe(true); // queued
+    expect(limiter.tryRun(task)).toBe(false); // full
     expect(releases).toHaveLength(1);
 
     releases.shift()!();
     await new Promise((r) => setTimeout(r, 0));
-    expect(releases).toHaveLength(1); // 대기하던 작업이 시작됨
+    expect(releases).toHaveLength(1); // the queued task starts
     releases.shift()!();
     await new Promise((r) => setTimeout(r, 0));
     expect(maxRunning).toBe(1);

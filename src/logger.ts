@@ -15,7 +15,7 @@ export interface Logger {
   child(scope: string): Logger;
 }
 
-/** 로그 한 줄을 받는 곳. 줄 형식: <ISO 시각> <LEVEL> [<scope>] <message> */
+/** Receives one log line. Line format: <ISO time> <LEVEL> [<scope>] <message> */
 export type LogSink = (level: LogLevel, line: string, args: unknown[]) => void;
 
 export const consoleSink: LogSink = (level, line, args) => {
@@ -25,8 +25,8 @@ export const consoleSink: LogSink = (level, line, args) => {
 };
 
 /**
- * 파일에 로그를 남긴다. 데스크톱 앱이 이 파일을 읽어 보여 준다.
- * 비밀 값 형식은 가리고, maxBytes 를 넘으면 <file>.1 로 넘기고 새로 쓴다.
+ * Writes logs to a file. The desktop app reads and shows this file.
+ * Redacts secret formats, and past maxBytes moves the file to <file>.1 and starts fresh.
  */
 export function fileSink(file: string, maxBytes = 5 * 1024 * 1024): LogSink {
   mkdirSync(path.dirname(file), { recursive: true });
@@ -46,12 +46,12 @@ export function fileSink(file: string, maxBytes = 5 * 1024 * 1024): LogSink {
       appendFileSync(file, text);
       size += Buffer.byteLength(text);
     } catch {
-      // 로그 파일을 못 써도 봇은 계속 동작한다. (콘솔 로그는 남는다)
+      // The bot keeps running even if the log file cannot be written. (Console logs remain)
     }
   };
 }
 
-/** 로그 파일용 가림. 비밀 값 형식과 Socket Mode 접속 주소의 ticket 을 가린다. */
+/** Redaction for the log file. Redacts secret formats and the ticket in Socket Mode URLs. */
 export function redactLogLine(text: string): string {
   return redactSecrets(text).replace(/([?&]ticket=)[^&\s"']+/g, "$1[REDACTED]");
 }

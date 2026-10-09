@@ -11,18 +11,18 @@ import { readEnvFile, readEnvValues } from "../settings/env-file.js";
 import { allowlistPath, envFilePath, verdaHome } from "../settings/paths.js";
 
 /**
- * 샌드박스 적용 작업. 데스크톱 앱과 터미널(pnpm sandbox:*)이 같은 단계를 쓴다.
- * 사용: sandbox-job <images|proxy|broker|kubeconfig> [--dry-run]
- * - sandbox 디렉터리는 VERDA_SANDBOX_DIR (앱은 번들 안의 sandbox), 없으면 현재 디렉터리의 sandbox
- * - 설정은 설정 파일(VERDA_HOME/.env)을 읽고, 이미 있는 환경 변수가 우선한다. (node --env-file 과 같음)
- * - compose 프로젝트 이름(verda-sandbox)이 같아서 저장소와 앱이 같은 컨테이너를 다룬다.
+ * Sandbox apply jobs. The desktop app and the terminal (pnpm sandbox:*) use the same steps.
+ * Usage: sandbox-job <images|proxy|broker|kubeconfig> [--dry-run]
+ * - The sandbox directory is VERDA_SANDBOX_DIR (the sandbox inside the bundle for the app), otherwise sandbox in the current directory
+ * - Settings are read from the config file (VERDA_HOME/.env), and existing environment variables take precedence. (Same as node --env-file)
+ * - The compose project name (verda-sandbox) is the same, so the repository and the app manage the same containers.
  */
 export const JOB_KINDS = ["images", "proxy", "broker", "kubeconfig"] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
 export interface JobContext {
   sandboxDir: string;
-  /** 설정 파일. 있으면 compose 의 --env-file 로도 넘긴다. */
+  /** Config file. If present, it is also passed to compose as --env-file. */
   envFile?: string;
 }
 
@@ -34,7 +34,7 @@ export type JobStep =
   | { kind: "credentials" }
   | { kind: "compose"; args: string[] };
 
-/** 작업을 단계로 바꾼다. (실행하지 않는다) */
+/** Turns a job into steps. (Does not run them) */
 export function planJob(kind: JobKind, ctx: JobContext): JobStep[] {
   const compose = (...args: string[]) => ({
     kind: "compose" as const,
@@ -70,14 +70,14 @@ export function planJob(kind: JobKind, ctx: JobContext): JobStep[] {
   }
 }
 
-/** 설정 파일 값 위에 지금 환경 변수를 덮는다. compose 가 ~ 기본값과 같은 위치를 보도록 VERDA_HOME 을 펼쳐 둔다. */
+/** Overlays the current environment variables on the config file values. Expands VERDA_HOME so compose sees the same location as its ~ default. */
 export function jobEnv(base: NodeJS.ProcessEnv, envFile: string): NodeJS.ProcessEnv {
   const fromFile = readEnvValues(readEnvFile(envFile));
   const merged: NodeJS.ProcessEnv = { ...fromFile };
   for (const [key, value] of Object.entries(base)) {
     if (value !== undefined) merged[key] = value;
   }
-  // compose 의 기본값(${HOME}/.verda)과 같은 집 디렉터리를 쓴다.
+  // Uses the same home directory as the compose default (${HOME}/.verda).
   merged.VERDA_HOME = verdaHome(base, base.HOME || homedir());
   return merged;
 }
@@ -90,9 +90,11 @@ const capture = (command: string, args: string[], env: NodeJS.ProcessEnv) => {
 function run(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { env, stdio: "inherit" });
-    child.on("error", (err) => reject(new Error(`${command} 실행 실패: ${err.message}`)));
+    child.on("error", (err) =>
+      reject(new Error(`Failed to run ${command}: ${err.message}`))
+    );
     child.on("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(`${command} 가 ${code} 로 끝났습니다.`))
+      code === 0 ? resolve() : reject(new Error(`${command} exited with code ${code}.`))
     );
   });
 }
@@ -100,7 +102,7 @@ function run(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<v
 async function main(): Promise<void> {
   const [kind, ...flags] = process.argv.slice(2);
   if (!JOB_KINDS.includes(kind as JobKind))
-    throw new Error(`사용: sandbox-job <${JOB_KINDS.join("|")}> [--dry-run]`);
+    throw new Error(`Usage: sandbox-job <${JOB_KINDS.join("|")}> [--dry-run]`);
   const dryRun = flags.includes("--dry-run");
   const sandboxDir = path.resolve(process.env.VERDA_SANDBOX_DIR || "sandbox");
   const envFile = envFilePath();
@@ -115,7 +117,7 @@ async function main(): Promise<void> {
     switch (step.kind) {
       case "allowlist": {
         const file = allowlistPath(env);
-        log(`허용 도메인 목록: ${file}`);
+        log(`Allowed domains list: ${file}`);
         if (!dryRun)
           ensureAllowlistFile(file, path.join(sandboxDir, "proxy/allowed-domains.txt"));
         break;
@@ -123,14 +125,16 @@ async function main(): Promise<void> {
       case "broker-bundle": {
         const bundle = path.join(sandboxDir, "ops-broker/dist/server.mjs");
         if (!existsSync(bundle))
-          throw new Error(`broker 번들이 없습니다: ${bundle} (저장소에서는 pnpm bundle)`);
+          throw new Error(
+            `Broker bundle not found: ${bundle} (run pnpm bundle in the repository)`
+          );
         break;
       }
       case "broker-files":
         if (!dryRun) await prepareBrokerFiles(loadBrokerEnv(env), env, log);
         break;
       case "credentials":
-        // PR 은 gh 로그인 계정으로, 커밋 작성자는 OPS_GIT_AUTHOR_* 또는 전역 git 설정으로 (저장소 로컬 설정은 보지 않는다)
+        // PRs use the gh login account, the commit author uses OPS_GIT_AUTHOR_* or the global git config (repository local config is not consulted)
         env.GH_TOKEN ||= capture("gh", ["auth", "token"], env);
         env.GIT_AUTHOR_NAME ||= capture("git", ["config", "--global", "user.name"], env);
         env.GIT_AUTHOR_EMAIL ||= capture(
@@ -139,7 +143,7 @@ async function main(): Promise<void> {
           env
         );
         log(
-          `GitHub 토큰 ${env.GH_TOKEN ? "있음" : "없음 (gh auth login)"}, 커밋 작성자 ${env.GIT_AUTHOR_EMAIL || "없음"}`
+          `GitHub token ${env.GH_TOKEN ? "present" : "missing (gh auth login)"}, commit author ${env.GIT_AUTHOR_EMAIL || "none"}`
         );
         break;
       case "kubeconfig":

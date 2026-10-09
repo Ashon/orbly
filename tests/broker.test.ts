@@ -3,7 +3,7 @@ import { buildCheckCommand, CHECK_NAMES } from "../src/broker/checks.js";
 import { filterByCidr, inCidr, parseAnsibleHosts } from "../src/broker/hosts.js";
 
 describe("buildCheckCommand", () => {
-  it("정해진 점검만 명령으로 만든다", () => {
+  it("builds commands only for predefined checks", () => {
     expect(buildCheckCommand("uptime")).toBe("uptime");
     expect(buildCheckCommand("dmesg", { lines: 20 })).toBe("dmesg -T | tail -n 20");
     expect(buildCheckCommand("dmesg")).toBe("dmesg -T | tail -n 50");
@@ -17,7 +17,7 @@ describe("buildCheckCommand", () => {
     expect(CHECK_NAMES).toContain("pci_devices");
   });
 
-  it("줄 수와 유닛 이름을 검증해서 명령 주입을 막는다", () => {
+  it("validates line counts and unit names to prevent command injection", () => {
     expect(() => buildCheckCommand("dmesg", { lines: 0 })).toThrow(/lines/);
     expect(() => buildCheckCommand("dmesg", { lines: 501 })).toThrow(/lines/);
     expect(() => buildCheckCommand("dmesg", { lines: 1.5 })).toThrow(/lines/);
@@ -30,13 +30,13 @@ describe("buildCheckCommand", () => {
     }
   });
 
-  it("유닛이 필요 없는 점검은 unit 인자를 무시한다", () => {
+  it("ignores the unit argument for checks that do not need a unit", () => {
     expect(buildCheckCommand("uptime", { unit: "x; id" })).toBe("uptime");
   });
 });
 
 describe("hosts", () => {
-  it("CIDR 포함 여부를 계산한다", () => {
+  it("computes CIDR membership", () => {
     expect(inCidr("192.168.10.11", "192.168.10.0/24")).toBe(true);
     expect(inCidr("192.168.11.11", "192.168.10.0/24")).toBe(false);
     expect(inCidr("192.168.11.11", "192.168.0.0/16")).toBe(true);
@@ -45,7 +45,7 @@ describe("hosts", () => {
     expect(inCidr("web-01", "192.168.10.0/24")).toBe(false);
   });
 
-  it("ansible debug 출력을 파싱하고 허용 대역으로 거른다", () => {
+  it("parses ansible debug output and filters by the allowed range", () => {
     const output = [
       'web-01 | SUCCESS => {    "ansible_host": "192.168.10.11",    "changed": false}',
       'db-01 | SUCCESS => {    "ansible_host": "192.168.10.21",    "changed": false}',

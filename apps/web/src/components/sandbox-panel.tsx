@@ -30,9 +30,9 @@ import { cn } from "@/lib/utils";
 type Sandbox = ReturnType<typeof useSandbox>;
 
 export const APPLY_LABEL: Record<SandboxComponent, string> = {
-  bot: "봇 재시작",
-  proxy: "프록시 재시작",
-  broker: "broker 다시 띄우기",
+  bot: "Restart bot",
+  proxy: "Restart proxy",
+  broker: "Restart broker",
 };
 
 function Card({
@@ -69,17 +69,17 @@ const Dot = ({ ok, warn }: { ok: boolean; warn?: boolean }) => (
   />
 );
 
-/** 상태, 적용이 필요한 항목, 점검 결과 */
+/** Status, items that need apply, check results */
 export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
   const { status, loading, refresh } = sandbox;
   return (
     <Card
-      title="샌드박스 상태"
-      help={status ? `확인 ${formatRelative(status.checkedAt)}` : "확인하는 중"}
+      title="Sandbox status"
+      help={status ? `Checked ${formatRelative(status.checkedAt)}` : "Checking"}
       action={
         <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
           <RefreshCw className={cn(loading && "animate-spin")} />
-          새로 고침
+          Refresh
         </Button>
       }
     >
@@ -91,10 +91,10 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
           <Line label="docker">
             <Dot ok={status.docker.ok} />
             {status.docker.ok
-              ? `엔진 ${status.docker.version}`
-              : (status.docker.error ?? "사용할 수 없음")}
+              ? `Engine ${status.docker.version}`
+              : (status.docker.error ?? "Unavailable")}
           </Line>
-          <Line label="이미지">
+          <Line label="Images">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               {status.images.map((image) => (
                 <span
@@ -106,14 +106,14 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
                   {image.name.replace(/^verda-|:latest$/g, "")}
                   {image.createdAt && (
                     <span className="text-muted-foreground">
-                      ({formatRelative(image.createdAt)} 빌드)
+                      (built {formatRelative(image.createdAt)})
                     </span>
                   )}
                 </span>
               ))}
             </div>
           </Line>
-          <Line label="컨테이너">
+          <Line label="Containers">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               {status.containers.map((c) => (
                 <span key={c.service} className="flex items-center gap-1.5">
@@ -121,9 +121,9 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
                   {c.service}
                   <span className="text-muted-foreground">
                     {c.state === "running"
-                      ? `실행 중${c.startedAt ? `, ${formatDuration(Date.now() - Date.parse(c.startedAt))}째` : ""}`
+                      ? `running${c.startedAt ? `, up ${formatDuration(Date.now() - Date.parse(c.startedAt))}` : ""}`
                       : c.state === "missing"
-                        ? "없음"
+                        ? "missing"
                         : c.state}
                   </span>
                 </span>
@@ -131,35 +131,34 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
             </div>
           </Line>
           {status.broker && (
-            <Line label="broker 도구">
+            <Line label="broker tools">
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 <span className="flex items-center gap-1.5">
                   <Dot ok={status.broker.sshHosts > 0} warn />
                   {status.broker.sshHosts > 0
-                    ? `SSH 호스트 ${status.broker.sshHosts}개`
-                    : "SSH 꺼짐"}
+                    ? `${status.broker.sshHosts} SSH ${status.broker.sshHosts === 1 ? "host" : "hosts"}`
+                    : "SSH off"}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Dot ok={status.broker.k8s.length > 0} warn />
-                  k8s {status.broker.k8s.length ? status.broker.k8s.join(", ") : "꺼짐"}
+                  k8s {status.broker.k8s.length ? status.broker.k8s.join(", ") : "off"}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Dot ok={Boolean(status.broker.fs)} warn />
-                  파일 {status.broker.fs ? "켜짐" : "꺼짐"}
+                  Files {status.broker.fs ? "on" : "off"}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Dot ok={status.broker.github.length > 0} warn />
                   GitHub{" "}
-                  {status.broker.github.length ? status.broker.github.join(", ") : "꺼짐"}
+                  {status.broker.github.length ? status.broker.github.join(", ") : "off"}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Dot ok={status.broker.git} warn />
-                  PR {status.broker.git ? "켜짐" : "꺼짐"}
+                  PR {status.broker.git ? "on" : "off"}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Dot ok={status.broker.jira.length > 0} warn />
-                  Jira{" "}
-                  {status.broker.jira.length ? status.broker.jira.join(", ") : "꺼짐"}
+                  Jira {status.broker.jira.length ? status.broker.jira.join(", ") : "off"}
                 </span>
               </div>
             </Line>
@@ -218,7 +217,7 @@ function PendingList({
           <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-status-interrupted" />
           <div className="min-w-0 flex-1">
             <p className="font-medium text-status-interrupted">
-              {APPLY_LABEL[component]} 필요
+              {APPLY_LABEL[component]} needed
             </p>
             <ul className="mt-0.5 text-muted-foreground">
               {pending
@@ -229,7 +228,9 @@ function PendingList({
             </ul>
           </div>
           {component === "bot" && supervisor?.phase === "external" ? (
-            <span className="text-muted-foreground">터미널 봇은 직접 재시작</span>
+            <span className="text-muted-foreground">
+              Restart the terminal bot manually
+            </span>
           ) : (
             <Button
               size="xs"
@@ -242,7 +243,7 @@ function PendingList({
               onClick={() => apply(component)}
               title={
                 component !== "bot" && active > 0
-                  ? `처리 중인 요청 ${active}건이 끝난 뒤`
+                  ? `Available after ${active} active ${active === 1 ? "request finishes" : "requests finish"}`
                   : undefined
               }
             >
@@ -255,7 +256,7 @@ function PendingList({
   );
 }
 
-/** 바깥 접속 허용 도메인 편집 */
+/** Edits the domains allowed for outbound access */
 export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
   const status = sandbox.status;
   const saved = status?.allowlist.domains ?? [];
@@ -278,7 +279,7 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
       setIssues(found);
       if (found.length === 0) {
         setDraft(undefined);
-        setNotice("저장했습니다. 프록시를 재시작해야 적용됩니다.");
+        setNotice("Saved. Restart the proxy to apply.");
         sandbox.refresh();
       }
     });
@@ -286,13 +287,13 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
 
   return (
     <Card
-      title="바깥 접속 허용 도메인"
+      title="Allowed outbound domains"
       help={
         <>
-          추론 컨테이너가 프록시를 거쳐 직접 접속할 수 있는 도메인입니다. HTTPS(443)만,
-          이름이 정확히 같을 때만 허용합니다.
+          Domains the reasoner container can reach directly through the proxy. Only HTTPS
+          (443) and only exact name matches are allowed.
           <span className="ml-1 whitespace-nowrap text-status-interrupted">
-            적용: 프록시 재시작
+            Apply: Restart proxy
           </span>
         </>
       }
@@ -300,9 +301,9 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
       <div className="space-y-3 px-4 py-3">
         <p className="flex items-start gap-1.5 rounded-lg bg-status-interrupted/10 px-3 py-2 text-xs text-status-interrupted">
           <TriangleAlert className="mt-px size-3.5 shrink-0" />
-          도메인을 열면 추론 컨테이너가 그곳으로 직접 데이터를 보낼 수 있습니다. 토큰이
-          필요한 내부 시스템(GitHub 등)은 도메인을 여는 대신 ops-broker 도구로 붙이는 것을
-          권합니다. (토큰이 샌드박스에 들어가지 않습니다)
+          Opening a domain lets the reasoner container send data there directly. For
+          internal systems that need tokens (GitHub etc.), connect them as ops-broker
+          tools instead of opening the domain. (The tokens stay out of the sandbox)
         </p>
         <ul className="divide-y divide-card overflow-hidden rounded-lg bg-well">
           {domains.map((domain) => {
@@ -314,11 +315,11 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
                 {isRequired && (
                   <span className="flex items-center gap-1 rounded bg-muted px-1.5 text-[10px] text-muted-foreground">
                     <Lock className="size-2.5" />
-                    추론 CLI 필요
+                    Needed by reasoner CLI
                   </span>
                 )}
                 {!saved.includes(domain) && (
-                  <span className="text-[10px] text-primary">추가됨</span>
+                  <span className="text-[10px] text-primary">Added</span>
                 )}
                 {issue && <span className="text-status-failed">{issue.message}</span>}
                 <Button
@@ -326,7 +327,7 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
                   variant="ghost"
                   className="ml-auto size-6"
                   disabled={isRequired}
-                  aria-label={`${domain} 빼기`}
+                  aria-label={`Remove ${domain}`}
                   onClick={() => setDraft(domains.filter((item) => item !== domain))}
                 >
                   <X />
@@ -345,7 +346,7 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
           />
           <Button size="sm" variant="outline" onClick={add} disabled={!input.trim()}>
             <Plus />
-            추가
+            Add
           </Button>
           <div className="ml-auto flex items-center gap-1.5">
             {dirty && (
@@ -355,12 +356,12 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
                 onClick={() => (setDraft(undefined), setIssues([]))}
               >
                 <RotateCcw />
-                되돌리기
+                Revert
               </Button>
             )}
             <Button size="sm" onClick={save} disabled={!dirty}>
               <Save />
-              저장
+              Save
             </Button>
           </div>
         </div>
@@ -383,7 +384,7 @@ export function AllowlistCard({ sandbox }: { sandbox: Sandbox }) {
 
 const JOB_ORDER: SandboxJobKind[] = ["images", "kubeconfig", "proxy", "broker"];
 
-/** 적용 작업 실행과 출력 */
+/** Runs apply jobs and shows their output */
 export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
   const { job, run, error, status } = sandbox;
   const running = job?.state === "running";
@@ -395,8 +396,8 @@ export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
 
   return (
     <Card
-      title="적용 작업"
-      help="저장소의 pnpm 스크립트를 앱에서 실행합니다. 한 번에 하나씩 돌고, 출력의 비밀 값은 가려집니다."
+      title="Apply jobs"
+      help="Runs the repository's pnpm scripts from the app. One job runs at a time, and secrets in the output are masked."
     >
       <div className="divide-y divide-canvas">
         {JOB_ORDER.map((kind) => {
@@ -416,7 +417,7 @@ export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
                 disabled={running || (disruptive && active > 0)}
                 title={
                   disruptive && active > 0
-                    ? `처리 중인 요청 ${active}건이 끝난 뒤`
+                    ? `Available after ${active} active ${active === 1 ? "request finishes" : "requests finish"}`
                     : undefined
                 }
                 onClick={() => run(kind)}
@@ -424,7 +425,7 @@ export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
                 {running && job?.kind === kind ? (
                   <LoaderCircle className="animate-spin" />
                 ) : null}
-                실행
+                Run
               </Button>
             </div>
           );
@@ -463,10 +464,10 @@ function JobOutput({
         <span className="font-medium">{SANDBOX_JOBS[job.kind].label}</span>
         <span className="text-muted-foreground">
           {job.state === "running"
-            ? "진행 중"
+            ? "running"
             : job.state === "succeeded"
-              ? "완료"
-              : `실패 (code ${job.exitCode ?? "?"})`}
+              ? "succeeded"
+              : `failed (code ${job.exitCode ?? "?"})`}
           , {formatDuration(elapsed)}
         </span>
       </div>

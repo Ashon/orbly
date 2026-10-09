@@ -7,28 +7,28 @@ export const STATUS_META: Record<
   { label: string; text: string; bg: string; dot: string; Icon: typeof CircleCheck }
 > = {
   running: {
-    label: "진행 중",
+    label: "Running",
     text: "text-status-running",
     bg: "bg-status-running/12 border-status-running/30",
     dot: "bg-status-running",
     Icon: LoaderCircle,
   },
   succeeded: {
-    label: "완료",
+    label: "Succeeded",
     text: "text-status-succeeded",
     bg: "bg-status-succeeded/10 border-status-succeeded/25",
     dot: "bg-status-succeeded",
     Icon: CircleCheck,
   },
   failed: {
-    label: "실패",
+    label: "Failed",
     text: "text-status-failed",
     bg: "bg-status-failed/10 border-status-failed/30",
     dot: "bg-status-failed",
     Icon: CircleX,
   },
   interrupted: {
-    label: "중단",
+    label: "Interrupted",
     text: "text-status-interrupted",
     bg: "bg-status-interrupted/10 border-status-interrupted/30",
     dot: "bg-status-interrupted",

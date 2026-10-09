@@ -1,5 +1,5 @@
-# 멘션 답변용 추론 컨테이너. 요청마다 새로 띄우고 끝나면 지운다.
-# 실행 제약(읽기 전용 루트, tmpfs, 내부 네트워크, 권한 제거)은 봇이 docker run 옵션으로 건다.
+# Reasoner container for mention replies. Started fresh per request and removed when done.
+# The bot applies runtime restrictions (read-only root, tmpfs, internal network, dropped privileges) with docker run options.
 FROM node:24-bookworm-slim
 
 ARG CLAUDE_CODE_VERSION

@@ -11,7 +11,7 @@ import type { AllowlistIssue } from "./types.js";
 
 export type { AllowlistIssue };
 
-/** 추론 CLI 가 동작하려면 반드시 있어야 하는 도메인 */
+/** Domains the reasoner CLI must have in order to work */
 export const REQUIRED_DOMAINS: Record<"claude" | "codex", string[]> = {
   claude: ["api.anthropic.com"],
   codex: ["chatgpt.com", "auth.openai.com", "api.openai.com"],
@@ -20,16 +20,15 @@ export const REQUIRED_DOMAINS: Record<"claude" | "codex", string[]> = {
 const LABEL = "(?!-)[a-z0-9-]{1,63}(?<!-)";
 const HOSTNAME = new RegExp(`^(?=.{1,253}$)${LABEL}(\\.${LABEL})+$`);
 
-/** 프록시는 정확히 일치하는 호스트 이름만 허용한다. 문제가 있으면 이유를 돌려준다. */
+/** The proxy allows only exact host name matches. Returns the reason if there is a problem. */
 export function domainProblem(domain: string): string | undefined {
-  if (!domain) return "비어 있습니다.";
-  if (/[*?]/.test(domain))
-    return "와일드카드는 쓸 수 없습니다. 정확한 호스트 이름을 넣습니다.";
+  if (!domain) return "The domain is empty.";
+  if (/[*?]/.test(domain)) return "Wildcards are not allowed. Enter an exact host name.";
   if (/^[a-z]+:\/\//i.test(domain) || domain.includes("/"))
-    return "주소가 아니라 호스트 이름만 넣습니다.";
-  if (domain.includes(":")) return "포트는 넣지 않습니다. (HTTPS 443 만 허용)";
-  if (/^\d+(\.\d+){3}$/.test(domain)) return "IP 주소는 쓸 수 없습니다.";
-  if (!HOSTNAME.test(domain)) return "호스트 이름 형식이 아닙니다.";
+    return "Enter only a host name, not a URL.";
+  if (domain.includes(":")) return "Do not include a port. (Only HTTPS 443 is allowed)";
+  if (/^\d+(\.\d+){3}$/.test(domain)) return "IP addresses are not allowed.";
+  if (!HOSTNAME.test(domain)) return "Not a valid host name.";
   return undefined;
 }
 
@@ -49,8 +48,8 @@ export function parseAllowlist(text: string): string[] {
 }
 
 /**
- * 허용 목록 파일을 domains 로 맞춘다. 주석과 남는 줄의 위치는 그대로 두고,
- * 빠진 도메인 줄은 지우고, 새 도메인은 끝에 모아 붙인다.
+ * Syncs the allowlist file to domains. Comments and kept lines stay in place,
+ * lines for removed domains are deleted, and new domains are appended together at the end.
  */
 export function updateAllowlist(text: string, domains: string[]): string {
   const wanted = new Set(domains.map(normalizeDomain));
@@ -69,7 +68,7 @@ export function updateAllowlist(text: string, domains: string[]): string {
   const added = [...wanted].filter((domain) => !kept.has(domain));
   if (added.length > 0) {
     if (out.length > 0 && out.at(-1) !== "") out.push("");
-    out.push("# Verda 앱 설정 화면에서 추가", ...added);
+    out.push("# Added from the Verda app settings screen", ...added);
   }
   return `${out.join("\n")}\n`;
 }
@@ -86,7 +85,7 @@ export function checkAllowlist(
   const normalized = new Set(domains.map(normalizeDomain));
   for (const required of REQUIRED_DOMAINS[reasoner]) {
     if (!normalized.has(required)) {
-      issues.push({ domain: required, message: `${reasoner} 가 동작하려면 필요합니다.` });
+      issues.push({ domain: required, message: `Required for ${reasoner} to work.` });
     }
   }
   return issues;
@@ -96,7 +95,7 @@ export function readAllowlistFile(file: string): string {
   return existsSync(file) ? readFileSync(file, "utf8") : "";
 }
 
-/** 허용 목록이 없으면 기본 목록(template, sandbox/proxy/allowed-domains.txt)으로 만든다. */
+/** Creates the allowlist from the default list (template, sandbox/proxy/allowed-domains.txt) if it is missing. */
 export function ensureAllowlistFile(file: string, template: string): void {
   if (existsSync(file)) return;
   mkdirSync(path.dirname(file), { recursive: true });

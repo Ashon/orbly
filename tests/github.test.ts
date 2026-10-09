@@ -9,8 +9,8 @@ import {
 
 const OWNERS = ["acme", "acme-labs"];
 
-describe("저장소 지정", () => {
-  it("owner/repo, PR 번호, URL, git 원격, 저장소 이름만 받는다", () => {
+describe("repository reference", () => {
+  it("accepts only owner/repo, PR numbers, URLs, git remotes, and repository names", () => {
     expect(parseRepoRef("acme/infra", OWNERS)).toEqual({
       owner: "acme",
       repo: "infra",
@@ -34,14 +34,14 @@ describe("저장소 지정", () => {
     });
   });
 
-  it("허용되지 않은 조직과 이상한 형식은 거부한다", () => {
-    expect(() => parseRepoRef("octo/infra", OWNERS)).toThrow(/조회할 수 없는 조직/);
-    expect(() => parseRepoRef("../../etc", OWNERS)).toThrow(/저장소 형식/);
+  it("rejects disallowed orgs and malformed input", () => {
+    expect(() => parseRepoRef("octo/infra", OWNERS)).toThrow(/not allowed for lookup/);
+    expect(() => parseRepoRef("../../etc", OWNERS)).toThrow(/Invalid repository format/);
   });
 });
 
-describe("검색 범위", () => {
-  it("조직 한정자가 없으면 허용된 조직을 붙이고, 다른 조직은 거부한다", () => {
+describe("search scope", () => {
+  it("adds the allowed orgs when there is no org qualifier and rejects other orgs", () => {
     expect(scopeSearchQuery("is:open is:pr", OWNERS)).toBe(
       "is:open is:pr org:acme org:acme-labs"
     );
@@ -53,10 +53,10 @@ describe("검색 범위", () => {
   });
 });
 
-describe("PR 표시", () => {
+describe("PR display", () => {
   const pull = {
     number: 20,
-    title: "auth: Keycloak 플레이북",
+    title: "auth: Keycloak playbook",
     state: "open",
     draft: false,
     merged_at: null,
@@ -67,7 +67,7 @@ describe("PR 표시", () => {
     head: { ref: "feat/auth", sha: "abc" },
     base: { ref: "main" },
     labels: [{ name: "infra" }],
-    body: "본문",
+    body: "Body text",
     additions: 120,
     deletions: 4,
     changed_files: 2,
@@ -76,7 +76,7 @@ describe("PR 표시", () => {
     requested_reviewers: [{ login: "bob" }],
   };
 
-  it("리뷰는 사람마다 마지막 결과, 체크는 결과별로 묶는다", () => {
+  it("keeps each reviewer's latest review and groups checks by conclusion", () => {
     const text = formatPullDetail(
       "acme/infra",
       pull,
@@ -92,17 +92,17 @@ describe("PR 표시", () => {
       ],
       [{ filename: "roles/auth/main.yml", status: "added", additions: 100, deletions: 0 }]
     );
-    expect(text).toContain("acme/infra#20 auth: Keycloak 플레이북");
+    expect(text).toContain("acme/infra#20 auth: Keycloak playbook");
     expect(text).toContain(
-      "브랜치: feat/auth -> main, 커밋 3, 파일 2, +120 -4, 병합 상태 clean"
+      "Branch: feat/auth -> main, commits 3, files 2, +120 -4, mergeable state clean"
     );
-    expect(text).toContain("리뷰 요청: @bob");
-    expect(text).toContain("리뷰: @bob CHANGES_REQUESTED, @carol APPROVED");
-    expect(text).toContain("체크: failure 1 (lint), success 1, 진행 중 1 (build)");
+    expect(text).toContain("Requested reviewers: @bob");
+    expect(text).toContain("Reviews: @bob CHANGES_REQUESTED, @carol APPROVED");
+    expect(text).toContain("Checks: failure 1 (lint), success 1, in progress 1 (build)");
     expect(text).toContain("A roles/auth/main.yml (+100 -0)");
   });
 
-  it("diff 에서 고른 파일만 남긴다", () => {
+  it("keeps only the selected files in a diff", () => {
     const diff = [
       "diff --git a/a.tf b/a.tf",
       "+x",
@@ -116,7 +116,7 @@ describe("PR 표시", () => {
     expect(filterDiff(diff, "none")).toBe("");
   });
 
-  it("조직 없이 저장소 이름만 주면 허용된 조직을 차례로 찾고 토큰은 broker 만 쓴다", async () => {
+  it("tries each allowed org for a bare repository name and only the broker uses the token", async () => {
     const calls: string[] = [];
     const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
       const path = String(url).replace("https://api.github.com", "");
@@ -139,11 +139,9 @@ describe("PR 표시", () => {
       fetchImpl,
     });
     const text = await reader.listPulls("k8s-manifests", "open", 5);
-    expect(text.split("\n")[0]).toBe(
-      "acme-labs/k8s-manifests 열린 PR 1건 (최근 생성 순)"
-    );
+    expect(text.split("\n")[0]).toBe("acme-labs/k8s-manifests: 1 open PR (newest first)");
     expect(text).toContain(
-      "#20 auth: Keycloak 플레이북 (@alice, open, feat/auth -> main"
+      "#20 auth: Keycloak playbook (@alice, open, feat/auth -> main"
     );
     expect(calls).toEqual([
       "/repos/acme/k8s-manifests",
@@ -151,7 +149,7 @@ describe("PR 표시", () => {
       "/repos/acme-labs/k8s-manifests/pulls?state=open&sort=created&direction=desc&per_page=5",
     ]);
     await expect(reader.listPulls("octo/x", "open")).rejects.toThrow(
-      /조회할 수 없는 조직/
+      /not allowed for lookup/
     );
   });
 });

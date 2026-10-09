@@ -10,7 +10,7 @@ import { brokerExpected, checkBrokerEnv } from "../src/sandbox/env.js";
 import { brokerRuntimeDir, envFilePath, verdaHome } from "../src/settings/paths.js";
 import { computePending, parseHealthz, pickEnv } from "../src/sandbox/status.js";
 
-const ALLOWLIST = `# 샌드박스 컨테이너가 접속할 수 있는 도메인
+const ALLOWLIST = `# Domains the sandbox containers can reach
 
 # claude CLI (Anthropic API)
 api.anthropic.com
@@ -21,17 +21,17 @@ auth.openai.com
 api.openai.com
 `;
 
-describe("허용 도메인", () => {
-  it("정확한 호스트 이름만 받는다", () => {
+describe("allowed domains", () => {
+  it("accepts only exact host names", () => {
     expect(domainProblem("api.github.com")).toBeUndefined();
-    expect(domainProblem("*.github.com")).toMatch(/와일드카드/);
-    expect(domainProblem("https://github.com")).toMatch(/호스트 이름만/);
-    expect(domainProblem("github.com:22")).toMatch(/포트/);
+    expect(domainProblem("*.github.com")).toMatch(/Wildcard/);
+    expect(domainProblem("https://github.com")).toMatch(/only a host name/);
+    expect(domainProblem("github.com:22")).toMatch(/port/);
     expect(domainProblem("10.0.0.1")).toMatch(/IP/);
-    expect(domainProblem("localhost")).toMatch(/형식/);
+    expect(domainProblem("localhost")).toMatch(/valid host name/);
   });
 
-  it("주석은 두고 빠진 도메인은 지우고 새 도메인은 끝에 붙인다", () => {
+  it("keeps comments, removes dropped domains, and appends new domains at the end", () => {
     expect(parseAllowlist(ALLOWLIST)).toEqual([
       "api.anthropic.com",
       "chatgpt.com",
@@ -44,7 +44,7 @@ describe("허용 도메인", () => {
       "api.openai.com",
       "API.Example.com",
     ]);
-    expect(next).toBe(`# 샌드박스 컨테이너가 접속할 수 있는 도메인
+    expect(next).toBe(`# Domains the sandbox containers can reach
 
 # claude CLI (Anthropic API)
 
@@ -53,18 +53,18 @@ chatgpt.com
 auth.openai.com
 api.openai.com
 
-# Verda 앱 설정 화면에서 추가
+# Added from the Verda app settings screen
 api.example.com
 `);
   });
 
-  it("지금 쓰는 CLI 에 필요한 도메인은 지울 수 없다", () => {
+  it("does not allow removing domains the current CLI needs", () => {
     expect(
       checkAllowlist(["chatgpt.com", "auth.openai.com", "api.openai.com"], "codex")
     ).toEqual([]);
     expect(checkAllowlist(["chatgpt.com"], "codex")).toEqual([
-      { domain: "auth.openai.com", message: "codex 가 동작하려면 필요합니다." },
-      { domain: "api.openai.com", message: "codex 가 동작하려면 필요합니다." },
+      { domain: "auth.openai.com", message: "Required for codex to work." },
+      { domain: "api.openai.com", message: "Required for codex to work." },
     ]);
     expect(checkAllowlist(["api.anthropic.com", "*.x.com"], "claude")[0]?.domain).toBe(
       "*.x.com"
@@ -72,8 +72,8 @@ api.example.com
   });
 });
 
-describe("broker 설정", () => {
-  it("compose 에 넘기는 경로는 절대 경로, 대역과 조직은 형식을 검사한다", () => {
+describe("broker settings", () => {
+  it("requires absolute paths for compose and validates ranges and orgs", () => {
     expect(
       checkBrokerEnv({
         OPS_FS_ROOT: "/Users/me/git",
@@ -81,7 +81,7 @@ describe("broker 설정", () => {
       })
     ).toEqual([]);
     expect(checkBrokerEnv({ OPS_FS_ROOT: "~/git" })).toEqual([
-      { key: "OPS_FS_ROOT", message: expect.stringContaining("절대 경로") },
+      { key: "OPS_FS_ROOT", message: expect.stringContaining("absolute path") },
     ]);
     expect(checkBrokerEnv({ OPS_SSH_ALLOWED_CIDR: "192.168.10.0" })[0]?.key).toBe(
       "OPS_SSH_ALLOWED_CIDR"
@@ -111,7 +111,7 @@ describe("broker 설정", () => {
     );
   });
 
-  it("설정 파일과 broker 생성 파일은 저장소 밖(VERDA_HOME, 기본 ~/.verda)에 둔다", () => {
+  it("keeps the config file and broker generated files outside the repository (VERDA_HOME, default ~/.verda)", () => {
     expect(verdaHome({}, "/home/me")).toBe("/home/me/.verda");
     expect(envFilePath({}, "/home/me")).toBe("/home/me/.verda/.env");
     expect(brokerRuntimeDir({}, "/home/me")).toBe("/home/me/.verda/ops-broker");
@@ -123,7 +123,7 @@ describe("broker 설정", () => {
     );
   });
 
-  it("비운 기능은 기본값 없이 꺼지고, 마운트는 빈 자리를 가리킨다", () => {
+  it("turns off empty features without defaults and points mounts at empty placeholders", () => {
     const runtime = "/home/me/.verda/ops-broker";
     expect(brokerExpected({}, runtime)).toEqual({
       sshUser: "",
@@ -156,8 +156,8 @@ describe("broker 설정", () => {
   });
 });
 
-describe("상태 판정", () => {
-  it("broker 상태 확인 결과를 읽는다", () => {
+describe("status evaluation", () => {
+  it("parses the broker health check result", () => {
     expect(
       parseHealthz(
         "ok hosts=3 k8s=[] fs=/workspace git=on github=acme|acme-labs jira=PROJ|OPS"
@@ -183,7 +183,7 @@ describe("상태 판정", () => {
     expect(parseHealthz("error")).toBeUndefined();
   });
 
-  it("broker 환경 변수에서 비교할 값만 고른다 (토큰은 읽지 않는다)", () => {
+  it("picks only the values to compare from broker env vars (tokens are not read)", () => {
     expect(
       pickEnv(["SSH_USER=ops", "GH_TOKEN=gho_secret", "A=b=c"], ["SSH_USER", "A"])
     ).toEqual({
@@ -192,7 +192,7 @@ describe("상태 판정", () => {
     });
   });
 
-  it("바뀐 설정이 적용되지 않은 구성 요소와 이유를 찾는다", () => {
+  it("finds components with unapplied setting changes and the reasons", () => {
     const expected = brokerExpected(
       {
         OPS_GIT_ALLOWED_OWNERS: "acme, acme-labs, new-org",
@@ -231,10 +231,10 @@ describe("상태 판정", () => {
     });
     expect(pending).toEqual([
       { component: "bot", reason: expect.stringContaining(".env") },
-      { component: "proxy", reason: expect.stringContaining("허용 도메인") },
+      { component: "proxy", reason: expect.stringContaining("allowed domains") },
       {
         component: "broker",
-        reason: ".env 와 다릅니다: GitHub 허용 조직, PR 커밋 작성자",
+        reason: "Differs from .env: Allowed GitHub orgs, PR commit author",
       },
       { component: "broker", reason: expect.stringContaining("kubeconfig") },
     ]);
@@ -244,10 +244,10 @@ describe("상태 판정", () => {
         proxy: { running: false },
         broker: { running: false, imageOutdated: false, env: {}, mounts: {}, expected },
       }).map((p) => p.reason)
-    ).toEqual(["프록시가 실행 중이 아닙니다.", "broker 가 실행 중이 아닙니다."]);
+    ).toEqual(["The proxy is not running.", "The broker is not running."]);
   });
 
-  it("설정 지문은 봇 설정 값으로만 정해지고 데이터 위치는 보지 않는다", () => {
+  it("derives the config fingerprint only from bot settings, not the data location", () => {
     const base = { SLACK_BOT_TOKEN: "xoxb-1", SLACK_APP_TOKEN: "xapp-1", PATH: "/bin" };
     expect(configFingerprint(base)).toBe(
       configFingerprint({ ...base, PATH: "/usr/bin", VERDA_DATA_DIR: "/x" })

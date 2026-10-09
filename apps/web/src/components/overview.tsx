@@ -13,7 +13,7 @@ import { formatDuration, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { VerdaMark } from "./logo";
 
-/** "32.9초" -> ["32.9", "초"]. 숫자와 단위를 나눌 수 없으면 통째로 숫자 자리에 둔다. ("1분 5초") */
+/** "32.9s" -> ["32.9", "s"]. If the number and unit cannot be split, the whole text goes in the number slot. ("1m 5s") */
 function splitUnit(text: string): [string, string] {
   const match = /^([\d.,]+)\s*([^\d\s]+)$/.exec(text);
   return match ? [match[1]!, match[2]!] : [text, ""];
@@ -40,16 +40,17 @@ export function Overview() {
   const running = data?.byStatus.running ?? 0;
 
   return (
-    // 4열 격자 하나에 모든 카드를 놓는다. 가로, 세로 간격은 같은 gap-4, 아래 줄은 2열씩 차지해 위 카드 경계와 맞춘다.
+    // All cards sit in one 4-column grid. Horizontal and vertical gaps are both gap-4, and the bottom row spans 2 columns each to line up with the cards above.
     <div className="mx-auto max-w-4xl px-8 py-8">
       <div className="mb-6 flex items-center gap-3">
         <VerdaMark className="size-10" />
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            <span className="verda-gradient-text">Verda</span> 작업 기록
+            <span className="verda-gradient-text">Verda</span> run history
           </h1>
           <p className="text-sm text-muted-foreground">
-            Slack 멘션을 받아 처리한 요청과 도구 호출, 답변, 산출물을 봅니다.
+            Browse requests handled from Slack mentions, with their tool calls, replies,
+            and outputs.
           </p>
         </div>
       </div>
@@ -57,28 +58,28 @@ export function Overview() {
       <div className="grid grid-cols-4 gap-4">
         <StatCard
           icon={<Activity className="text-primary" />}
-          label="전체 실행"
+          label="Total runs"
           value={data ? formatNumber(data.total) : "-"}
-          unit="건"
-          hint={data ? `오늘 ${formatNumber(today)}건` : undefined}
+          unit={data?.total === 1 ? "run" : "runs"}
+          hint={data ? `${formatNumber(today)} today` : undefined}
         />
         <StatCard
           icon={<CircleCheck className="text-status-succeeded" />}
-          label="성공률"
+          label="Success rate"
           value={successRate === undefined ? "-" : String(successRate)}
           unit="%"
           hint={
             data
-              ? `실패 ${data.byStatus.failed} / 중단 ${data.byStatus.interrupted}`
+              ? `${data.byStatus.failed} failed / ${data.byStatus.interrupted} interrupted`
               : undefined
           }
         />
         <StatCard
           icon={<Timer className="text-chart-1" />}
-          label="평균 소요"
+          label="Average duration"
           value={avgValue}
           unit={avgUnit}
-          hint="요청 하나를 끝낼 때까지"
+          hint="Time to finish one request"
         />
         <StatCard
           icon={
@@ -86,34 +87,37 @@ export function Overview() {
               className={cn("text-status-running", running > 0 && "animate-spin")}
             />
           }
-          label="진행 중"
+          label="Running"
           value={data ? String(running) : "-"}
-          unit="건"
-          hint={running > 0 ? "지금 답변을 만드는 중" : "처리 중인 요청 없음"}
+          unit={running === 1 ? "run" : "runs"}
+          hint={running > 0 ? "Generating replies now" : "No active requests"}
           accent={running > 0}
         />
 
         <section className="surface-card col-span-2 flex flex-col p-5">
           <CardHeader
             icon={<BarChart3 className="text-primary" />}
-            label="최근 14일"
-            meta="일별 실행"
+            label="Last 14 days"
+            meta="Runs per day"
           />
-          {/* 막대는 카드의 남는 높이를 채운다. (옆 도구 카드와 높이가 맞도록 도구는 5개까지) */}
+          {/* Bars fill the card's remaining height. (up to 5 tools so the height matches the tools card next to it) */}
           <div className="mt-4 flex min-h-36 flex-1 gap-5">
             <div className="flex shrink-0 flex-col justify-end pb-5">
-              <Value value={formatNumber(recentRuns)} unit="건" />
+              <Value
+                value={formatNumber(recentRuns)}
+                unit={recentRuns === 1 ? "run" : "runs"}
+              />
               <p className="mt-1 text-xs text-muted-foreground">
-                {recentFailed > 0 ? `실패 ${recentFailed}건` : "실패 없음"}
+                {recentFailed > 0 ? `${recentFailed} failed` : "No failures"}
               </p>
             </div>
-            {/* 알약 모양 막대: 바탕(well) 위에 실행 수만큼 채우고, 실패는 위쪽을 붉게 칠한다. */}
+            {/* Pill-shaped bars: filled over the background (well) by run count, with failures painted red at the top. */}
             <div className="flex min-w-0 flex-1 items-end justify-between gap-1">
               {daily.map((day) => (
                 <div
                   key={day.day}
                   className="group flex h-full flex-col items-center justify-end gap-1.5"
-                  title={`${day.day}: ${day.runs}건${day.failed ? `, 실패 ${day.failed}` : ""}`}
+                  title={`${day.day}: ${day.runs} ${day.runs === 1 ? "run" : "runs"}${day.failed ? `, ${day.failed} failed` : ""}`}
                 >
                   <span className="text-[10px] text-muted-foreground tabular-nums opacity-0 transition-opacity group-hover:opacity-100">
                     {day.runs}
@@ -147,8 +151,8 @@ export function Overview() {
         <section className="surface-card col-span-2 p-5">
           <CardHeader
             icon={<Wrench className="text-chart-1" />}
-            label="많이 쓴 도구"
-            meta="호출 수"
+            label="Top tools"
+            meta="Calls"
           />
           {data?.topTools.length ? (
             <ul className="mt-4 space-y-3">
@@ -171,7 +175,7 @@ export function Overview() {
             </ul>
           ) : (
             <p className="py-6 text-center text-xs text-muted-foreground">
-              도구 호출 기록이 없습니다.
+              No tool calls recorded.
             </p>
           )}
         </section>
@@ -180,7 +184,7 @@ export function Overview() {
       {health.data && (
         <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
           <FolderOpen className="mt-px size-3.5 shrink-0" />
-          <span className="shrink-0">기록 위치</span>
+          <span className="shrink-0">Run history folder</span>
           <span className="min-w-0 font-mono break-all">{health.data.root}</span>
         </p>
       )}
@@ -188,7 +192,7 @@ export function Overview() {
   );
 }
 
-/** 카드 머리: 색 아이콘과 제목, 오른쪽에 범위 같은 보조 글 */
+/** Card header: colored icon and title, with secondary text such as the range on the right */
 function CardHeader({
   icon,
   label,
@@ -209,7 +213,7 @@ function CardHeader({
   );
 }
 
-/** 큰 숫자와 옅은 단위 */
+/** Large number with a faint unit */
 function Value({
   value,
   unit,

@@ -9,7 +9,7 @@ interface MdNode {
   children?: MdNode[];
 }
 
-/** 문단 안의 한 줄 바꿈을 그대로 줄바꿈으로 보여 준다. (Slack 표시와 같게, remark-breaks 와 같은 일) */
+/** Shows single line breaks inside paragraphs as line breaks. (matches Slack, same as remark-breaks) */
 function remarkLineBreaks() {
   const walk = (node: MdNode) => {
     if (!node.children) return;
@@ -42,7 +42,7 @@ export function Markdown({
         "prose prose-sm max-w-none text-foreground dark:prose-invert",
         "prose-headings:font-semibold prose-headings:text-foreground prose-p:leading-relaxed",
         "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
-        // 코드 바탕은 --code-bg (기본 well). 민트 답변 안에서는 카드 면으로 바꿔 회색과 초록이 섞이지 않게 한다.
+        // Code background is --code-bg (default well). Inside mint replies it switches to the card surface so gray and green do not mix.
         "prose-code:rounded prose-code:bg-[var(--code-bg,var(--well))] prose-code:px-1 prose-code:py-0.5 prose-code:font-normal prose-code:before:content-none prose-code:after:content-none",
         "prose-pre:bg-[var(--code-bg,var(--well))] prose-pre:text-foreground [&_pre_code]:bg-transparent [&_pre_code]:p-0",
         "prose-th:text-foreground prose-strong:text-foreground",

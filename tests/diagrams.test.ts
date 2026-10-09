@@ -8,12 +8,12 @@ import {
 } from "../src/render/diagrams.js";
 
 const answer = [
-  "구조는 다음과 같습니다.",
+  "The structure is as follows:",
   "```mermaid",
   "flowchart LR",
   "  a --> b",
   "```",
-  "명령 예시:",
+  "Example command:",
   "```bash",
   "kubectl get pods",
   "```",
@@ -26,14 +26,14 @@ const answer = [
 ].join("\n");
 
 describe("extractDiagrams", () => {
-  it("그림용 언어 블록만 순서대로 고르고 다른 코드 블록은 두지 않는다", () => {
+  it("picks only diagram language blocks, in order, and skips other code blocks", () => {
     const blocks = extractDiagrams(answer);
     expect(blocks.map((b) => b.format)).toEqual(["mermaid", "dot", "vega-lite"]);
     expect(blocks[0]!.source).toBe("flowchart LR\n  a --> b");
     expect(blocks[0]!.raw.startsWith("```mermaid")).toBe(true);
   });
 
-  it("최대 개수와 빈 블록을 지킨다", () => {
+  it("respects the maximum count and skips empty blocks", () => {
     const many = Array.from(
       { length: 5 },
       (_, i) => `\`\`\`dot\ndigraph { n${i} }\n\`\`\``
@@ -44,25 +44,25 @@ describe("extractDiagrams", () => {
 });
 
 describe("composeAnswer", () => {
-  it("그린 블록은 (그림 N) 으로, 실패한 블록은 원문과 안내를 남긴다", () => {
+  it("replaces rendered blocks with (Figure N) and keeps the source and a note for failed ones", () => {
     const [mermaid, dot, vega] = extractDiagrams(answer);
     const text = composeAnswer(answer, [
       { block: mermaid!, figure: 1 },
       { block: dot! },
       { block: vega!, figure: 2 },
     ]);
-    expect(text).toContain("_(그림 1: 아래 이미지)_");
-    expect(text).toContain("_(그림 2: 아래 이미지)_");
+    expect(text).toContain("_(Figure 1: image below)_");
+    expect(text).toContain("_(Figure 2: image below)_");
     expect(text).not.toContain("flowchart LR");
     expect(text).toContain(
-      "```graphviz\ndigraph { a -> b }\n```\n_(그림으로 그리지 못해 원문을 남깁니다)_"
+      "```graphviz\ndigraph { a -> b }\n```\n_(Couldn't render this diagram, so the source is shown)_"
     );
     expect(text).toContain("```bash\nkubectl get pods\n```");
   });
 });
 
 describe("renderArgs", () => {
-  it("네트워크 없는 읽기 전용 일회용 컨테이너로 그린다", () => {
+  it("renders in a disposable read-only container without network access", () => {
     const args = renderArgs(
       "renderer:1",
       "/home/me/agent/data/x/renders",
@@ -81,14 +81,14 @@ describe("renderArgs", () => {
 });
 
 describe("systemPrompt", () => {
-  it("렌더러가 있을 때만 그림 안내를 넣는다", () => {
+  it("adds diagram instructions only when a renderer is available", () => {
     expect(systemPrompt(false, false, false)).not.toContain("```mermaid");
     expect(systemPrompt(false, false, true)).toContain("```mermaid");
   });
 });
 
-describe("생성 이미지", () => {
-  it("codex 실행에만 /out 쓰기 마운트를 붙인다", async () => {
+describe("generated images", () => {
+  it("adds the writable /out mount only for codex runs", async () => {
     const { dockerRunArgs } = await import("../src/reasoner/executor.js");
     const options = {
       dockerBin: "docker",
@@ -107,7 +107,7 @@ describe("생성 이미지", () => {
     ).not.toContain("/h/out:/out");
   });
 
-  it("출력 디렉터리의 이미지를 만든 순서대로 모은다", async () => {
+  it("collects images from the output directory in creation order", async () => {
     const { mkdtempSync, mkdirSync, writeFileSync, utimesSync, rmSync } =
       await import("node:fs");
     const { tmpdir } = await import("node:os");
@@ -127,14 +127,16 @@ describe("생성 이미지", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("codex 일 때만 이미지 생성 안내를 넣는다", () => {
-    expect(systemPrompt(false, false, true, true)).toContain("이미지 생성 도구");
-    expect(systemPrompt(false, false, true, false)).not.toContain("이미지 생성 도구");
+  it("adds image generation instructions only for codex", () => {
+    expect(systemPrompt(false, false, true, true)).toContain("image generation tool");
+    expect(systemPrompt(false, false, true, false)).not.toContain(
+      "image generation tool"
+    );
   });
 });
 
 describe("resizeArgs", () => {
-  it("렌더링과 같은 격리 조건으로 resize 를 실행한다", async () => {
+  it("runs resize with the same isolation as rendering", async () => {
     const { resizeArgs } = await import("../src/render/diagrams.js");
     const args = resizeArgs("renderer:1", "/h/x/resized", "image-1", 512);
     expect(args.slice(0, 4)).toEqual(["run", "--rm", "--network", "none"]);

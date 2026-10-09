@@ -10,7 +10,7 @@ export function CopyButton({ text, className }: { text: string; className?: stri
       variant="ghost"
       size="icon-sm"
       className={className}
-      aria-label="복사"
+      aria-label="Copy"
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {
           setCopied(true);

@@ -10,12 +10,12 @@ import type { SupervisorState } from "../../../src/runtime/types.js";
 export type { SupervisorState };
 
 /**
- * 데스크톱 앱이 봇(Socket Mode)을 자식 프로세스로 띄우고 관리한다.
- * - 봇 실행 파일을 Electron utilityProcess 로 실행한다. 개발 실행은 저장소의 dist/index.js 이고 소스가 더 새로우면
- *   먼저 빌드한다. 패키지 앱은 앱 안의 묶음(bot/index.mjs)을 그대로 쓴다. (app-paths.ts)
- * - 터미널(pnpm dev 등)에서 이미 봇이 떠 있으면 건드리지 않고 "external" 로 보여 준다.
- * - 정상 동작하던 봇이 죽으면 몇 번까지 다시 띄운다. 시작하자마자 죽으면 설정 문제로 보고 멈춘다.
- * - 중지는 SIGTERM 이다. 봇은 처리 중인 요청을 최대 20초 기다리고, 남은 요청은 다음 시작 때 이어서 처리한다.
+ * The desktop app runs and manages the bot (Socket Mode) as a child process.
+ * - Runs the bot entry with Electron utilityProcess. Dev runs use the repository's dist/index.js and build first
+ *   when the sources are newer. The packaged app uses the bundle inside the app (bot/index.mjs) as is. (app-paths.ts)
+ * - If a bot is already running from a terminal (pnpm dev etc.), it is left alone and shown as "external".
+ * - A bot that was running fine and dies is restarted a few times. One that dies right after starting is treated as a config problem and left stopped.
+ * - Stopping sends SIGTERM. The bot waits up to 20 seconds for active requests and resumes the rest on the next start.
  */
 interface Settings {
   autoStartBot: boolean;
@@ -23,7 +23,7 @@ interface Settings {
 
 const OUTPUT_LINES = 200;
 const STOP_TIMEOUT_MS = 30_000;
-/** 이 시간 이상 동작하다 죽었으면 다시 띄운다. */
+/** A bot that dies after running at least this long is restarted. */
 const HEALTHY_UPTIME_MS = 30_000;
 const MAX_RESTARTS = 3;
 const RESTART_WINDOW_MS = 10 * 60_000;
@@ -39,16 +39,16 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
 
   constructor(
     private readonly options: {
-      /** 봇 실행 파일 */
+      /** Bot entry file */
       entry: string;
-      /** 개발 실행에서만: 다시 빌드할 저장소. 없으면 빌드하지 않는다. (패키지 앱) */
+      /** Dev runs only: the repository to rebuild. Without it, nothing is built. (packaged app) */
       repoRoot?: string;
-      /** 봇의 작업 디렉터리 */
+      /** Bot working directory */
       cwd: string;
-      /** 설정 파일 (저장소 밖, src/settings/paths.ts) */
+      /** Settings file (outside the repository, src/settings/paths.ts) */
       envFile: string;
       dataDir: string;
-      /** 로그인 셸 PATH (Finder 로 띄운 앱에는 docker, codex, pnpm 경로가 없다) */
+      /** Login shell PATH (an app launched from Finder lacks the docker, codex, and pnpm paths) */
       toolPath: () => string;
       log: (message: string) => void;
     }
@@ -63,7 +63,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       canBuild: options.repoRoot !== undefined,
     };
     this.refreshExternal();
-    // 외부 봇이 뜨고 지는 것도 따라간다.
+    // Also tracks external bots starting and stopping.
     this.poller = setInterval(() => this.refreshExternal(), 2_000);
     this.poller.unref();
   }
@@ -103,14 +103,17 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     const child = this.child;
     if (!child) return;
     this.stopRequested = true;
-    this.set({ phase: "stopping", message: "처리 중인 요청을 마무리하고 종료합니다." });
+    this.set({
+      phase: "stopping",
+      message: "Finishing active requests before stopping.",
+    });
     await new Promise<void>((resolve) => {
       const timer = setTimeout(() => {
         if (child.pid) {
           try {
             process.kill(child.pid, "SIGKILL");
           } catch {
-            // 이미 종료됨
+            // Already exited
           }
         }
         resolve();
@@ -132,9 +135,9 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     if (this.poller) clearInterval(this.poller);
   }
 
-  /** pnpm build (tsc). 출력은 output 에 남는다. 개발 실행에서만 부른다. */
+  /** pnpm build (tsc). Output is kept in output. Called only in dev runs. */
   private build(): Promise<boolean> {
-    this.set({ phase: "building", message: "봇을 빌드하는 중 (pnpm build)", output: [] });
+    this.set({ phase: "building", message: "Building the bot (pnpm build)", output: [] });
     return new Promise((resolve) => {
       execFile(
         "pnpm",
@@ -152,7 +155,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
             .slice(-OUTPUT_LINES);
           if (err) {
             this.options.log(`bot build failed: ${err.message}`);
-            this.set({ phase: "crashed", message: "빌드에 실패했습니다.", output });
+            this.set({ phase: "crashed", message: "Build failed.", output });
             resolve(false);
             return;
           }
@@ -165,7 +168,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
 
   private spawn(entry: string): void {
     const env: Record<string, string> = {};
-    // node --env-file 과 같이, 이미 있는 환경 변수가 설정 파일보다 우선한다.
+    // As with node --env-file, existing environment variables take precedence over the settings file.
     const { envFile } = this.options;
     if (existsSync(envFile)) Object.assign(env, parseEnv(readFileSync(envFile, "utf8")));
     for (const [key, value] of Object.entries(process.env)) {
@@ -202,7 +205,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     const uptime = Date.now() - this.childStartedAt;
     this.options.log(`bot exited code=${code} uptime=${uptime}ms`);
     if (this.stopRequested) {
-      this.set({ phase: "idle", pid: undefined, message: "중지됨" });
+      this.set({ phase: "idle", pid: undefined, message: "Stopped" });
       return;
     }
     const now = Date.now();
@@ -214,7 +217,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         phase: "crashed",
         pid: undefined,
         restarts: this.restartTimes.length,
-        message: `봇이 종료되어(code ${code}) 3초 뒤 다시 시작합니다.`,
+        message: `The bot exited (code ${code}). Restarting in 3 seconds.`,
       });
       setTimeout(() => void this.start(), 3_000);
       return;
@@ -224,12 +227,12 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       pid: undefined,
       message:
         uptime < HEALTHY_UPTIME_MS
-          ? `봇이 시작하자마자 종료되었습니다 (code ${code}). ${last}`.trim()
-          : `봇이 반복해서 종료되어 다시 시작하지 않습니다 (code ${code}).`,
+          ? `The bot exited right after starting (code ${code}). ${last}`.trim()
+          : `The bot keeps exiting and will not be restarted (code ${code}).`,
     });
   }
 
-  /** bot.json 을 보고 phase 를 맞춘다. 직접 띄운 봇은 running, 남이 띄운 봇은 external */
+  /** Syncs phase with bot.json. A bot started here is running; one started elsewhere is external */
   private refreshExternal(): void {
     const view = readBotStatus(this.options.dataDir);
     if (this.child) {
@@ -244,15 +247,15 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         phase: "external",
         pid: externalPid,
         message:
-          "터미널 등 다른 곳에서 실행 중인 봇입니다. 그 봇을 끄면 여기서 관리할 수 있습니다.",
+          "This bot is running elsewhere, such as a terminal. Stop that bot to manage it here.",
       });
     } else if (!externalPid && this.state.phase === "external") {
-      this.set({ phase: "idle", pid: undefined, message: "외부 봇이 종료되었습니다." });
+      this.set({ phase: "idle", pid: undefined, message: "The external bot stopped." });
       if (this.state.autoStart) void this.start();
     }
   }
 
-  /** dist/index.js 가 없거나 src 가 더 새로우면 빌드가 필요하다. */
+  /** A build is needed when dist/index.js is missing or src is newer. */
   private needsBuild(entry: string, repoRoot: string): boolean {
     if (!existsSync(entry)) return true;
     const built = statSync(entry).mtimeMs;

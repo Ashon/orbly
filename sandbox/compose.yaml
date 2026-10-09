@@ -1,13 +1,13 @@
-# 멘션 응답용 추론 샌드박스. 저장소(pnpm sandbox:*)와 데스크톱 앱(번들 안의 sandbox)이 같이 쓴다.
-# 작업은 src/tools/sandbox-job.ts 가 실행한다. 바뀌는 파일은 모두 VERDA_HOME(기본 ~/.verda) 아래에 둔다.
-# - egress-proxy: 상시 실행. 내부 네트워크에서 허용 도메인으로만 나가는 출구
-# - reasoner: 이미지 빌드 전용. 실행은 봇이 요청마다 docker run --rm 으로 띄운다.
-# - renderer: 이미지 빌드 전용. 답변의 다이어그램/차트를 네트워크 없는 일회용 컨테이너에서 PNG 로 그린다.
-# - ops-broker: (profile ops) 운영 점검 중계. SSH 키, kubeconfig, 작업 디렉터리를 가진 유일한
-#   컨테이너이고, 추론 컨테이너에는 정해진 읽기 전용 조회만 MCP 도구로 제공한다.
-#   값은 모두 설정 파일(VERDA_HOME/.env, 기본 ~/.verda/.env)의 OPS_* 에서 온다.
-#   생성 파일과 비운 마운트의 빈 자리는 저장소 밖 VERDA_HOME/ops-broker 에 있고 (broker 작업이 만든다),
-#   비운 기능은 broker 가 그 도구 없이 뜬다.
+# Reasoner sandbox for mention replies. Shared by the repository (pnpm sandbox:*) and the desktop app (sandbox inside the bundle).
+# Jobs are run by src/tools/sandbox-job.ts. All files that change live under VERDA_HOME (default ~/.verda).
+# - egress-proxy: always running. The exit from the internal network to allowed domains only
+# - reasoner: image build only. The bot starts it per request with docker run --rm.
+# - renderer: image build only. Renders diagrams/charts in answers to PNG in a disposable container without network.
+# - ops-broker: (profile ops) ops check relay. The only container that holds the SSH key, kubeconfig,
+#   and work directory. It offers the reasoner container only fixed read-only queries as MCP tools.
+#   All values come from OPS_* in the config file (VERDA_HOME/.env, default ~/.verda/.env).
+#   Generated files and empty placeholders for unset mounts are in VERDA_HOME/ops-broker outside the repository (created by the broker job),
+#   and for unset features the broker starts without those tools.
 name: verda-sandbox
 
 services:
@@ -20,7 +20,7 @@ services:
       - /tmp
       - /run
     volumes:
-      # 허용 도메인 목록. 없으면 작업이 proxy/allowed-domains.txt 로 만든다. (설정 화면에서 고친다)
+      # Allowed domains list. If missing, the job creates it from proxy/allowed-domains.txt. (Edited in the settings screen)
       - ${VERDA_HOME:-${HOME}/.verda}/sandbox/allowed-domains.txt:/etc/egress/allowed-domains.txt:ro
     networks:
       - sandbox
@@ -47,7 +47,7 @@ services:
 
   ops-broker:
     build:
-      # broker 는 미리 묶은 번들(ops-broker/dist/server.mjs, pnpm bundle)만 넣는다.
+      # The broker image contains only the prebuilt bundle (ops-broker/dist/server.mjs, pnpm bundle).
       context: ./ops-broker
       args:
         KUBECTL_VERSION: v1.37.0
@@ -66,28 +66,28 @@ services:
     environment:
       SSH_USER: ${OPS_SSH_USER:-}
       ALLOWED_CIDR: ${OPS_SSH_ALLOWED_CIDR:-}
-      # ws_* (코드 수정, draft PR). 비어 있으면 ws 도구 없이 뜬다.
-      # 토큰은 pnpm sandbox:ops-up 이 gh auth token 으로 넘긴다. 커밋 작성자는 .env 의 OPS_GIT_AUTHOR_*,
-      # 없으면 sandbox:ops-up 이 넘긴 전역 git 설정. (이 저장소의 git 설정은 쓰지 않는다)
+      # ws_* (code changes, draft PRs). If empty, the broker starts without the ws tools.
+      # pnpm sandbox:ops-up passes the token from gh auth token. The commit author is OPS_GIT_AUTHOR_* in .env,
+      # otherwise the global git config passed by sandbox:ops-up. (This repository's git config is not used)
       GH_TOKEN: ${GH_TOKEN:-}
       GIT_AUTHOR_NAME: ${OPS_GIT_AUTHOR_NAME:-${GIT_AUTHOR_NAME:-}}
       GIT_AUTHOR_EMAIL: ${OPS_GIT_AUTHOR_EMAIL:-${GIT_AUTHOR_EMAIL:-}}
-      # jira_* (조회, 이슈 생성, 댓글). 넷 중 하나라도 비면 jira 도구 없이 뜬다.
+      # jira_* (queries, issue creation, comments). If any of the four is empty, the broker starts without the jira tools.
       JIRA_URL: ${OPS_JIRA_URL:-}
       JIRA_EMAIL: ${OPS_JIRA_EMAIL:-}
       JIRA_TOKEN: ${OPS_JIRA_TOKEN:-}
       JIRA_PROJECTS: ${OPS_JIRA_PROJECTS:-}
       GIT_ALLOWED_OWNERS: ${OPS_GIT_ALLOWED_OWNERS:-}
     volumes:
-      # 호스트 SSH 점검 (host_*). 호스트 목록은 broker 작업이 인벤토리에서 만든다.
+      # Host SSH checks (host_*). The broker job builds the host list from the inventory.
       - ${OPS_SSH_KEY:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/ssh-key}:/run/secrets/ssh-key:ro
       - ${OPS_SSH_KNOWN_HOSTS:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/known_hosts}:/run/secrets/known_hosts:ro
       - ${VERDA_HOME:-${HOME}/.verda}/ops-broker/hosts.json:/etc/ops/hosts.json:ro
-      # k8s 조회 전용 kubeconfig (k8s_*). pnpm k8s:kubeconfig 로 생성
+      # Read-only k8s kubeconfig (k8s_*). Built with pnpm k8s:kubeconfig
       - ${VERDA_HOME:-${HOME}/.verda}/ops-broker/kubeconfig:/run/secrets/kubeconfig:ro
-      # 작업 디렉터리 (fs_*), 읽기 전용
+      # Work directory (fs_*), read-only
       - ${OPS_FS_ROOT:-${VERDA_HOME:-${HOME}/.verda}/ops-broker/unset/workspace}:/workspace:ro
-      # 에이전트 작업 공간 (ws_*): 원격 미러와 worktree. 로컬 저장소와 분리된다.
+      # Agent workspace (ws_*): remote mirrors and worktrees. Kept separate from local repositories.
       - ops-work:/work
     networks:
       - sandbox
@@ -97,7 +97,7 @@ volumes:
   ops-work:
 
 networks:
-  # 외부 라우팅이 없는 내부 전용 네트워크. 추론 컨테이너는 여기에만 붙는다.
+  # Internal-only network with no external routing. Reasoner containers attach only to this one.
   sandbox:
     name: verda-sandbox
     internal: true

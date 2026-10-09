@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import path from "node:path";
 
 /**
- * 처리 중인 멘션 기록. 봇이 재시작(배포, tsx watch, 크래시)되어 응답이 끊기면
- * 다음 시작 때 같은 자리표시 메시지로 이어서 처리하거나 실패를 알린다.
+ * Record of in-progress mentions. When a bot restart (deploy, tsx watch, crash) cuts off an answer,
+ * the next start resumes it in the same placeholder message or reports the failure.
  */
 export interface InflightEvent {
   channel: string;
@@ -20,16 +20,16 @@ export interface InflightEntry {
   threadTs: string;
   label: string;
   placeholderTs: string;
-  /** 실행 기록 id. 이어서 처리할 때 같은 기록에 이어 쓴다. */
+  /** Run id. When resuming, writing continues in the same run. */
   runId?: string;
-  /** 지금까지 처리를 시작한 횟수 */
+  /** Number of times processing has started so far */
   attempts: number;
   startedAt: number;
 }
 
-/** 한 요청을 처리 시작할 수 있는 최대 횟수 (처음 1번 + 재시작 후 이어서 1번) */
+/** Maximum number of times processing can start for one request (1 initial + 1 resume after a restart) */
 export const MAX_ATTEMPTS = 2;
-/** 이보다 오래된 요청은 이어서 처리하지 않는다. */
+/** Requests older than this are not resumed. */
 export const MAX_RESUME_AGE_MS = 30 * 60_000;
 
 export type ResumeDecision = "resume" | "give_up";
@@ -63,7 +63,7 @@ export class InflightStore {
     if (rest.length !== entries.length) this.write(rest);
   }
 
-  /** 반쯤 쓴 파일이 남지 않도록 임시 파일에 쓰고 바꾼다. */
+  /** Writes to a temporary file and renames it so no half-written file is left behind. */
   private write(entries: InflightEntry[]): void {
     mkdirSync(path.dirname(this.file), { recursive: true });
     const tmp = `${this.file}.tmp`;

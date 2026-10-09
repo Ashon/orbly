@@ -30,30 +30,30 @@ export const TONE_CLASS: Record<BotTone, { text: string; dot: string; bg: string
   },
 };
 
-/** 상태 파일(bot.json)과 데스크톱 관리 상태를 합쳐 한 줄 상태로 만든다. */
+/** Combines the status file (bot.json) and the desktop supervisor state into a one-line status. */
 export function describeBot(
   view: BotStatusView | undefined,
   supervisor: SupervisorState | undefined
 ): { tone: BotTone; label: string } {
   const phase = supervisor?.phase;
-  if (phase === "building") return { tone: "busy", label: "빌드 중" };
-  if (phase === "stopping") return { tone: "busy", label: "종료 중" };
-  if (phase === "crashed") return { tone: "error", label: "오류로 종료" };
+  if (phase === "building") return { tone: "busy", label: "Building" };
+  if (phase === "stopping") return { tone: "busy", label: "Stopping" };
+  if (phase === "crashed") return { tone: "error", label: "Crashed" };
   const status = view?.alive ? view.status : undefined;
   if (!status) {
     return phase === "starting"
-      ? { tone: "busy", label: "시작 중" }
-      : { tone: "off", label: "중지됨" };
+      ? { tone: "busy", label: "Starting" }
+      : { tone: "off", label: "Stopped" };
   }
-  if (status.state === "starting") return { tone: "busy", label: "시작 중" };
-  if (status.state === "stopping") return { tone: "busy", label: "종료 중" };
+  if (status.state === "starting") return { tone: "busy", label: "Starting" };
+  if (status.state === "stopping") return { tone: "busy", label: "Stopping" };
   switch (status.socket.state) {
     case "connected":
-      return { tone: "ok", label: "연결됨" };
+      return { tone: "ok", label: "Connected" };
     case "connecting":
     case "reconnecting":
-      return { tone: "warn", label: "재연결 중" };
+      return { tone: "warn", label: "Reconnecting" };
     default:
-      return { tone: "error", label: "연결 끊김" };
+      return { tone: "error", label: "Disconnected" };
   }
 }

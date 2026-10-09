@@ -6,8 +6,8 @@ export interface CodexDefaults {
 }
 
 /**
- * ~/.codex/config.toml 에서 최상위 model, model_reasoning_effort 만 읽는다.
- * 샌드박스 컨테이너에는 호스트 설정 파일을 넣지 않으므로 이 값만 인자로 넘긴다.
+ * Reads only the top-level model and model_reasoning_effort from ~/.codex/config.toml.
+ * The host config file is not put in the sandbox container, so only these values are passed as arguments.
  */
 export function parseCodexDefaults(toml: string): CodexDefaults {
   const topLevel = toml.split(/^\s*\[/m)[0] ?? "";

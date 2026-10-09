@@ -19,11 +19,11 @@ import { checkSlackTokens, type SlackCheckItem } from "../../../src/slack/check.
 const FIELDS = new Map(SETTING_FIELDS.map((field) => [field.key, field]));
 
 /**
- * 설정 화면의 .env 읽기/쓰기. 저장소 밖의 설정 파일(src/settings/paths.ts, 기본 ~/.verda/.env)이
- * 봇(앱, 터미널 모두)의 단일 설정 원본이다.
- * - 비밀 값은 화면으로 보내지 않는다. (설정 여부와 끝 4자리만)
- * - 저장 전에 봇, broker 와 같은 규칙(checkConfig, checkBrokerEnv)으로 검증한다. 앱의 환경 변수가 .env 보다 우선하는 것도 같다.
- * - 설정 화면이 다루지 않는 항목, 주석, 순서는 그대로 둔다.
+ * Reads and writes .env for the Settings screen. The settings file outside the repository (src/settings/paths.ts, default ~/.verda/.env)
+ * is the single source of settings for the bot (both app and terminal).
+ * - Secrets are never sent to the UI. (only whether they are set and the last 4 characters)
+ * - Validates with the same rules as the bot and broker (checkConfig, checkBrokerEnv) before saving. App environment variables also take precedence over .env the same way.
+ * - Entries, comments, and order the Settings screen does not handle are left as is.
  */
 export class SettingsStore {
   constructor(
@@ -62,7 +62,7 @@ export class SettingsStore {
     return this.check(parsed.changes);
   }
 
-  /** 봇 설정과 broker 설정을 함께 검증한다. */
+  /** Validates the bot settings and broker settings together. */
   private check(changes: SettingsChanges): SettingsIssue[] {
     const env = { ...this.candidate(changes), ...this.options.env };
     return [...checkConfig(env), ...checkBrokerEnv(env)];
@@ -82,7 +82,7 @@ export class SettingsStore {
     }
   }
 
-  /** 바꾸려는 토큰(없으면 지금 값)으로 연결을 확인한다. */
+  /** Checks the connection with the new tokens (or the current values if unchanged). */
   async checkSlack(raw: unknown): Promise<SlackCheckItem[]> {
     const parsed = this.parseChanges(raw);
     const changes = "issues" in parsed ? {} : parsed.changes;
@@ -102,32 +102,35 @@ export class SettingsStore {
     return values;
   }
 
-  /** 화면이 보낸 변경을 검사한다. 모르는 항목은 받지 않고, 빈 값은 기본값으로 되돌림(null)으로 본다. */
+  /** Checks the changes sent by the UI. Unknown entries are rejected, and empty values mean revert to default (null). */
   private parseChanges(
     raw: unknown
   ): { changes: SettingsChanges } | { issues: SettingsIssue[] } {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-      return { issues: [{ message: "변경 내용 형식이 올바르지 않습니다." }] };
+      return { issues: [{ message: "The changes format is invalid." }] };
     }
     const changes: SettingsChanges = {};
     const issues: SettingsIssue[] = [];
     for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
       const field = FIELDS.get(key);
       if (!field) {
-        issues.push({ key, message: "설정 화면에서 바꿀 수 없는 항목입니다." });
+        issues.push({
+          key,
+          message: "This entry cannot be changed from the Settings screen.",
+        });
         continue;
       }
       if (value !== null && typeof value !== "string") {
-        issues.push({ key, message: "값 형식이 올바르지 않습니다." });
+        issues.push({ key, message: "The value format is invalid." });
         continue;
       }
       const trimmed = value?.trim() ?? "";
       if (trimmed === "" && field.required) {
-        issues.push({ key, message: "비워 둘 수 없습니다." });
+        issues.push({ key, message: "Cannot be empty." });
         continue;
       }
       if (trimmed.includes("\n")) {
-        issues.push({ key, message: "줄바꿈을 넣을 수 없습니다." });
+        issues.push({ key, message: "Cannot contain line breaks." });
         continue;
       }
       changes[key] = trimmed === "" ? null : trimmed;

@@ -9,11 +9,11 @@ import { cn } from "@/lib/utils";
 import { describeBot, TONE_CLASS } from "./bot-state";
 
 const THEME_ICON = { system: Monitor, light: Sun, dark: Moon } as const;
-const THEME_LABEL = { system: "시스템 테마", light: "라이트", dark: "다크" } as const;
+const THEME_LABEL = { system: "System", light: "Light", dark: "Dark" } as const;
 
 /**
- * 창 아래 상태 막대. 화면을 옮기지 않고 훑어볼 봇 상태만 둔다.
- * 왼쪽은 봇(연결, 추론 백엔드, 붙은 도구, 시작 점검 문제), 오른쪽은 요청 처리와 테마.
+ * Status bar at the bottom of the window. Holds only bot status to glance at without switching screens.
+ * Left: bot (connection, reasoner backend, attached tools, startup check issues). Right: request handling and theme.
  */
 export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
   const { data } = useBotStatus();
@@ -23,12 +23,12 @@ export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
   const status = data?.alive ? data.status : undefined;
   const active = status?.requests.active ?? 0;
   const problems = status?.problems ?? [];
-  const tools = [...(status?.mcp ?? []), ...(status?.diagrams ? ["그림"] : [])];
+  const tools = [...(status?.mcp ?? []), ...(status?.diagrams ? ["diagrams"] : [])];
   const ThemeIcon = THEME_ICON[theme.mode];
 
   return (
     <footer className="flex h-7 shrink-0 items-center gap-1 border-t border-sidebar-border bg-sidebar px-2 text-[11px] text-muted-foreground">
-      <Item tip="봇 상태와 로그" onClick={onOpenBot}>
+      <Item tip="Bot status and logs" onClick={onOpenBot}>
         <span className="relative flex size-2">
           {(tone === "ok" || tone === "busy") && (
             <span
@@ -40,16 +40,16 @@ export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
           )}
           <span className={cn("relative size-2 rounded-full", TONE_CLASS[tone].dot)} />
         </span>
-        <span className={cn("font-medium", TONE_CLASS[tone].text)}>봇 {label}</span>
+        <span className={cn("font-medium", TONE_CLASS[tone].text)}>Bot: {label}</span>
       </Item>
       {status?.reasoner && (
-        <Item tip="추론 백엔드" onClick={onOpenBot}>
+        <Item tip="Reasoner backend" onClick={onOpenBot}>
           <Cpu />
           {status.reasoner}
         </Item>
       )}
       {tools.length > 0 && (
-        <Item tip="추론에 붙은 도구 (MCP), 그림 렌더링">
+        <Item tip="Tools attached to the reasoner (MCP), diagram rendering">
           <Plug />
           {tools.join(", ")}
         </Item>
@@ -61,33 +61,33 @@ export function StatusBar({ onOpenBot }: { onOpenBot: () => void }) {
           className="text-status-interrupted"
         >
           <TriangleAlert />
-          점검 문제 {problems.length}
+          {problems.length} {problems.length === 1 ? "check issue" : "check issues"}
         </Item>
       )}
 
       <div className="ml-auto flex items-center gap-1">
         {active > 0 && (
           <Item
-            tip="지금 처리 중인 요청"
+            tip="Requests in progress now"
             onClick={onOpenBot}
             className="text-status-running"
           >
             <span className="size-1.5 animate-pulse-dot rounded-full bg-status-running" />
-            처리 중 {active}
+            {active} active
           </Item>
         )}
         {status?.requests.lastAt && (
-          <Item tip={`이번 실행에서 ${status.requests.handled}건 처리`}>
+          <Item tip={`${status.requests.handled} handled since the bot started`}>
             <Clock />
-            마지막 요청 {formatRelative(status.requests.lastAt)}
+            Last request {formatRelative(status.requests.lastAt)}
           </Item>
         )}
         <Item
-          tip={`테마: ${THEME_LABEL[theme.mode]} (눌러서 바꾸기)`}
+          tip={`Theme: ${THEME_LABEL[theme.mode]} (click to change)`}
           onClick={theme.next}
         >
           <ThemeIcon />
-          <span className="sr-only">테마 바꾸기</span>
+          <span className="sr-only">Change theme</span>
         </Item>
       </div>
     </footer>

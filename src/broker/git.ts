@@ -7,10 +7,10 @@ import { isDenied } from "./fs.js";
 import { redactSecrets } from "./redact.js";
 
 /**
- * 에이전트용 git 작업 공간. 사용자 로컬 작업 트리는 건드리지 않는다.
- * - 원격 저장소를 broker 전용 볼륨(/work)에 bare 미러로 받고, 작업마다 새 브랜치 worktree 를 만든다.
- * - 파일 수정은 worktree 안에서만, 커밋/push/PR 은 정책 검사를 통과한 경우에만 broker 가 실행한다.
- * - GitHub 토큰은 이 프로세스의 환경 변수에만 있고 모델에는 노출되지 않는다.
+ * Git workspaces for the agent. The user's local working tree is never touched.
+ * - Clones the remote repository as a bare mirror into a broker-only volume (/work) and creates a new-branch worktree per task.
+ * - File edits happen only inside the worktree; the broker runs commit/push/PR only when the policy check passes.
+ * - The GitHub token lives only in this process's environment variables and is never exposed to the model.
  */
 
 export const BRANCH_PREFIX = "verda/";
@@ -20,7 +20,7 @@ const MAX_CHANGED_LINES = 3_000;
 const MAX_PRS_PER_HOUR = 10;
 const WORKSPACE_TTL_MS = 24 * 3_600_000;
 
-/** 에이전트가 바꿀 수 없는 경로. CI 설정 변경은 사람이 직접 한다. */
+/** Paths the agent cannot change. CI configuration changes are made by humans. */
 const PROTECTED_PATHS: RegExp[] = [/^\.github\/workflows\//, /^\.gitmodules$/];
 
 export interface RepoSlug {
@@ -28,7 +28,7 @@ export interface RepoSlug {
   repo: string;
 }
 
-/** git@github.com:o/r(.git), https://github.com/o/r(.git) 형식만 받는다. */
+/** Accepts only the git@github.com:o/r(.git) and https://github.com/o/r(.git) formats. */
 export function parseGithubRemote(url: string): RepoSlug | undefined {
   const match =
     /^(?:git@github\.com:|https:\/\/github\.com\/|ssh:\/\/git@github\.com\/)([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(
@@ -37,22 +37,22 @@ export function parseGithubRemote(url: string): RepoSlug | undefined {
   return match ? { owner: match[1]!, repo: match[2]! } : undefined;
 }
 
-/** old 를 new 로 바꾼다. 없거나(0회) 여러 번인데 replaceAll 이 아니면 거부한다. */
+/** Replaces old with new. Rejects when old is missing (0 matches) or appears more than once without replaceAll. */
 export function applyEdit(
   content: string,
   oldText: string,
   newText: string,
   replaceAll = false
 ): string {
-  if (!oldText) throw new Error("old_string 이 비어 있습니다.");
+  if (!oldText) throw new Error("old_string is empty.");
   const count = content.split(oldText).length - 1;
   if (count === 0)
     throw new Error(
-      "old_string 을 파일에서 찾지 못했습니다. ws_read 로 정확한 내용을 확인하세요."
+      "old_string was not found in the file. Check the exact content with ws_read."
     );
   if (count > 1 && !replaceAll) {
     throw new Error(
-      `old_string 이 ${count}번 나옵니다. 더 넓은 범위로 지정하거나 replace_all 을 쓰세요.`
+      `old_string appears ${count} times. Include more surrounding text or use replace_all.`
     );
   }
   return replaceAll
@@ -60,25 +60,25 @@ export function applyEdit(
     : content.replace(oldText, () => newText);
 }
 
-/** PR 전 정책 검사. 문제 목록을 돌려준다. */
+/** Policy check before a PR. Returns the list of problems. */
 export function reviewChanges(
   files: string[],
   diff: string,
   addedLines: number
 ): string[] {
   const problems: string[] = [];
-  if (files.length === 0) problems.push("변경 사항이 없습니다.");
+  if (files.length === 0) problems.push("There are no changes.");
   if (files.length > MAX_CHANGED_FILES)
-    problems.push(`변경 파일이 너무 많습니다 (${files.length} > ${MAX_CHANGED_FILES}).`);
+    problems.push(`Too many changed files (${files.length} > ${MAX_CHANGED_FILES}).`);
   if (addedLines > MAX_CHANGED_LINES)
-    problems.push(`변경 줄이 너무 많습니다 (${addedLines} > ${MAX_CHANGED_LINES}).`);
+    problems.push(`Too many changed lines (${addedLines} > ${MAX_CHANGED_LINES}).`);
   for (const file of files) {
-    if (isDenied(file)) problems.push(`제한된 경로를 바꿀 수 없습니다: ${file}`);
+    if (isDenied(file)) problems.push(`Cannot change a restricted path: ${file}`);
     if (PROTECTED_PATHS.some((p) => p.test(file)))
-      problems.push(`보호된 경로입니다 (사람이 직접 변경): ${file}`);
+      problems.push(`Protected path (must be changed by a human): ${file}`);
   }
   if (redactSecrets(diff) !== diff)
-    problems.push("diff 에 비밀 값으로 보이는 내용이 있습니다.");
+    problems.push("The diff contains what looks like a secret.");
   return problems;
 }
 
@@ -93,9 +93,9 @@ interface Workspace {
 }
 
 export interface GitWorkspaceOptions {
-  /** 로컬 저장소 루트(읽기 전용 마운트). 저장소 이름으로 원격 주소를 찾는다. */
+  /** Local repository root (read-only mount). Remote URLs are looked up by repository name. */
   localRoot: string;
-  /** 미러와 worktree 를 두는 쓰기 가능 디렉터리 */
+  /** Writable directory that holds mirrors and worktrees */
   workRoot: string;
   token: string;
   authorName: string;
@@ -116,7 +116,7 @@ export class GitWorkspaces {
       PATH: process.env.PATH,
       HOME: "/tmp",
       GIT_TERMINAL_PROMPT: "0",
-      // 토큰을 인자나 설정 파일에 남기지 않고 이 프로세스 환경으로만 넘긴다.
+      // Passes the token only through this process environment, never via arguments or config files.
       GIT_CONFIG_COUNT: "2",
       GIT_CONFIG_KEY_0: "http.https://github.com/.extraheader",
       GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
@@ -141,7 +141,7 @@ export class GitWorkspaces {
     } catch (err) {
       if (err instanceof ProcessExitError) {
         throw new Error(
-          `git ${args[0]} 실패: ${redactSecrets(err.stderr.trim()).slice(-500)}`,
+          `git ${args[0]} failed: ${redactSecrets(err.stderr.trim()).slice(-500)}`,
           { cause: err }
         );
       }
@@ -149,35 +149,35 @@ export class GitWorkspaces {
     }
   }
 
-  /** 로컬 저장소 디렉터리 이름으로 GitHub 원격을 찾고 허용 조직인지 확인한다. */
+  /** Finds the GitHub remote by local repository directory name and checks that its owner is allowed. */
   async resolveRepo(name: string): Promise<RepoSlug> {
     if (!/^[A-Za-z0-9_.-]+$/.test(name) || name.startsWith(".")) {
-      throw new Error(`저장소 이름 형식이 올바르지 않습니다: ${name}`);
+      throw new Error(`Invalid repository name format: ${name}`);
     }
     const local = path.join(this.options.localRoot, name);
     if (!existsSync(path.join(local, ".git"))) {
-      throw new Error(`로컬에 git 저장소가 없습니다: ${name} (fs_list 로 확인)`);
+      throw new Error(`No local git repository: ${name} (check with fs_list)`);
     }
     const url = (
       await this.git(["-C", local, "remote", "get-url", "origin"]).catch(() => {
-        throw new Error(`origin 원격이 없는 저장소입니다: ${name}`);
+        throw new Error(`Repository has no origin remote: ${name}`);
       })
     ).trim();
     const slug = parseGithubRemote(url);
-    if (!slug) throw new Error(`GitHub 원격이 아닙니다: ${name}`);
+    if (!slug) throw new Error(`Not a GitHub remote: ${name}`);
     const allowed = this.options.allowedOwners.map((o) => o.toLowerCase());
     if (!allowed.includes(slug.owner.toLowerCase())) {
-      throw new Error(`허용된 조직의 저장소가 아닙니다: ${slug.owner}/${slug.repo}`);
+      throw new Error(`Repository is not in an allowed org: ${slug.owner}/${slug.repo}`);
     }
     return slug;
   }
 
-  /** 원격 기본 브랜치(또는 base)에서 새 브랜치 작업 공간을 만든다. */
+  /** Creates a new-branch workspace from the remote default branch (or base). */
   async prepare(name: string, base?: string): Promise<Workspace> {
     await this.cleanupExpired();
     const slug = await this.resolveRepo(name);
     if (base !== undefined && !/^[A-Za-z0-9._/-]{1,100}$/.test(base)) {
-      throw new Error(`base 브랜치 이름 형식이 올바르지 않습니다: ${base}`);
+      throw new Error(`Invalid base branch name format: ${base}`);
     }
     const mirror = path.join(
       this.options.workRoot,
@@ -224,19 +224,19 @@ export class GitWorkspaces {
   get(id: string): Workspace {
     const workspace = this.workspaces.get(id);
     if (!workspace)
-      throw new Error(`작업 공간이 없습니다: ${id} (ws_prepare 로 먼저 만드세요)`);
+      throw new Error(`Workspace not found: ${id} (create one with ws_prepare first)`);
     return workspace;
   }
 
-  /** 작업 공간 안의 쓰기 대상 경로. 없는 파일도 허용하되 루트 밖, 제한 경로, 보호 경로는 거부한다. */
+  /** Write target path inside the workspace. New files are allowed, but paths outside the root, restricted paths, and protected paths are rejected. */
   private target(workspace: Workspace, requested: string): { abs: string; rel: string } {
     const rel = path.posix.normalize(requested.trim().replace(/^\/+/, ""));
     if (!rel || rel === "." || rel.startsWith("..") || path.isAbsolute(rel)) {
-      throw new Error("작업 공간 기준 상대 경로로 지정하세요.");
+      throw new Error("Specify a path relative to the workspace.");
     }
-    if (isDenied(rel)) throw new Error(`제한된 경로입니다: ${rel}`);
+    if (isDenied(rel)) throw new Error(`Restricted path: ${rel}`);
     if (PROTECTED_PATHS.some((p) => p.test(rel)))
-      throw new Error(`보호된 경로입니다: ${rel}`);
+      throw new Error(`Protected path: ${rel}`);
     return { abs: path.join(workspace.dir, rel), rel };
   }
 
@@ -244,10 +244,10 @@ export class GitWorkspaces {
     const workspace = this.get(id);
     const { abs, rel } = this.target(workspace, requested);
     if (Buffer.byteLength(content) > MAX_WRITE_BYTES)
-      throw new Error("파일이 너무 큽니다.");
+      throw new Error("File is too large.");
     await mkdir(path.dirname(abs), { recursive: true });
     await writeFile(abs, content);
-    return `작성함: ${rel} (${Buffer.byteLength(content)} bytes)`;
+    return `Wrote: ${rel} (${Buffer.byteLength(content)} bytes)`;
   }
 
   async edit(
@@ -260,19 +260,19 @@ export class GitWorkspaces {
     const workspace = this.get(id);
     const { abs, rel } = this.target(workspace, requested);
     const content = await readFile(abs, "utf8").catch(() => {
-      throw new Error(`파일이 없습니다: ${rel}`);
+      throw new Error(`File not found: ${rel}`);
     });
     await writeFile(abs, applyEdit(content, oldText, newText, replaceAll));
-    return `수정함: ${rel}`;
+    return `Edited: ${rel}`;
   }
 
   async remove(id: string, requested: string): Promise<string> {
     const workspace = this.get(id);
     const { abs, rel } = this.target(workspace, requested);
     if (!(await stat(abs).catch(() => undefined))?.isFile())
-      throw new Error(`파일이 없습니다: ${rel}`);
+      throw new Error(`File not found: ${rel}`);
     await unlink(abs);
-    return `삭제함: ${rel}`;
+    return `Deleted: ${rel}`;
   }
 
   async diff(id: string): Promise<string> {
@@ -285,14 +285,14 @@ export class GitWorkspaces {
 
   async createPullRequest(id: string, title: string, body: string): Promise<string> {
     const workspace = this.get(id);
-    if (workspace.prUrl) return `이미 PR 이 있습니다: ${workspace.prUrl}`;
+    if (workspace.prUrl) return `A PR already exists: ${workspace.prUrl}`;
     const now = Date.now();
     while (this.prTimes.length && now - this.prTimes[0]! > 3_600_000)
       this.prTimes.shift();
     if (this.prTimes.length >= MAX_PRS_PER_HOUR)
-      throw new Error("시간당 PR 생성 한도를 넘었습니다.");
+      throw new Error("Hourly PR creation limit exceeded.");
     if (!title.trim() || title.length > 200)
-      throw new Error("PR 제목은 1-200자여야 합니다.");
+      throw new Error("PR title must be 1-200 characters.");
 
     await this.git(["add", "--all"], workspace.dir);
     const files = (await this.git(["diff", "--cached", "--name-only"], workspace.dir))
@@ -304,11 +304,11 @@ export class GitWorkspaces {
       .filter((l) => l.startsWith("+") && !l.startsWith("+++")).length;
     const problems = reviewChanges(files, diff, added);
     if (problems.length > 0)
-      throw new Error(`PR 을 만들 수 없습니다:\n- ${problems.join("\n- ")}`);
+      throw new Error(`Cannot create the PR:\n- ${problems.join("\n- ")}`);
 
     await this.git(["commit", "--quiet", "-m", title.trim()], workspace.dir);
     if (!workspace.branch.startsWith(BRANCH_PREFIX))
-      throw new Error("에이전트 브랜치가 아닙니다.");
+      throw new Error("Not an agent branch.");
     await this.git(
       ["push", "origin", `HEAD:refs/heads/${workspace.branch}`],
       workspace.dir
@@ -327,7 +327,7 @@ export class GitWorkspaces {
           title: title.trim(),
           head: workspace.branch,
           base: workspace.base,
-          body: `${body.trim()}\n\n---\n_Verda 가 Slack 요청으로 작성한 draft PR 입니다. 머지 전에 검토가 필요합니다._`,
+          body: `${body.trim()}\n\n---\n_This draft PR was written by Verda from a Slack request. It needs review before merging._`,
           draft: true,
         }),
       }
@@ -335,15 +335,15 @@ export class GitWorkspaces {
     const json = (await res.json()) as { html_url?: string; message?: string };
     if (!res.ok || !json.html_url) {
       throw new Error(
-        `PR 생성 실패 (${res.status}): ${json.message ?? ""} (브랜치 ${workspace.branch} 는 push 됨)`
+        `PR creation failed (${res.status}): ${json.message ?? ""} (branch ${workspace.branch} was pushed)`
       );
     }
     this.prTimes.push(now);
     workspace.prUrl = json.html_url;
-    return `draft PR 생성: ${json.html_url} (${files.length}개 파일)`;
+    return `Created draft PR: ${json.html_url} (${files.length} ${files.length === 1 ? "file" : "files"})`;
   }
 
-  /** 오래된 작업 공간을 정리한다. */
+  /** Cleans up old workspaces. */
   private async cleanupExpired(): Promise<void> {
     const now = Date.now();
     for (const [id, workspace] of this.workspaces) {
@@ -351,7 +351,7 @@ export class GitWorkspaces {
       await rm(workspace.dir, { recursive: true, force: true });
       this.workspaces.delete(id);
     }
-    // broker 재시작으로 기록이 사라진 작업 공간 디렉터리도 정리한다.
+    // Also cleans up workspace directories whose records were lost when the broker restarted.
     const wsRoot = path.join(this.options.workRoot, "ws");
     for (const name of await readdir(wsRoot).catch(() => [] as string[])) {
       if (this.workspaces.has(name)) continue;

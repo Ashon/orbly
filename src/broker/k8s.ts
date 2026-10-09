@@ -1,6 +1,6 @@
 /**
- * kubectl 조회 명령을 인자 배열로 만든다. 셸을 거치지 않고, 모든 값은 형식 검증을 통과해야 한다.
- * 조회 권한 자체는 클러스터 쪽 RBAC(조회 전용 ServiceAccount, secrets 제외)이 강제한다.
+ * Builds kubectl read-only commands as argument arrays. No shell is involved, and every value must pass format validation.
+ * Read-only access itself is enforced by cluster-side RBAC (a read-only ServiceAccount, excluding secrets).
  */
 const NAME = /^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/;
 const KIND = /^[a-z][a-z0-9.-]{0,62}$/;
@@ -17,20 +17,20 @@ export const MAX_LOG_LINES = 2_000;
 
 function check(value: string | undefined, pattern: RegExp, label: string): void {
   if (value !== undefined && !pattern.test(value)) {
-    throw new Error(`${label} 형식이 올바르지 않습니다: ${value}`);
+    throw new Error(`Invalid ${label} format: ${value}`);
   }
 }
 
 function checkKind(kind: string): void {
   check(kind, KIND, "kind");
   const base = kind.split(".")[0]!;
-  if (DENIED_KINDS.has(base)) throw new Error("secrets 는 조회할 수 없습니다.");
+  if (DENIED_KINDS.has(base)) throw new Error("secrets cannot be read.");
 }
 
 function base(cluster: string, clusters: readonly string[]): string[] {
   if (!clusters.includes(cluster)) {
     throw new Error(
-      `허용된 클러스터가 아닙니다: ${cluster} (가능: ${clusters.join(", ")})`
+      `Cluster is not allowed: ${cluster} (available: ${clusters.join(", ")})`
     );
   }
   return ["--context", cluster, "--request-timeout=20s"];
@@ -89,7 +89,7 @@ export function logsArgs(a: LogsArgs, clusters: readonly string[]): string[] {
   check(a.since, SINCE, "since");
   const tail = a.tail ?? 200;
   if (!Number.isInteger(tail) || tail < 1 || tail > MAX_LOG_LINES) {
-    throw new Error(`tail 은 1-${MAX_LOG_LINES} 사이 정수여야 합니다.`);
+    throw new Error(`tail must be an integer between 1 and ${MAX_LOG_LINES}.`);
   }
   const args = [...base(a.cluster, clusters), "logs", a.pod, "--namespace", a.namespace];
   args.push("--tail", String(tail), "--timestamps");

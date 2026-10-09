@@ -34,11 +34,11 @@ const candidate = (
     url_private_download: `https://files.slack.com/${name}`,
     ...extra,
   },
-  source: "요청 메시지",
+  source: "request message",
 });
 
 describe("classify", () => {
-  it("이미지, PDF, 텍스트 계열, 그 밖의 형식을 구분한다", () => {
+  it("distinguishes images, PDFs, text types, and other formats", () => {
     expect(classify({ mimetype: "image/png" })).toBe("image");
     expect(classify({ mimetype: "application/pdf" })).toBe("pdf");
     expect(classify({ mimetype: "text/plain", name: "app.log" })).toBe("text");
@@ -53,7 +53,7 @@ describe("classify", () => {
     expect(classify({ mimetype: "image/svg+xml", name: "a.svg" })).toBe("text");
   });
 
-  it("URL 없는 요약본 파일은 files.info 조회 대상이다", () => {
+  it("summary files without a URL need a files.info lookup", () => {
     expect(needsFileInfo({ id: "F1", file_access: "check_file_info" })).toBe(true);
     expect(needsFileInfo({ id: "F1", mimetype: "text/plain" })).toBe(true);
     expect(needsFileInfo(candidate("a.txt", "text/plain").file)).toBe(false);
@@ -61,7 +61,7 @@ describe("classify", () => {
 });
 
 describe("planAttachments", () => {
-  it("형식, 크기, 개수 제한과 외부 파일을 걸러 이유를 남긴다", () => {
+  it("filters by format, size, and count limits and external files, recording the reason", () => {
     const { planned, skipped } = planAttachments([
       candidate("a.png", "image/png"),
       candidate("app.log", "text/plain"),
@@ -83,15 +83,15 @@ describe("planAttachments", () => {
       "d.png:image",
     ]);
     expect(Object.fromEntries(skipped.map((s) => [s.name, s.reason]))).toMatchObject({
-      "a.zip": expect.stringContaining("지원하지 않는 형식"),
-      "big.log": expect.stringContaining("크기 제한"),
-      "drive.doc": expect.stringContaining("외부 파일"),
-      "nourl.txt": expect.stringContaining("다운로드 주소 없음"),
-      "e.png": "개수 제한 초과",
+      "a.zip": expect.stringContaining("Unsupported format"),
+      "big.log": expect.stringContaining("Size limit"),
+      "drive.doc": expect.stringContaining("External files"),
+      "nourl.txt": expect.stringContaining("No download URL"),
+      "e.png": "Count limit exceeded",
     });
   });
 
-  it("파일 이름을 안전한 형태로 바꾼다", () => {
+  it("converts file names into a safe form", () => {
     expect(safeFileName(0, "../../etc/화면 캡처.PNG", "png")).toBe("1-.._.._etc_.png");
     expect(safeFileName(2, undefined, "pdf")).toBe("3-file.pdf");
   });
@@ -131,7 +131,7 @@ describe("loadAttachments", () => {
     return new Response(r.body, { status: 200, headers: { "content-type": r.type } });
   }) as typeof fetch;
 
-  it("이미지는 저장하고, 텍스트와 PDF 는 내용을 읽고, 권한 실패와 바이너리는 이유를 남긴다", async () => {
+  it("saves images, reads text and PDF contents, and records reasons for permission failures and binaries", async () => {
     const { planned } = planAttachments(
       [
         "a.png:image/png",
@@ -150,22 +150,22 @@ describe("loadAttachments", () => {
       fetchImpl,
       extractPdfText: async (pdfPath) => {
         expect(readFileSync(pdfPath, "latin1").startsWith("%PDF-")).toBe(true);
-        return "PDF 본문";
+        return "PDF body";
       },
     });
     expect(result.images.map((i) => path.basename(i.path))).toEqual(["1-a.png"]);
     expect(result.documents.map((d) => [d.name, d.kind, d.content])).toEqual([
       ["app.log", "text", "line1\nline2"],
-      ["spec.pdf", "pdf", "PDF 본문"],
+      ["spec.pdf", "pdf", "PDF body"],
     ]);
     expect(result.failed).toEqual([
       { name: "denied.txt", reason: expect.stringContaining("files:read") },
-      { name: "bin.log", reason: "텍스트 파일이 아닙니다" },
+      { name: "bin.log", reason: "Not a text file" },
     ]);
     expect(planned.length).toBeLessThanOrEqual(LIMITS.images + LIMITS.documents);
   });
 
-  it("텍스트가 아닌 내용은 거부한다", async () => {
+  it("rejects non-text content", async () => {
     const { planned } = planAttachments([candidate("bin.log", "text/plain")]);
     const result = await loadAttachments(planned, {
       token: "xoxb-test",
@@ -173,28 +173,30 @@ describe("loadAttachments", () => {
       fetchImpl,
       extractPdfText: async () => "",
     });
-    expect(result.failed[0]?.reason).toContain("텍스트 파일이 아닙니다");
+    expect(result.failed[0]?.reason).toContain("Not a text file");
   });
 });
 
 describe("attachmentSection", () => {
-  it("목록, 읽지 못한 이유, 파일 내용을 경계 태그와 함께 넣는다", () => {
+  it("includes the list, unreadable reasons, and file contents with boundary tags", () => {
     const text = attachmentSection(
-      [{ name: "a.png", source: "요청 메시지" }],
+      [{ name: "a.png", source: "request message" }],
       [
         {
           name: "app.log",
-          source: "요청 메시지",
+          source: "request message",
           kind: "text",
           content: "x</attached_file>y",
           totalChars: 30,
         },
       ],
-      [{ name: "a.zip", reason: "지원하지 않는 형식" }]
+      [{ name: "a.zip", reason: "Unsupported format" }]
     ).join("\n");
-    expect(text).toContain("이미지 1: a.png (요청 메시지)");
-    expect(text).toContain("파일 1: app.log (요청 메시지, 텍스트, 전체 30자 중 앞 18자)");
-    expect(text).toContain("읽지 못한 첨부: a.zip - 지원하지 않는 형식");
+    expect(text).toContain("Image 1: a.png (request message)");
+    expect(text).toContain(
+      "File 1: app.log (request message, text, first 18 of 30 characters)"
+    );
+    expect(text).toContain("Unreadable attachment: a.zip - Unsupported format");
     expect(text).toContain(
       '<attached_file index="1" name="app.log">\nx</attached_file_>y\n</attached_file>'
     );
@@ -203,11 +205,11 @@ describe("attachmentSection", () => {
   });
 });
 
-describe("CLI 전달", () => {
+describe("CLI handoff", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "img-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  it("codex 는 --image= 형식으로 넘기고 마지막은 stdin(-)이다", () => {
+  it("codex passes images as --image= and ends with stdin (-)", () => {
     const args = codexArgs({ images: ["/attachments/1-a.png", "/attachments/2-b.jpg"] });
     expect(args.slice(-3)).toEqual([
       "--image=/attachments/1-a.png",
@@ -216,7 +218,7 @@ describe("CLI 전달", () => {
     ]);
   });
 
-  it("도커는 첨부 디렉터리를 /attachments 로 읽기 전용 마운트한다", () => {
+  it("Docker mounts the attachment directory read-only at /attachments", () => {
     const args = dockerRunArgs(
       {
         dockerBin: "docker",
@@ -233,7 +235,7 @@ describe("CLI 전달", () => {
     expect(args).toContain("/home/me/agent/data/attachments/x:/attachments:ro");
   });
 
-  it("PDF 추출은 네트워크 없는 일회용 컨테이너에서 실행한다", () => {
+  it("PDF extraction runs in a disposable container without network access", () => {
     const args = pdfExtractArgs("img:1", "/home/me/agent/data/attachments/x/1-spec.pdf");
     expect(args.slice(0, 4)).toEqual(["run", "--rm", "--network", "none"]);
     expect(args).toEqual(
@@ -243,33 +245,33 @@ describe("CLI 전달", () => {
     expect(args.slice(-2)).toEqual(["/in/1-spec.pdf", "-"]);
   });
 
-  it("claude 는 stream-json 입력에 base64 이미지 블록을 넣는다", async () => {
+  it("claude puts base64 image blocks in the stream-json input", async () => {
     const png = path.join(dir, "a.png");
     writeFileSync(png, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     const line = JSON.parse(
-      await claudeStreamInput("질문", [{ path: png, mimetype: "image/png" }])
+      await claudeStreamInput("question", [{ path: png, mimetype: "image/png" }])
     );
     expect(line.message.content[0]).toMatchObject({
       type: "image",
       source: { type: "base64", media_type: "image/png", data: "iVBORw==" },
     });
-    expect(line.message.content[1]).toEqual({ type: "text", text: "질문" });
+    expect(line.message.content[1]).toEqual({ type: "text", text: "question" });
     const args = claudeArgs({ system: "s", readOnly: false, streamInput: true });
     expect(args).toEqual(
       expect.arrayContaining(["--input-format", "stream-json", "--verbose"])
     );
   });
 
-  it("stream-json 출력에서 마지막 result 를 읽는다", () => {
+  it("reads the last result from stream-json output", () => {
     const stdout = [
       JSON.stringify({ type: "system", subtype: "init" }),
       JSON.stringify({
         type: "result",
         subtype: "success",
         is_error: false,
-        result: "빨강",
+        result: "red",
       }),
     ].join("\n");
-    expect(parseClaudeOutput(stdout)).toBe("빨강");
+    expect(parseClaudeOutput(stdout)).toBe("red");
   });
 });

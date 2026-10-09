@@ -18,43 +18,44 @@ export function formatHourMinute(iso: string): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
 
-/** 목록 묶음 이름: 오늘, 어제, 10월 6일 (월) */
+/** List group label: Today, Yesterday, Mon, Oct 6 */
 export function formatDayGroup(iso: string, now = new Date()): string {
   const d = new Date(iso);
   const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const diff = Math.round((day(now) - day(d)) / 86_400_000);
-  if (diff === 0) return "오늘";
-  if (diff === 1) return "어제";
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
 export function formatRelative(iso: string, now = Date.now()): string {
   const sec = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
-  if (sec < 45) return "방금";
-  if (sec < 3600) return `${Math.round(sec / 60)}분 전`;
-  if (sec < 86_400) return `${Math.floor(sec / 3600)}시간 전`;
+  if (sec < 45) return "just now";
+  if (sec < 3600) return `${Math.round(sec / 60)}m ago`;
+  if (sec < 86_400) return `${Math.floor(sec / 3600)}h ago`;
   const days = Math.floor(sec / 86_400);
-  return days < 7 ? `${days}일 전` : formatDateTime(iso).slice(0, 5);
+  return days < 7 ? `${days}d ago` : formatDateTime(iso).slice(0, 5);
 }
 
 export function formatDuration(ms: number | undefined): string {
   if (ms === undefined || Number.isNaN(ms)) return "-";
   if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}초`;
-  // 반올림한 초에서 분, 시간을 나눠야 "1분 60초" 가 나오지 않는다.
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  // Splitting minutes and hours from the rounded seconds avoids "1m 60s".
   const total = Math.round(ms / 1000);
   const hours = Math.floor(total / 3600);
   const min = Math.floor((total % 3600) / 60);
   const sec = total % 60;
-  if (hours > 0) return min ? `${hours}시간 ${min}분` : `${hours}시간`;
-  return sec ? `${min}분 ${sec}초` : `${min}분`;
+  if (hours > 0) return min ? `${hours}h ${min}m` : `${hours}h`;
+  return sec ? `${min}m ${sec}s` : `${min}m`;
 }
 
-export const formatNumber = (n: number) => n.toLocaleString("ko-KR");
+export const formatNumber = (n: number) => n.toLocaleString("en-US");
 
-/** 도구 인자를 한 줄 미리보기로 (host=web-01 check=uptime) */
+/** Tool arguments as a one-line preview (host=web-01 check=uptime) */
 export function previewArgs(args: unknown, max = 90): string {
   if (args === undefined || args === null) return "";
   let text: string;

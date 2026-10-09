@@ -4,7 +4,7 @@ import { parseEnv } from "node:util";
 const ASSIGNMENT = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/;
 const PLAIN_VALUE = /^[A-Za-z0-9_./:@,~+%=-]*$/;
 
-/** node --env-file 과 같은 규칙으로 값을 읽는다. */
+/** Reads values with the same rules as node --env-file. */
 export function readEnvValues(text: string): Record<string, string> {
   return parseEnv(text) as Record<string, string>;
 }
@@ -21,23 +21,25 @@ export function envKeys(text: string): string[] {
 }
 
 /**
- * 공백이나 특수 문자가 있으면 따옴표로 감싼다. node 의 .env 해석에는 이스케이프가 없어서
- * 값에 없는 따옴표 종류를 고른다. (작은따옴표, 큰따옴표, 백틱 순, 작은따옴표와 백틱 안은 그대로 읽힌다)
+ * Quotes the value if it has spaces or special characters. node's .env parsing has no escapes, so
+ * it picks a quote type the value does not contain. (Single quote, double quote, then backtick. Text inside single quotes and backticks is read as is)
  */
 export function formatEnvValue(value: string): string {
-  if (value.includes("\n")) throw new Error("설정 값에 줄바꿈을 넣을 수 없습니다.");
+  if (value.includes("\n")) throw new Error("Config values cannot contain line breaks.");
   if (PLAIN_VALUE.test(value)) return value;
   if (!value.includes("'")) return `'${value}'`;
   if (!value.includes('"') && !value.includes("\\")) return `"${value}"`;
   if (!value.includes("`")) return `\`${value}\``;
-  throw new Error("값에 작은따옴표, 큰따옴표, 백틱이 모두 있어 .env 에 쓸 수 없습니다.");
+  throw new Error(
+    "The value contains single quotes, double quotes, and backticks, so it cannot be written to .env."
+  );
 }
 
 /**
- * .env 내용을 바꾼다. 주석, 빈 줄, 순서, 다루지 않는 항목은 그대로 둔다.
- * - 있는 항목은 첫 줄의 값을 바꾸고, 같은 항목이 뒤에 또 있으면 지운다. (값이 하나만 남게)
- * - null 은 "KEY=" 로 비운다. (봇은 빈 값을 설정하지 않은 것으로 보고 기본값을 쓴다)
- * - 없던 항목은 끝에 모아 붙인다.
+ * Updates .env content. Comments, blank lines, order, and unhandled entries are kept as is.
+ * - For an existing entry, changes the value on its first line and deletes later duplicates. (So only one value remains)
+ * - null clears it to "KEY=". (The bot treats an empty value as unset and uses the default)
+ * - New entries are appended together at the end.
  */
 export function updateEnvText(
   text: string,
@@ -62,13 +64,13 @@ export function updateEnvText(
   const added = [...pending].filter(([, value]) => value !== null) as [string, string][];
   if (added.length > 0) {
     if (out.length > 0 && out.at(-1) !== "") out.push("");
-    out.push("# Verda 앱 설정 화면에서 추가");
+    out.push("# Added from the Verda app settings screen");
     for (const [key, value] of added) out.push(`${key}=${formatEnvValue(value)}`);
   }
   return out.length > 0 ? `${out.join("\n")}\n` : "";
 }
 
-/** 반쯤 쓴 파일이 남지 않게 바꿔 쓴다. 권한은 기존 파일을 따르고, 새 파일은 600 */
+/** Replaces the file so no half-written file is left. Keeps the existing file's mode, 600 for a new file */
 export function writeEnvFile(file: string, text: string): void {
   const mode = existsSync(file) ? statSync(file).mode & 0o777 : 0o600;
   writeFileSync(`${file}.tmp`, text, { mode });

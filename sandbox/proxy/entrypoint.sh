@@ -1,5 +1,5 @@
 #!/bin/sh
-# allowed-domains.txt 의 도메인을 정확히 일치하는 정규식으로 바꿔 tinyproxy 필터를 만든다.
+# Turns the domains in allowed-domains.txt into exact-match regexes to build the tinyproxy filter.
 set -eu
 src=/etc/egress/allowed-domains.txt
 dst=/tmp/allowed-domains.ere

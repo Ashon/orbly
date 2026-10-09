@@ -47,7 +47,7 @@ const codexLines = [
   },
   {
     type: "item.completed",
-    item: { id: "item_2", type: "agent_message", text: "web-01 는 3일째 동작 중입니다." },
+    item: { id: "item_2", type: "agent_message", text: "web-01 has been up for 3 days." },
   },
   {
     type: "turn.completed",
@@ -55,8 +55,8 @@ const codexLines = [
   },
 ].map((line) => JSON.stringify(line));
 
-describe("codex 이벤트", () => {
-  it("도구 호출, 메시지, 사용량을 단계로 바꾼다", () => {
+describe("codex events", () => {
+  it("converts tool calls, messages, and usage into steps", () => {
     const events = codexLines.flatMap((line) => codexLineToEvents(line, AT));
     expect(events.map((e) => e.kind)).toEqual(["tool", "tool", "message", "usage"]);
     expect(events[0]).toMatchObject({ id: "item_1", status: "running", server: "ops" });
@@ -65,30 +65,30 @@ describe("codex 이벤트", () => {
       result: "$ uptime\n up 3 days",
     });
     expect(events[3]).toMatchObject({ inputTokens: 43200, outputTokens: 131 });
-    expect(lastMessage(events)).toBe("web-01 는 3일째 동작 중입니다.");
+    expect(lastMessage(events)).toBe("web-01 has been up for 3 days.");
     expect(codexLineToEvents("not json")).toEqual([]);
   });
 
-  it("최종 답은 마지막 agent_message 이고, 없으면 오류 이벤트를 알린다", () => {
+  it("uses the last agent_message as the final answer, else reports the error event", () => {
     expect(parseCodexOutput(codexLines.join("\n"))).toBe(
-      "web-01 는 3일째 동작 중입니다."
+      "web-01 has been up for 3 days."
     );
     const failed = JSON.stringify({
       type: "turn.failed",
       error: { message: "quota exceeded" },
     });
     expect(() => parseCodexOutput(failed)).toThrow(/quota exceeded/);
-    expect(() => parseCodexOutput("")).toThrow(/빈 응답/);
+    expect(() => parseCodexOutput("")).toThrow(/codex/);
   });
 });
 
-describe("claude 이벤트", () => {
-  it("tool_use 와 tool_result 를 같은 id 로 묶을 수 있게 만든다", () => {
+describe("claude events", () => {
+  it("lets tool_use and tool_result be paired by the same id", () => {
     const use = JSON.stringify({
       type: "assistant",
       message: {
         content: [
-          { type: "text", text: "확인해 보겠습니다." },
+          { type: "text", text: "Let me check." },
           {
             type: "tool_use",
             id: "toolu_1",
@@ -113,13 +113,13 @@ describe("claude 이벤트", () => {
     const done = JSON.stringify({
       type: "result",
       subtype: "success",
-      result: "끝",
+      result: "done",
       total_cost_usd: 0.12,
       usage: { input_tokens: 10, output_tokens: 5 },
     });
     const events = [use, result, done].flatMap((line) => claudeLineToEvents(line, AT));
     expect(events).toMatchObject([
-      { kind: "message", text: "확인해 보겠습니다." },
+      { kind: "message", text: "Let me check." },
       { kind: "tool", id: "toolu_1", server: "ops", tool: "k8s_get", status: "running" },
       { kind: "tool", id: "toolu_1", status: "completed", result: "3 pods" },
       { kind: "usage", costUsd: 0.12, inputTokens: 10 },
@@ -132,7 +132,7 @@ describe("claude 이벤트", () => {
   });
 });
 
-describe("실행 기록", () => {
+describe("run history", () => {
   const root = mkdtempSync(path.join(tmpdir(), "verda-history-"));
   afterAll(() => rmSync(root, { recursive: true, force: true }));
   const store = new HistoryStore(root);
@@ -145,11 +145,11 @@ describe("실행 기록", () => {
       eventTs: "1.0",
       userId: "U1",
     },
-    request: "web-01 상태 확인",
+    request: "check web-01 status",
     backend: { reasoner: "codex", sandbox: "docker" },
   };
 
-  it("run id 에 날짜가 들어 있고 산출물 이름을 검사한다", () => {
+  it("puts the date in the run id and validates output names", () => {
     const id = runIdFor(new Date(2026, 9, 8, 14, 3, 9), "a1b2c3");
     expect(id).toBe("20261008-140309-a1b2c3");
     expect(dayOf(id)).toBe("2026-10-08");
@@ -158,13 +158,15 @@ describe("실행 기록", () => {
     expect(isSafeArtifactName("../run.json")).toBe(false);
   });
 
-  it("단계를 합치고, 완료하면 목록과 상세에서 보인다", async () => {
+  it("merges steps and shows the finished run in the list and detail", async () => {
     const run = store.start(init, new Date(2026, 9, 8, 14, 0, 0));
     for (const event of codexLines.flatMap((line) => codexLineToEvents(line, AT)))
       run.event(event);
     await run.saveArtifact("figure-1.png", Buffer.from([0x89, 0x50]));
-    run.patch({ outputs: [{ kind: "diagram", file: "figure-1.png", title: "그림 1" }] });
-    run.finish("succeeded", { answer: "정상" }, new Date(2026, 9, 8, 14, 0, 12));
+    run.patch({
+      outputs: [{ kind: "diagram", file: "figure-1.png", title: "Diagram 1" }],
+    });
+    run.finish("succeeded", { answer: "OK" }, new Date(2026, 9, 8, 14, 0, 12));
 
     const saved = JSON.parse(readFileSync(path.join(run.dir, "run.json"), "utf8"));
     expect(saved.events.filter((e: { kind: string }) => e.kind === "tool")).toHaveLength(
@@ -184,7 +186,7 @@ describe("실행 기록", () => {
       outputs: 1,
       reasoner: "codex@docker",
     });
-    expect(reader.get(run.id)?.answer).toBe("정상");
+    expect(reader.get(run.id)?.answer).toBe("OK");
     expect(reader.artifactPath(run.id, "figure-1.png")).toBe(
       path.join(run.dir, "artifacts", "figure-1.png")
     );
@@ -193,7 +195,7 @@ describe("실행 기록", () => {
     expect(reader.list({ status: "failed" })).toHaveLength(0);
   });
 
-  it("재시작 후 이어서 처리하면 시도 번호를 붙여 도구 id 가 겹치지 않는다", () => {
+  it("prefixes the attempt number on resume so tool ids do not collide", () => {
     const run = store.start(init, new Date(2026, 9, 8, 15, 0, 0));
     run.event(codexLineToEvents(codexLines[1]!, AT)[0]!);
     run.flush();
@@ -209,7 +211,7 @@ describe("실행 기록", () => {
     reopened.finish("succeeded");
   });
 
-  it("진행 중으로 남은 기록은 이어서 처리할 것만 빼고 중단으로 표시한다", () => {
+  it("marks runs left running as interrupted, except those being resumed", () => {
     const keep = store.start(init, new Date(2026, 9, 8, 16, 0, 0));
     const stale = store.start(init, new Date(2026, 9, 8, 16, 0, 1));
     expect(store.interruptStale(new Set([keep.id]))).toBe(1);
@@ -222,7 +224,7 @@ describe("실행 기록", () => {
     });
   });
 
-  it("보관 기간이 지난 날짜 디렉터리를 지운다", () => {
+  it("deletes day directories past the retention period", () => {
     store.start(init, new Date(2026, 7, 1, 9, 0, 0));
     expect(store.prune(30, new Date(2026, 9, 8))).toBe(1);
     expect(store.prune(0, new Date(2030, 0, 1))).toBe(0);
@@ -231,7 +233,7 @@ describe("실행 기록", () => {
 });
 
 describe("slackPermalink", () => {
-  it("스레드 답글 링크를 만든다", () => {
+  it("builds a thread reply link", () => {
     expect(
       slackPermalink(
         "https://x.slack.com/",
@@ -248,7 +250,7 @@ describe("slackPermalink", () => {
   });
 });
 
-describe("조회 API", () => {
+describe("query API", () => {
   const root = mkdtempSync(path.join(tmpdir(), "verda-api-"));
   afterAll(() => rmSync(root, { recursive: true, force: true }));
   const store = new HistoryStore(root);
@@ -258,7 +260,7 @@ describe("조회 API", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const body = async (pathname: string): Promise<any> => (await call(pathname)).json();
 
-  it("목록, 상세, 산출물, 통계를 읽기 전용으로 준다", async () => {
+  it("serves list, detail, outputs, and stats read-only", async () => {
     const run = store.start({
       slack: {
         channel: "C1",
@@ -267,7 +269,7 @@ describe("조회 API", () => {
         eventTs: "1.0",
         userId: "U1",
       },
-      request: "그림 그려 줘",
+      request: "draw a diagram",
       backend: { reasoner: "codex", sandbox: "docker" },
     });
     await run.saveArtifact("image-1.png", Buffer.from([0x89, 0x50, 0x4e, 0x47]));

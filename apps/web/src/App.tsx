@@ -17,7 +17,7 @@ type Route =
   | { page: "settings" }
   | { page: "run"; id: string };
 
-/** #/runs/<id>: 실행 상세, #/bot: 봇 상태와 로그, #/settings: 설정, 그 밖: 개요 */
+/** #/runs/<id>: run detail, #/bot: bot status and logs, #/settings: Settings, otherwise: Overview */
 function readRoute(): Route {
   const hash = window.location.hash;
   const run = /^#\/runs\/([^/?#]+)/.exec(hash)?.[1];
@@ -61,14 +61,14 @@ export default function App() {
               Verda
             </span>
           </button>
-          <span className="text-xs text-muted-foreground">작업 기록</span>
-          {/* 위는 화면 이동만 둔다. 봇 상태와 테마는 아래 상태 막대에 있다. */}
+          <span className="text-xs text-muted-foreground">Run history</span>
+          {/* The top bar holds only navigation. Bot status and theme are in the status bar below. */}
           <div className="ml-auto flex items-center gap-1">
-            <Tooltip content="개요" side="bottom">
+            <Tooltip content="Overview" side="bottom">
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="개요"
+                aria-label="Overview"
                 onClick={() => select()}
                 className={cn(
                   route.page === "overview" && "bg-accent text-accent-foreground"
@@ -77,22 +77,22 @@ export default function App() {
                 <LayoutDashboard />
               </Button>
             </Tooltip>
-            <Tooltip content="봇" side="bottom">
+            <Tooltip content="Bot" side="bottom">
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="봇"
+                aria-label="Bot"
                 onClick={() => go("#/bot")}
                 className={cn(route.page === "bot" && "bg-accent text-accent-foreground")}
               >
                 <Bot />
               </Button>
             </Tooltip>
-            <Tooltip content="설정" side="bottom">
+            <Tooltip content="Settings" side="bottom">
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="설정"
+                aria-label="Settings"
                 onClick={() => go("#/settings")}
                 className={cn(
                   route.page === "settings" && "bg-accent text-accent-foreground"

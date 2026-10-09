@@ -18,7 +18,7 @@ import {
   type RunSummary,
 } from "./types.js";
 
-/** 실행 기록 읽기. 데스크톱 앱이 쓴다. 파일이 바뀌지 않았으면 캐시를 쓴다. */
+/** Reads run history. Used by the desktop app. Uses the cache when a file has not changed. */
 export class HistoryReader {
   private readonly cache = new Map<string, { mtimeMs: number; record: RunRecord }>();
 
@@ -42,7 +42,7 @@ export class HistoryReader {
     return dir ? this.load(path.join(dir, RUN_FILE)) : undefined;
   }
 
-  /** 산출물 파일의 절대 경로. 이름이 안전하지 않거나 없으면 undefined */
+  /** Absolute path of an output file. undefined if the name is unsafe or the file is missing */
   artifactPath(id: string, name: string): string | undefined {
     const dir = this.runDir(id);
     if (!dir || !isSafeArtifactName(name)) return undefined;
@@ -98,7 +98,7 @@ export class HistoryReader {
     };
   }
 
-  /** 최신 실행부터 */
+  /** Newest runs first */
   private *records(): Generator<RunRecord> {
     const runsDir = path.join(this.root, RUNS_DIR);
     if (!existsSync(runsDir)) return;

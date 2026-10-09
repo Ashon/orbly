@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { RunRecord, RunStats, RunStatus, RunSummary } from "@history/types";
 import type { BotStatusView, LogLine } from "@runtime/types";
 
-/** 데스크톱 앱은 verda://app/api, 개발 서버는 Vite 미들웨어가 같은 경로로 답한다. */
+/** The desktop app serves verda://app/api; on the dev server, Vite middleware answers on the same path. */
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`${res.status} ${url}`);

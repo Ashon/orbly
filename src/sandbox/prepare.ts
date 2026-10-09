@@ -6,10 +6,10 @@ import { brokerRuntimeDir } from "../settings/paths.js";
 import { unsetMount, type BrokerEnv } from "./env.js";
 
 /**
- * ops-broker 를 띄우기 전에 마운트할 파일을 저장소 밖(brokerRuntimeDir, 기본 ~/.verda/ops-broker)에 준비한다.
- * - 설정하지 않은 SSH 키, known_hosts, 작업 디렉터리 자리에 빈 파일/디렉터리를 둔다. broker 는 빈 것을 꺼진 기능으로 본다.
- * - kubeconfig 가 없으면 빈 파일을 둔다. (kubeconfig 작업으로 만든다)
- * - OPS_SSH_INVENTORY 를 설정했으면 ansible 인벤토리로 hosts.json 을 다시 만든다.
+ * Prepares the files to mount outside the repository (brokerRuntimeDir, default ~/.verda/ops-broker) before starting ops-broker.
+ * - Puts empty files/directories in place of an unset SSH key, known_hosts, and work directory. The broker treats empty ones as disabled features.
+ * - Puts an empty file if kubeconfig is missing. (The kubeconfig job builds it)
+ * - If OPS_SSH_INVENTORY is set, rebuilds hosts.json from the ansible inventory.
  */
 export async function prepareBrokerFiles(
   env: BrokerEnv,
@@ -29,12 +29,12 @@ export async function prepareBrokerFiles(
   if (!env.OPS_SSH_INVENTORY_DIR || !env.OPS_SSH_INVENTORY) {
     if (!existsSync(output)) writeFileSync(output, "{}\n");
     log(
-      `${output}: OPS_SSH_INVENTORY_DIR, OPS_SSH_INVENTORY 가 없어 그대로 둡니다. (직접 써도 된다)`
+      `${output}: OPS_SSH_INVENTORY_DIR and OPS_SSH_INVENTORY are not set, leaving it as is. (You can edit it by hand)`
     );
     return;
   }
   if (!env.OPS_SSH_ALLOWED_CIDR)
-    throw new Error("인벤토리를 쓰려면 OPS_SSH_ALLOWED_CIDR 를 설정해야 합니다.");
+    throw new Error("Set OPS_SSH_ALLOWED_CIDR to use an inventory.");
 
   const hosts = await renderInventory(env, env.OPS_SSH_ALLOWED_CIDR, processEnv);
   writeFileSync(
@@ -42,13 +42,13 @@ export async function prepareBrokerFiles(
     `${JSON.stringify(Object.fromEntries(hosts.allowed), null, 2)}\n`
   );
   log(
-    `${output}: ${hosts.allowed.size}개 (인벤토리 ${hosts.total}개 중 ${env.OPS_SSH_ALLOWED_CIDR} 안)`
+    `${output}: ${hosts.allowed.size} host${hosts.allowed.size === 1 ? "" : "s"} (of ${hosts.total} in the inventory, within ${env.OPS_SSH_ALLOWED_CIDR})`
   );
 }
 
 /**
- * 인벤토리를 ansible 로 렌더링해서 호스트별 주소를 얻는다.
- * ansible_host 가 Jinja 계산식일 수 있어서 파일을 직접 읽지 않는다. debug 모듈만 쓰므로 호스트에 접속하지 않는다.
+ * Renders the inventory with ansible to get each host's address.
+ * ansible_host can be a Jinja expression, so the file is not read directly. Only the debug module runs, so no host is contacted.
  */
 async function renderInventory(
   env: BrokerEnv,

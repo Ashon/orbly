@@ -2,7 +2,7 @@ import type { SupervisorState } from "@runtime/types";
 import type { SandboxJob, SandboxJobKind, SandboxStatus } from "@src/sandbox/types";
 import { useCallback, useEffect, useState } from "react";
 
-/** 데스크톱 앱이 관리하는 봇 프로세스 상태. 브라우저(개발 서버)에서는 undefined */
+/** Bot process state managed by the desktop app. undefined in the browser (dev server) */
 export function useSupervisor(): SupervisorState | undefined {
   const bridge = window.verdaDesktop?.bot;
   const [state, setState] = useState<SupervisorState>();
@@ -16,7 +16,7 @@ export function useSupervisor(): SupervisorState | undefined {
 
 export const botControl = () => window.verdaDesktop?.bot;
 
-/** 샌드박스 상태와 적용 작업. 작업이 끝나면 상태를 다시 읽는다. */
+/** Sandbox status and apply jobs. Reloads the status when a job finishes. */
 export function useSandbox() {
   const bridge = window.verdaDesktop?.sandbox;
   const [status, setStatus] = useState<SandboxStatus>();

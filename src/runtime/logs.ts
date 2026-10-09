@@ -18,11 +18,11 @@ export function parseLogLine(raw: string): LogLine {
 }
 
 export interface LogQuery {
-  /** 최대 줄 수 (뒤에서부터) */
+  /** Max number of lines (from the end) */
   lines?: number;
-  /** scope 앞부분 (예: verda:socket) */
+  /** Scope prefix (e.g. verda:socket) */
   scope?: string;
-  /** 이 수준 이상만 */
+  /** Only this level and above */
   minLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
 }
 
@@ -30,7 +30,7 @@ const ORDER = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 } as const;
 const TAIL_BYTES = 512 * 1024;
 
 /**
- * 봇 로그 파일의 마지막 부분을 읽는다. 여러 줄 로그(스택 등)는 앞 줄에 붙인다.
+ * Reads the tail of the bot log file. Multi-line entries (stacks etc.) join the preceding line.
  */
 export function tailLogs(dataDir: string, query: LogQuery = {}): LogLine[] {
   const file = path.join(dataDir, LOG_FILE);
@@ -43,7 +43,7 @@ export function tailLogs(dataDir: string, query: LogQuery = {}): LogLine[] {
     const buffer = Buffer.alloc(length);
     readSync(fd, buffer, 0, length, size - length);
     text = buffer.toString("utf8");
-    // 중간부터 읽었으면 잘린 첫 줄은 버린다.
+    // When reading from the middle, drops the cut-off first line.
     if (length < size) text = text.slice(text.indexOf("\n") + 1);
   } finally {
     closeSync(fd);

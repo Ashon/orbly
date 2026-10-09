@@ -21,8 +21,8 @@ const format = (parts: unknown[]) =>
     .join(" ");
 
 /**
- * Bolt, Socket Mode 클라이언트가 쓰는 로거. 봇 로거(콘솔 + 로그 파일)로 보낸다.
- * 이름(setName)은 라이브러리가 바꾸지 못하게 하고 scope 로 구분한다. 출력 수준은 LOG_LEVEL 을 따른다.
+ * Logger used by the Bolt and Socket Mode clients. Forwards to the bot logger (console + log file).
+ * The library cannot change the name (setName); scope tells them apart. The output level follows LOG_LEVEL.
  */
 export function slackLogger(log: Logger, level: LogLevel): SlackLogger {
   return {

@@ -24,9 +24,7 @@ export function RunDetail({ id }: { id: string }) {
   const { data: run, isError } = useRun(id);
   if (isError) {
     return (
-      <p className="p-10 text-center text-sm text-muted-foreground">
-        기록을 찾지 못했습니다.
-      </p>
+      <p className="p-10 text-center text-sm text-muted-foreground">Run not found.</p>
     );
   }
   if (!run) return null;
@@ -46,18 +44,18 @@ export function RunDetail({ id }: { id: string }) {
             {run.prompt ? (
               <>
                 <CodeBlock
-                  label="지시문 (system)"
+                  label="Instructions (system)"
                   code={run.prompt.system}
                   maxHeight="max-h-96"
                 />
                 <CodeBlock
-                  label="입력 (스레드 맥락, 요청, 첨부)"
+                  label="Input (thread context, request, attachments)"
                   code={run.prompt.user}
                   maxHeight="max-h-[60vh]"
                 />
               </>
             ) : (
-              <Empty>프롬프트를 만들기 전에 끝난 실행입니다.</Empty>
+              <Empty>This run ended before the prompt was built.</Empty>
             )}
           </TabsContent>
           <TabsContent value="raw">
@@ -83,14 +81,14 @@ function usageOf(run: RunRecord) {
   );
 }
 
-/** 머리는 상태, 요청, 탭만 둔다. 실행 수치는 본문 위 요약 카드(RunFacts)에 있다. */
+/** The header holds only status, request, and tabs. Run figures are in the summary card above the body (RunFacts). */
 function RunHeader({ run }: { run: RunRecord }) {
   return (
     <header className="border-b bg-canvas/80 px-8 pt-5 pb-0 backdrop-blur">
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <StatusBadge status={run.status} />
-          {run.attempts > 1 && <Badge variant="secondary">시도 {run.attempts}회</Badge>}
+          {run.attempts > 1 && <Badge variant="secondary">{run.attempts} attempts</Badge>}
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="truncate">{run.slack.channelLabel}</span>
             <span className="text-muted-foreground/60">·</span>
@@ -102,25 +100,25 @@ function RunHeader({ run }: { run: RunRecord }) {
             <Button asChild variant="outline" size="xs" className="ml-auto shrink-0">
               <a href={run.slack.permalink} target="_blank" rel="noreferrer">
                 <ExternalLink />
-                Slack 에서 보기
+                View in Slack
               </a>
             </Button>
           )}
         </div>
         <h1 className="mt-2.5 line-clamp-2 text-lg leading-snug font-semibold tracking-tight">
-          {run.request || "(빈 요청)"}
+          {run.request || "(empty request)"}
         </h1>
         <TabsList className="mt-4 mb-3">
-          <TabsTrigger value="timeline">작업 과정</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="attachments">
-            첨부
+            Attachments
             {run.attachments.length > 0 && (
               <span className="rounded bg-muted px-1 text-[10px] tabular-nums">
                 {run.attachments.length}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="prompt">프롬프트</TabsTrigger>
+          <TabsTrigger value="prompt">Prompt</TabsTrigger>
           <TabsTrigger value="raw">JSON</TabsTrigger>
         </TabsList>
       </div>
@@ -128,7 +126,7 @@ function RunHeader({ run }: { run: RunRecord }) {
   );
 }
 
-/** 실행 요약: 소요, 도구, 토큰, 추론 백엔드. 개요 카드와 같은 모양 */
+/** Run summary: duration, tools, tokens, reasoner backend. Same look as the Overview cards */
 function RunFacts({ run }: { run: RunRecord }) {
   const usage = usageOf(run);
   const tools = run.events.filter(
@@ -139,13 +137,17 @@ function RunFacts({ run }: { run: RunRecord }) {
     <div className="surface-card mb-6 grid grid-cols-4 divide-x divide-canvas">
       <Fact
         icon={<Timer />}
-        label={run.status === "running" ? "경과" : "소요"}
+        label={run.status === "running" ? "Elapsed" : "Duration"}
         value={formatDuration(duration)}
       />
-      <Fact icon={<Wrench />} label="도구 호출" value={`${tools}회`} />
+      <Fact
+        icon={<Wrench />}
+        label="Tool calls"
+        value={`${tools} ${tools === 1 ? "call" : "calls"}`}
+      />
       <Fact
         icon={<Coins />}
-        label="토큰 (입력 / 출력)"
+        label="Tokens (input / output)"
         value={
           usage.input + usage.output > 0
             ? `${formatNumber(usage.input)} / ${formatNumber(usage.output)}`
@@ -155,7 +157,7 @@ function RunFacts({ run }: { run: RunRecord }) {
       />
       <Fact
         icon={<Cpu />}
-        label="추론"
+        label="Reasoner"
         value={`${run.backend.reasoner}@${run.backend.sandbox}`}
         hint={run.backend.model}
       />
@@ -187,13 +189,14 @@ function Fact({
 }
 
 const ATTACHMENT_STATUS = {
-  read: { label: "읽음", className: "text-status-succeeded" },
-  skipped: { label: "건너뜀", className: "text-status-interrupted" },
-  failed: { label: "실패", className: "text-status-failed" },
+  read: { label: "Read", className: "text-status-succeeded" },
+  skipped: { label: "Skipped", className: "text-status-interrupted" },
+  failed: { label: "Failed", className: "text-status-failed" },
 } as const;
 
 function Attachments({ run }: { run: RunRecord }) {
-  if (run.attachments.length === 0) return <Empty>첨부가 없는 요청입니다.</Empty>;
+  if (run.attachments.length === 0)
+    return <Empty>This request has no attachments.</Empty>;
   return (
     <ul className="space-y-2">
       {run.attachments.map((item, i) => {

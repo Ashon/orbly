@@ -6,9 +6,9 @@ const FAILURE_TTL_MS = 60 * 1000;
 
 export interface ChannelInfo {
   id: string;
-  /** "#name" 형식의 표시 이름 */
+  /** Display name in "#name" form */
   label: string;
-  /** 공개 채널인지. 비공개 채널, DM, 그룹 DM 은 false */
+  /** Whether this is a public channel. false for private channels, DMs, and group DMs */
   isPublic: boolean;
 }
 
@@ -17,7 +17,7 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
-/** 사용자/채널 정보를 짧게 캐시해서 조회한다. 실패하면 ID 를 그대로 쓴다. */
+/** Looks up user/channel info with a short cache. Falls back to the ID on failure. */
 export class Directory {
   private readonly cache = new Map<string, CacheEntry<unknown>>();
 
@@ -61,7 +61,7 @@ export class Directory {
           ),
         };
       },
-      // 조회에 실패하면 공개 채널로 단정하지 않는다.
+      // If the lookup fails, does not assume a public channel.
       { id: channelId, label: channelId, isPublic: false }
     );
   }
@@ -71,8 +71,8 @@ export class Directory {
     if (hit && hit.expiresAt > Date.now()) return hit.value;
 
     const value: Promise<T> = load().catch((err: unknown) => {
-      this.log.warn(`조회 실패 ${key}: ${(err as Error).message}`);
-      // 실패는 짧게만 캐시해서 다음 요청에서 다시 시도한다.
+      this.log.warn(`Lookup failed for ${key}: ${(err as Error).message}`);
+      // Failures are cached only briefly so the next request tries again.
       this.cache.set(key, { value, expiresAt: Date.now() + FAILURE_TTL_MS });
       return fallback;
     });

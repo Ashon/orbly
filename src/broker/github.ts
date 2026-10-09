@@ -1,6 +1,6 @@
 /**
- * GitHub 읽기 전용 조회. broker 의 GitHub 토큰으로 허용된 조직(GIT_ALLOWED_OWNERS)의 저장소만 본다.
- * 추론 컨테이너에는 토큰이 없고 GitHub 로 나갈 수도 없다. PR, 저장소 조회는 이 도구로만 한다.
+ * Read-only GitHub lookups. Uses the broker's GitHub token to view only repositories in the allowed orgs (GIT_ALLOWED_OWNERS).
+ * The reasoner container has no token and cannot reach GitHub. PR and repository lookups go through these tools only.
  */
 export interface RepoRef {
   owner?: string;
@@ -9,8 +9,8 @@ export interface RepoRef {
 }
 
 /**
- * owner/repo, owner/repo#123, repo, GitHub URL(저장소, PR), git 원격 주소를 읽는다.
- * owner 가 있으면 허용된 조직인지 확인한다.
+ * Parses owner/repo, owner/repo#123, repo, GitHub URLs (repository, PR), and git remote URLs.
+ * When owner is present, checks that it is an allowed org.
  */
 export function parseRepoRef(input: string, allowedOwners: readonly string[]): RepoRef {
   const text = input.trim();
@@ -20,12 +20,12 @@ export function parseRepoRef(input: string, allowedOwners: readonly string[]): R
     );
   if (!match)
     throw new Error(
-      `저장소 형식이 아닙니다: ${input} (예: ${allowedOwners[0] ?? "owner"}/repo)`
+      `Invalid repository format: ${input} (e.g. ${allowedOwners[0] ?? "owner"}/repo)`
     );
   const [, owner, repo, pullFromUrl, pullFromHash] = match;
   if (owner && !allowedOwners.some((o) => o.toLowerCase() === owner.toLowerCase())) {
     throw new Error(
-      `조회할 수 없는 조직입니다: ${owner} (허용: ${allowedOwners.join(", ")})`
+      `Org is not allowed for lookup: ${owner} (allowed: ${allowedOwners.join(", ")})`
     );
   }
   const number = pullFromUrl ?? pullFromHash;
@@ -33,8 +33,8 @@ export function parseRepoRef(input: string, allowedOwners: readonly string[]): R
 }
 
 /**
- * 검색어의 범위를 허용된 조직으로 제한한다.
- * repo:, org:, user: 한정자가 없으면 org: 를 붙이고, 허용되지 않은 조직을 가리키면 거부한다.
+ * Restricts a search query to the allowed orgs.
+ * Adds org: when there is no repo:, org:, or user: qualifier, and rejects qualifiers that point to other orgs.
  */
 export function scopeSearchQuery(
   query: string,
@@ -48,7 +48,7 @@ export function scopeSearchQuery(
     const owner = (kind === "repo" ? value.split("/")[0]! : value).toLowerCase();
     if (!allowed.includes(owner)) {
       throw new Error(
-        `조회할 수 없는 조직입니다: ${value} (허용: ${allowedOwners.join(", ")})`
+        `Org is not allowed for lookup: ${value} (allowed: ${allowedOwners.join(", ")})`
       );
     }
     scoped = true;
@@ -90,7 +90,7 @@ export function formatPullLine(pull: Pull): string {
     : "";
   return (
     `#${pull.number} ${pull.title} (@${pull.user?.login ?? "?"}, ${state}, ` +
-    `${pull.head.ref} -> ${pull.base.ref}, 생성 ${day(pull.created_at)}, 갱신 ${day(pull.updated_at)})${labels}`
+    `${pull.head.ref} -> ${pull.base.ref}, created ${day(pull.created_at)}, updated ${day(pull.updated_at)})${labels}`
   );
 }
 
@@ -133,7 +133,7 @@ export function formatPullDetail(
     : pull.draft
       ? "open (draft)"
       : pull.state;
-  // 사람마다 마지막 리뷰만 남긴다. (COMMENTED 는 다른 상태가 있으면 덮어쓰지 않는다)
+  // Keeps only each person's latest review. (COMMENTED does not overwrite another state)
   const latest = new Map<string, Review>();
   for (const review of reviews) {
     const login = review.user?.login ?? "?";
@@ -143,43 +143,43 @@ export function formatPullDetail(
   const conclusions = new Map<string, string[]>();
   for (const check of checks) {
     const key =
-      check.status !== "completed" ? "진행 중" : (check.conclusion ?? "unknown");
+      check.status !== "completed" ? "in progress" : (check.conclusion ?? "unknown");
     conclusions.set(key, [...(conclusions.get(key) ?? []), check.name]);
   }
   const lines = [
     `${slug}#${pull.number} ${pull.title}`,
-    `상태: ${state}, 작성자 @${pull.user?.login ?? "?"}, 생성 ${day(pull.created_at)}, 갱신 ${day(pull.updated_at)}`,
-    `브랜치: ${pull.head.ref} -> ${pull.base.ref}, 커밋 ${pull.commits ?? "?"}, 파일 ${pull.changed_files ?? files.length}, +${pull.additions ?? "?"} -${pull.deletions ?? "?"}` +
-      (pull.mergeable_state ? `, 병합 상태 ${pull.mergeable_state}` : ""),
+    `State: ${state}, author @${pull.user?.login ?? "?"}, created ${day(pull.created_at)}, updated ${day(pull.updated_at)}`,
+    `Branch: ${pull.head.ref} -> ${pull.base.ref}, commits ${pull.commits ?? "?"}, files ${pull.changed_files ?? files.length}, +${pull.additions ?? "?"} -${pull.deletions ?? "?"}` +
+      (pull.mergeable_state ? `, mergeable state ${pull.mergeable_state}` : ""),
   ];
   if (pull.labels?.length)
-    lines.push(`라벨: ${pull.labels.map((l) => l.name).join(", ")}`);
+    lines.push(`Labels: ${pull.labels.map((l) => l.name).join(", ")}`);
   if (pull.requested_reviewers?.length) {
     lines.push(
-      `리뷰 요청: ${pull.requested_reviewers.map((r) => `@${r.login}`).join(", ")}`
+      `Requested reviewers: ${pull.requested_reviewers.map((r) => `@${r.login}`).join(", ")}`
     );
   }
   lines.push(
-    `리뷰: ${latest.size ? [...latest].map(([login, r]) => `@${login} ${r.state}`).join(", ") : "없음"}`
+    `Reviews: ${latest.size ? [...latest].map(([login, r]) => `@${login} ${r.state}`).join(", ") : "none"}`
   );
   lines.push(
-    `체크: ${conclusions.size ? [...conclusions].map(([k, names]) => `${k} ${names.length}${k === "success" ? "" : ` (${names.slice(0, 5).join(", ")})`}`).join(", ") : "없음"}`
+    `Checks: ${conclusions.size ? [...conclusions].map(([k, names]) => `${k} ${names.length}${k === "success" ? "" : ` (${names.slice(0, 5).join(", ")})`}`).join(", ") : "none"}`
   );
-  lines.push(`링크: ${pull.html_url}`);
+  lines.push(`Link: ${pull.html_url}`);
   const body = (pull.body ?? "").trim();
   lines.push(
     "",
-    "본문:",
+    "Body:",
     body
       ? body.length > bodyLimit
-        ? `${body.slice(0, bodyLimit)}\n... (본문 ${body.length}자 중 앞부분)`
+        ? `${body.slice(0, bodyLimit)}\n... (body truncated, ${body.length} characters total)`
         : body
-      : "(없음)"
+      : "(none)"
   );
   if (files.length) {
     lines.push(
       "",
-      `변경 파일 (${files.length}개${files.length >= 100 ? ", 앞 100개" : ""}):`
+      `Changed files (${files.length}${files.length >= 100 ? ", first 100" : ""}):`
     );
     for (const file of files) {
       lines.push(
@@ -190,7 +190,7 @@ export function formatPullDetail(
   return lines.join("\n");
 }
 
-/** unified diff 에서 path 로 시작하는 파일 부분만 남긴다. */
+/** Keeps only the parts of a unified diff for files whose path starts with path. */
 export function filterDiff(diff: string, path: string): string {
   const parts = diff.split(/(?=^diff --git )/m);
   const picked = parts.filter((part) => {
@@ -231,12 +231,12 @@ export class GitHubReader {
     }>(
       `/search/repositories?q=${encodeURIComponent(q)}&sort=updated&per_page=${clamp(limit, 1, 30)}`
     );
-    if (data.items.length === 0) return `저장소를 찾지 못했습니다. (검색어: ${q})`;
+    if (data.items.length === 0) return `No repositories found. (query: ${q})`;
     return [
-      `저장소 ${data.total_count}개 중 ${data.items.length}개 (검색어: ${q})`,
+      `${data.items.length} of ${data.total_count} ${data.total_count === 1 ? "repository" : "repositories"} (query: ${q})`,
       ...data.items.map(
         (r) =>
-          `${r.full_name}${r.private ? " (private)" : ""}${r.archived ? " (archived)" : ""} - 기본 브랜치 ${r.default_branch}, 최근 push ${day(r.pushed_at)}` +
+          `${r.full_name}${r.private ? " (private)" : ""}${r.archived ? " (archived)" : ""} - default branch ${r.default_branch}, last push ${day(r.pushed_at)}` +
           (r.description ? `\n  ${r.description}` : "")
       ),
     ].join("\n");
@@ -251,10 +251,10 @@ export class GitHubReader {
     const pulls = await this.json<Pull[]>(
       `/repos/${slug}/pulls?state=${state}&sort=created&direction=desc&per_page=${clamp(limit, 1, 50)}`
     );
-    const label = { open: "열린", closed: "닫힌", all: "전체" }[state];
-    if (pulls.length === 0) return `${slug}: ${label} PR 이 없습니다.`;
+    const label = { open: "open", closed: "closed", all: "open or closed" }[state];
+    if (pulls.length === 0) return `${slug}: no ${label} PRs.`;
     return [
-      `${slug} ${label} PR ${pulls.length}건 (최근 생성 순)`,
+      `${slug}: ${pulls.length} ${label} ${pulls.length === 1 ? "PR" : "PRs"} (newest first)`,
       ...pulls.map(formatPullLine),
     ].join("\n");
   }
@@ -280,9 +280,9 @@ export class GitHubReader {
     }>(
       `/search/issues?q=${encodeURIComponent(q)}&sort=created&order=desc&per_page=${clamp(limit, 1, 50)}`
     );
-    if (data.items.length === 0) return `PR 을 찾지 못했습니다. (검색어: ${q})`;
+    if (data.items.length === 0) return `No PRs found. (query: ${q})`;
     return [
-      `PR ${data.total_count}건 중 ${data.items.length}건 (검색어: ${q}, 최근 생성 순)`,
+      `${data.items.length} of ${data.total_count} ${data.total_count === 1 ? "PR" : "PRs"} (query: ${q}, newest first)`,
       ...data.items.map((item) => {
         const repo = item.repository_url.split("/repos/")[1] ?? "?";
         const state = item.pull_request?.merged_at
@@ -290,7 +290,7 @@ export class GitHubReader {
           : item.draft
             ? "draft"
             : item.state;
-        return `${repo}#${item.number} ${item.title} (@${item.user?.login ?? "?"}, ${state}, 생성 ${day(item.created_at)}, 갱신 ${day(item.updated_at)})`;
+        return `${repo}#${item.number} ${item.title} (@${item.user?.login ?? "?"}, ${state}, created ${day(item.created_at)}, updated ${day(item.updated_at)})`;
       }),
     ].join("\n");
   }
@@ -320,10 +320,10 @@ export class GitHubReader {
       `/repos/${slug}/pulls/${n}`,
       "application/vnd.github.diff"
     );
-    if (!path) return diff || "(변경 없음)";
+    if (!path) return diff || "(no changes)";
     const picked = filterDiff(diff, path);
     return (
-      picked || `${path} 의 변경이 없습니다. gh_pr_view 의 변경 파일 목록을 확인하세요.`
+      picked || `No changes for ${path}. Check the changed file list from gh_pr_view.`
     );
   }
 
@@ -333,11 +333,11 @@ export class GitHubReader {
   ): Promise<{ slug: string; number: number }> {
     const ref = parseRepoRef(repoInput, this.owners);
     const n = number ?? ref.number;
-    if (!n) throw new Error("PR 번호가 필요합니다. (number 또는 owner/repo#번호)");
+    if (!n) throw new Error("A PR number is required (number or owner/repo#number).");
     return { slug: await this.resolve(repoInput), number: n };
   }
 
-  /** owner 가 없으면 허용된 조직을 차례로 찾아본다. */
+  /** When owner is missing, tries each allowed org in turn. */
   private async resolve(repoInput: string): Promise<string> {
     const ref = parseRepoRef(repoInput, this.owners);
     if (ref.owner) return `${ref.owner}/${ref.repo}`;
@@ -354,9 +354,9 @@ export class GitHubReader {
     }
     const similar = await this.searchRepos(ref.repo, 5).catch(() => "");
     throw new Error(
-      `${this.owners.join(", ")} 에서 저장소 ${ref.repo} 를 찾지 못했습니다.` +
-        (similar && !similar.startsWith("저장소를 찾지 못했습니다")
-          ? `\n비슷한 저장소:\n${similar}`
+      `Repository ${ref.repo} not found in ${this.owners.join(", ")}.` +
+        (similar && !similar.startsWith("No repositories found")
+          ? `\nSimilar repositories:\n${similar}`
           : "")
     );
   }
@@ -381,14 +381,13 @@ export class GitHubReader {
       try {
         message = (JSON.parse(body) as { message?: string }).message ?? message;
       } catch {
-        // 본문이 JSON 이 아니면 그대로 쓴다.
+        // Uses the body as is when it is not JSON.
       }
-      if (res.status === 404)
-        throw new Error(`찾을 수 없습니다 (404): ${path.split("?")[0]}`);
+      if (res.status === 404) throw new Error(`Not found (404): ${path.split("?")[0]}`);
       if (res.status === 403 && res.headers.get("x-ratelimit-remaining") === "0") {
-        throw new Error("GitHub API 요청 한도를 넘었습니다. 잠시 후 다시 시도하세요.");
+        throw new Error("GitHub API rate limit exceeded. Try again shortly.");
       }
-      throw new Error(`GitHub API 오류 ${res.status}: ${message}`);
+      throw new Error(`GitHub API error ${res.status}: ${message}`);
     }
     return body;
   }

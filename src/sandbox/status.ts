@@ -17,16 +17,16 @@ import type {
 } from "./types.js";
 
 export const SANDBOX_IMAGES = [
-  { name: "verda-reasoner:latest", purpose: "추론 (요청마다 실행)" },
-  { name: "verda-renderer:latest", purpose: "그림 렌더링" },
-  { name: "verda-egress-proxy:latest", purpose: "바깥 접속 프록시" },
-  { name: "verda-ops-broker:latest", purpose: "운영 도구 broker" },
+  { name: "verda-reasoner:latest", purpose: "Reasoning (runs per request)" },
+  { name: "verda-renderer:latest", purpose: "Diagram rendering" },
+  { name: "verda-egress-proxy:latest", purpose: "Egress proxy" },
+  { name: "verda-ops-broker:latest", purpose: "Ops tools broker" },
 ];
 const CONTAINERS = {
   "egress-proxy": "verda-sandbox-egress-proxy-1",
   "ops-broker": "verda-sandbox-ops-broker-1",
 } as const;
-/** broker 환경 변수 중 비교에 쓰는 것만 읽는다. (GH_TOKEN 등은 읽지 않는다) */
+/** Reads only the broker environment variables used for comparison. (GH_TOKEN and the like are not read) */
 const BROKER_ENV_KEYS = [
   "SSH_USER",
   "ALLOWED_CIDR",
@@ -61,7 +61,7 @@ export function parseHealthz(text: string): BrokerHealth | undefined {
   };
 }
 
-/** KEY=value 목록에서 고른 키만 남긴다. */
+/** Keeps only the chosen keys from a KEY=value list. */
 export function pickEnv(
   entries: string[],
   keys: readonly string[]
@@ -76,7 +76,7 @@ export function pickEnv(
 }
 
 export interface PendingInput {
-  /** 봇이 살아 있을 때만 */
+  /** Only while the bot is alive */
   bot?: { configHash?: string; expectedHash: string };
   proxy?: { running: boolean; startedAt?: number; allowlistMtime?: number };
   broker?: {
@@ -90,7 +90,7 @@ export interface PendingInput {
     hostsMtime?: number;
     kubeconfigMtime?: number;
     expected: ReturnType<typeof brokerExpected>;
-    /** 다시 띄우면 쓸 커밋 작성자 (OPS_GIT_AUTHOR_*, 없으면 전역 git 설정) */
+    /** Commit author used when the broker is recreated (OPS_GIT_AUTHOR_*, or the global git config if unset) */
     author?: { name: string; email: string };
   };
 }
@@ -102,19 +102,19 @@ const owners = (value?: string) =>
     .filter(Boolean)
     .join(",");
 
-/** 바뀐 설정이 아직 적용되지 않은 구성 요소와 이유 */
+/** Components whose changed settings are not applied yet, with reasons */
 export function computePending(input: PendingInput): PendingApply[] {
   const pending: PendingApply[] = [];
   const { bot, proxy, broker } = input;
   if (bot && bot.configHash && bot.configHash !== bot.expectedHash) {
     pending.push({
       component: "bot",
-      reason: "봇이 시작된 뒤 .env 설정이 바뀌었습니다.",
+      reason: "The .env settings changed after the bot started.",
     });
   }
   if (proxy) {
     if (!proxy.running)
-      pending.push({ component: "proxy", reason: "프록시가 실행 중이 아닙니다." });
+      pending.push({ component: "proxy", reason: "The proxy is not running." });
     else if (
       proxy.allowlistMtime &&
       proxy.startedAt &&
@@ -122,41 +122,40 @@ export function computePending(input: PendingInput): PendingApply[] {
     ) {
       pending.push({
         component: "proxy",
-        reason: "프록시가 시작된 뒤 허용 도메인 목록이 바뀌었습니다.",
+        reason: "The allowed domains list changed after the proxy started.",
       });
     }
   }
   if (broker) {
     if (!broker.running) {
-      pending.push({ component: "broker", reason: "broker 가 실행 중이 아닙니다." });
+      pending.push({ component: "broker", reason: "The broker is not running." });
       return pending;
     }
     const e = broker.expected;
     const env = broker.env;
     const diffs: string[] = [];
-    if (env.SSH_USER !== undefined && env.SSH_USER !== e.sshUser)
-      diffs.push("SSH 사용자");
+    if (env.SSH_USER !== undefined && env.SSH_USER !== e.sshUser) diffs.push("SSH user");
     if (env.ALLOWED_CIDR !== undefined && env.ALLOWED_CIDR !== e.allowedCidr)
-      diffs.push("SSH 허용 대역");
+      diffs.push("Allowed SSH range");
     if (
       env.GIT_ALLOWED_OWNERS !== undefined &&
       owners(env.GIT_ALLOWED_OWNERS) !== owners(e.allowedOwners)
     ) {
-      diffs.push("GitHub 허용 조직");
+      diffs.push("Allowed GitHub orgs");
     }
     if (broker.mounts["/workspace"] && broker.mounts["/workspace"] !== e.fsRoot)
-      diffs.push("파일 조회 루트");
+      diffs.push("Work directory");
     if (
       broker.mounts["/run/secrets/ssh-key"] &&
       broker.mounts["/run/secrets/ssh-key"] !== e.sshKey
     ) {
-      diffs.push("SSH 키 경로");
+      diffs.push("SSH key path");
     }
     if (
       broker.mounts["/run/secrets/known_hosts"] &&
       broker.mounts["/run/secrets/known_hosts"] !== e.knownHosts
     ) {
-      diffs.push("known_hosts 경로");
+      diffs.push("known_hosts path");
     }
     if (
       (env.JIRA_URL !== undefined && env.JIRA_URL !== e.jiraUrl) ||
@@ -164,7 +163,7 @@ export function computePending(input: PendingInput): PendingApply[] {
       (env.JIRA_PROJECTS !== undefined &&
         owners(env.JIRA_PROJECTS).toUpperCase() !== owners(e.jiraProjects).toUpperCase())
     ) {
-      diffs.push("Jira 설정");
+      diffs.push("Jira settings");
     }
     const author = broker.author;
     if (
@@ -172,19 +171,19 @@ export function computePending(input: PendingInput): PendingApply[] {
       env.GIT_AUTHOR_EMAIL !== undefined &&
       (env.GIT_AUTHOR_NAME !== author.name || env.GIT_AUTHOR_EMAIL !== author.email)
     ) {
-      diffs.push("PR 커밋 작성자");
+      diffs.push("PR commit author");
     }
     if (diffs.length > 0) {
       pending.push({
         component: "broker",
-        reason: `.env 와 다릅니다: ${diffs.join(", ")}`,
+        reason: `Differs from .env: ${diffs.join(", ")}`,
       });
     }
     const started = broker.startedAt ?? 0;
     if (broker.imageOutdated) {
       pending.push({
         component: "broker",
-        reason: "새로 빌드된 broker 이미지가 있습니다.",
+        reason: "A newly built broker image is available.",
       });
     } else if (
       broker.sourceMtime &&
@@ -193,19 +192,19 @@ export function computePending(input: PendingInput): PendingApply[] {
     ) {
       pending.push({
         component: "broker",
-        reason: "broker 코드가 이미지보다 새롭습니다. (다시 빌드 필요)",
+        reason: "The broker code is newer than the image. (Rebuild needed)",
       });
     }
     if (broker.hostsMtime && broker.hostsMtime > started) {
       pending.push({
         component: "broker",
-        reason: "호스트 목록이 broker 시작 뒤에 바뀌었습니다.",
+        reason: "The host list changed after the broker started.",
       });
     }
     if (broker.kubeconfigMtime && broker.kubeconfigMtime > started) {
       pending.push({
         component: "broker",
-        reason: "kubeconfig 가 broker 시작 뒤에 바뀌었습니다.",
+        reason: "The kubeconfig changed after the broker started.",
       });
     }
   }
@@ -241,8 +240,8 @@ const expandHome = (value: string, home: string) =>
   value === "~" || value.startsWith("~/") ? path.join(home, value.slice(1)) : value;
 
 /**
- * 샌드박스 커밋 작성자. sandbox:ops-up 과 같은 순서로 정한다: .env 의 OPS_GIT_AUTHOR_*, 없으면 전역 git 설정.
- * 이 저장소의 로컬 git 설정은 보지 않는다.
+ * Sandbox commit author. Resolved in the same order as sandbox:ops-up: OPS_GIT_AUTHOR_* in .env, otherwise the global git config.
+ * This repository's local git config is not consulted.
  */
 async function sandboxAuthor(
   values: NodeJS.ProcessEnv,
@@ -255,20 +254,20 @@ async function sandboxAuthor(
   const fromEnv = Boolean(
     values.OPS_GIT_AUTHOR_NAME?.trim() || values.OPS_GIT_AUTHOR_EMAIL?.trim()
   );
-  return { name, email, source: fromEnv ? ".env" : "전역 git 설정" };
+  return { name, email, source: fromEnv ? ".env" : "global git config" };
 }
 
 /**
- * 샌드박스 상태를 모은다. docker, 이미지, 컨테이너, broker 상태, 자격 증명 파일, 적용 대기 항목.
- * 비밀 값은 읽지 않는다. (파일이 있는지, GitHub 로그인이 되어 있는지만 본다)
+ * Collects sandbox status: docker, images, containers, broker health, credential files, and items that need apply.
+ * Secrets are not read. (Only checks whether files exist and whether GitHub login is done)
  */
 export async function collectSandboxStatus(options: {
-  /** sandbox/compose.yaml 이 있는 디렉터리 (저장소 또는 앱 안) */
+  /** Directory containing sandbox/compose.yaml (the repository or inside the app) */
   sandboxDir: string;
-  /** 설정 파일 (저장소 밖, src/settings/paths.ts) */
+  /** Config file (outside the repository, src/settings/paths.ts) */
   envFile: string;
   dataDir: string;
-  /** 봇과 같은 우선순위로 쓰는 앱의 환경 변수 */
+  /** The app's environment variables, applied with the same precedence as the bot */
   env: NodeJS.ProcessEnv;
   run: Run;
   home?: string;
@@ -282,7 +281,7 @@ export async function collectSandboxStatus(options: {
   const reasoner = values.REASONER === "codex" ? "codex" : "claude";
   const useDocker = values.REASONER_SANDBOX === "docker";
   const opsOn = values.OPS_TOOLS === "on";
-  // 허용 목록은 VERDA_HOME 아래에 있고, 아직 없으면(프록시를 띄운 적 없음) 기본 목록을 보여 준다.
+  // The allowlist lives under VERDA_HOME. If it does not exist yet (proxy never started), the default list is shown.
   const allowlistFile = allowlistPath(options.env, home);
   const allowlistSource = existsSync(allowlistFile)
     ? allowlistFile
@@ -375,7 +374,7 @@ export async function collectSandboxStatus(options: {
     if (health.code === 0) status.broker = parseHealthz(health.stdout.trim());
   }
 
-  // 자격 증명과 생성 파일 (값은 읽지 않는다)
+  // Credentials and generated files (values are not read)
   const runtimeDir = brokerRuntimeDir(options.env, home);
   const expected = brokerExpected(values, runtimeDir);
   let author: Awaited<ReturnType<typeof sandboxAuthor>> | undefined;
@@ -384,11 +383,11 @@ export async function collectSandboxStatus(options: {
   const fileCheck = (label: string, file: string): SandboxCheck =>
     existsSync(file)
       ? { label, ok: true, detail: file }
-      : { label, ok: false, detail: `없음: ${file}` };
+      : { label, ok: false, detail: `Missing: ${file}` };
   if (useDocker && reasoner === "codex") {
     status.checks.push(
       fileCheck(
-        "codex 로그인 파일",
+        "codex login file",
         expandHome(values.SANDBOX_CODEX_AUTH_FILE || "~/.codex/auth.json", home)
       )
     );
@@ -398,14 +397,14 @@ export async function collectSandboxStatus(options: {
       values.SANDBOX_CLAUDE_OAUTH_TOKEN || values.SANDBOX_ANTHROPIC_API_KEY
     );
     status.checks.push({
-      label: "샌드박스 claude 토큰",
+      label: "Sandbox claude token",
       ok: set,
-      detail: set ? "설정됨" : "SANDBOX_CLAUDE_OAUTH_TOKEN 필요",
+      detail: set ? "Set" : "SANDBOX_CLAUDE_OAUTH_TOKEN required",
     });
   }
-  // 설정한 기능만 확인한다. 비운 기능은 broker 가 도구 없이 뜬다. (broker 도구 줄에 꺼짐으로 보인다)
+  // Checks only configured features. For empty features the broker starts without those tools. (Shown as off in the broker tools row)
   if ((opsOn || broker) && expected.configured.ssh) {
-    status.checks.push(fileCheck("SSH 키", expected.sshKey));
+    status.checks.push(fileCheck("SSH key", expected.sshKey));
     if (values.OPS_SSH_KNOWN_HOSTS?.trim())
       status.checks.push(fileCheck("SSH known_hosts", expected.knownHosts));
     let hostCount = 0;
@@ -414,20 +413,20 @@ export async function collectSandboxStatus(options: {
         JSON.parse(readFileSync(hostsFile, "utf8")) as object
       ).length;
     } catch {
-      // 없거나 비어 있다.
+      // Missing or empty.
     }
     const fromInventory = Boolean(
       values.OPS_SSH_INVENTORY_DIR?.trim() && values.OPS_SSH_INVENTORY?.trim()
     );
     status.checks.push({
-      label: "호스트 목록",
+      label: "Host list",
       ok: hostCount > 0,
       detail:
         hostCount > 0
-          ? `${hostCount}개 (${fromInventory ? "broker 를 띄울 때 인벤토리에서 다시 만든다" : "hosts.json 을 직접 관리"})`
+          ? `${hostCount} host${hostCount === 1 ? "" : "s"} (${fromInventory ? "rebuilt from the inventory when the broker starts" : "hosts.json managed by hand"})`
           : fromInventory
-            ? "없음 (broker 를 띄울 때 만든다)"
-            : "없음 (OPS_SSH_INVENTORY 를 설정하거나 hosts.json 을 직접 쓴다)",
+            ? "None (built when the broker starts)"
+            : "None (set OPS_SSH_INVENTORY or write hosts.json by hand)",
     });
   }
   if (opsOn || broker) {
@@ -436,7 +435,7 @@ export async function collectSandboxStatus(options: {
       label: "k8s kubeconfig",
       ok: kubeSize > 0,
       detail:
-        kubeSize > 0 ? "있음" : "비어 있음 (k8s 도구 꺼짐, kubeconfig 다시 만들기 필요)",
+        kubeSize > 0 ? "Present" : "Empty (k8s tools off, rebuild kubeconfig needed)",
     });
     const jiraKeys = [
       "OPS_JIRA_URL",
@@ -452,7 +451,7 @@ export async function collectSandboxStatus(options: {
         detail:
           missing.length === 0
             ? `${values.OPS_JIRA_URL} (${values.OPS_JIRA_PROJECTS}, ${values.OPS_JIRA_EMAIL})`
-            : `${missing.join(", ")} 필요`,
+            : `${missing.join(", ")} required`,
       });
     }
     const gh = await run("gh", [
@@ -464,25 +463,25 @@ export async function collectSandboxStatus(options: {
     ]);
     const account = /account (\S+)/.exec(gh.stdout + gh.stderr)?.[1];
     status.checks.push({
-      label: "GitHub 로그인 (gh)",
+      label: "GitHub login (gh)",
       ok: gh.code === 0,
       detail:
         gh.code === 0
-          ? `${account ?? "로그인됨"} (broker 를 띄울 때 토큰을 넘긴다)`
-          : "gh auth login 필요",
+          ? `${account ?? "Logged in"} (the token is passed when the broker starts)`
+          : "gh auth login required",
     });
     author = await sandboxAuthor(values, run);
     status.checks.push({
-      label: "PR 커밋 작성자",
+      label: "PR commit author",
       ok: Boolean(author.name && author.email),
       detail:
         author.name && author.email
           ? `${author.name} <${author.email}> (${author.source})`
-          : "OPS_GIT_AUTHOR_NAME, OPS_GIT_AUTHOR_EMAIL 또는 git config --global 필요",
+          : "OPS_GIT_AUTHOR_NAME and OPS_GIT_AUTHOR_EMAIL, or git config --global, required",
     });
   }
 
-  // 적용 대기
+  // Needs apply
   const bot = readBotStatus(options.dataDir);
   status.activeRequests = bot.alive ? (bot.status?.requests.active ?? 0) : 0;
   const brokerImage = images.get("verda-ops-broker:latest");
@@ -507,7 +506,7 @@ export async function collectSandboxStatus(options: {
               broker && brokerImage && broker.Image !== brokerImage.id
             ),
             imageCreatedAt: brokerImage?.createdAt,
-            // broker 이미지에 들어가는 번들 (pnpm bundle, 패키지 앱은 앱 안의 번들)
+            // Bundle that goes into the broker image (pnpm bundle, or the bundle inside a packaged app)
             sourceMtime: mtime(path.join(sandboxDir, "ops-broker/dist/server.mjs")),
             env: pickEnv(broker?.Config.Env ?? [], BROKER_ENV_KEYS),
             mounts: Object.fromEntries(

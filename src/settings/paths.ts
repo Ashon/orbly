@@ -2,9 +2,9 @@ import { homedir } from "node:os";
 import path from "node:path";
 
 /**
- * 저장소 밖의 Verda 설정 위치. 설정 파일(.env)과 ops-broker 실행 파일(호스트 목록, kubeconfig)을 둔다.
- * 대상 환경의 값이 저장소에 남지 않도록 저장소 안에는 두지 않는다.
- * 위치는 VERDA_HOME 환경 변수로 바꾼다. (기본 ~/.verda, package.json 스크립트와 sandbox/compose.yaml 도 같은 규칙)
+ * Verda settings location outside the repository. Holds the config file (.env) and ops-broker runtime files (host list, kubeconfig).
+ * It is kept out of the repository so values from target environments do not end up in it.
+ * Change the location with the VERDA_HOME environment variable. (Default ~/.verda. package.json scripts and sandbox/compose.yaml follow the same rule)
  */
 export function verdaHome(
   env: NodeJS.ProcessEnv = process.env,
@@ -16,7 +16,7 @@ export function verdaHome(
     : path.resolve(value);
 }
 
-/** 봇, 데스크톱 앱, 준비 명령, compose 가 함께 쓰는 설정 파일 */
+/** Config file shared by the bot, desktop app, prep commands, and compose */
 export function envFilePath(
   env: NodeJS.ProcessEnv = process.env,
   home = homedir()
@@ -24,7 +24,7 @@ export function envFilePath(
   return path.join(verdaHome(env, home), ".env");
 }
 
-/** 바깥 접속 허용 목록. egress 프록시가 마운트한다. 없으면 sandbox/proxy/allowed-domains.txt 로 만든다. */
+/** Egress allowlist. Mounted by the egress proxy. Created from sandbox/proxy/allowed-domains.txt if missing. */
 export function allowlistPath(
   env: NodeJS.ProcessEnv = process.env,
   home = homedir()
@@ -32,7 +32,7 @@ export function allowlistPath(
   return path.join(verdaHome(env, home), "sandbox", "allowed-domains.txt");
 }
 
-/** broker 가 마운트하는 생성 파일(hosts.json, kubeconfig)과 비운 마운트의 빈 자리(unset/) */
+/** Generated files the broker mounts (hosts.json, kubeconfig) and empty placeholders for unset mounts (unset/) */
 export function brokerRuntimeDir(
   env: NodeJS.ProcessEnv = process.env,
   home = homedir()

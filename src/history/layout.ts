@@ -1,8 +1,8 @@
 /**
- * 실행 기록 저장 구조. 봇(기록)과 데스크톱 앱(조회)이 함께 쓴다.
+ * Run history storage layout. Shared by the bot (writes) and the desktop app (reads).
  *   <root>/runs/<YYYY-MM-DD>/<run id>/run.json
  *   <root>/runs/<YYYY-MM-DD>/<run id>/artifacts/<file>
- * run id 는 시작 시각(로컬 시간)을 담아서 id 만으로 날짜 디렉터리를 찾을 수 있다.
+ * The run id holds the start time (local time), so the id alone locates the day directory.
  */
 export const RUNS_DIR = "runs";
 export const RUN_FILE = "run.json";
@@ -20,7 +20,7 @@ export function runIdFor(date: Date, suffix: string): string {
   return `${day}-${time}-${suffix}`;
 }
 
-/** run id 의 날짜 디렉터리 이름. 형식이 틀리면 undefined */
+/** Day directory name for a run id. undefined if the format is wrong */
 export function dayOf(id: string): string | undefined {
   const match = RUN_ID.exec(id);
   return match ? `${match[1]}-${match[2]}-${match[3]}` : undefined;

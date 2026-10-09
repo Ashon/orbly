@@ -2,11 +2,11 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
- * 멘션/스레드 첨부 파일을 모델 입력으로 바꾼다.
- * - 이미지: 파일로 저장해 CLI 에 이미지로 넘긴다.
- * - 텍스트(로그, 설정, 코드, 스니펫): 내용을 프롬프트에 데이터로 넣는다.
- * - PDF: 네트워크 없는 컨테이너에서 텍스트만 뽑아 넣는다.
- * - 그 밖의 형식, 외부 파일: 읽지 못한 이유를 알려 준다.
+ * Turns mention/thread attachments into model input.
+ * - Images: saved as files and passed to the CLI as images.
+ * - Text (logs, config, code, snippets): the content goes into the prompt as data.
+ * - PDF: only the text is extracted, in a container without network access.
+ * - Other formats, external files: reports why they could not be read.
  */
 
 export const IMAGE_TYPES: Record<string, string> = {
@@ -104,7 +104,7 @@ export interface SlackFileRef {
 
 export interface FileCandidate {
   file: SlackFileRef;
-  /** 프롬프트에 표시할 출처 (예: 요청 메시지, 스레드 10/08 14:20 @alice) */
+  /** Source shown in the prompt (e.g. request message, thread 10/08, 14:20 @alice) */
   source: string;
 }
 
@@ -129,11 +129,11 @@ export interface LoadedDocument {
   source: string;
   kind: "text" | "pdf";
   content: string;
-  /** 잘리기 전 전체 글자 수 */
+  /** Total characters before truncation */
   totalChars: number;
 }
 
-/** 이벤트의 파일 정보가 URL 없는 요약본으로 오면 files.info 로 다시 조회해야 한다. */
+/** When the event's file info arrives as a summary without a URL, it must be looked up again with files.info. */
 export function needsFileInfo(file: SlackFileRef): boolean {
   return (
     file.file_access === "check_file_info" || !file.url_private_download || !file.mimetype
@@ -159,7 +159,7 @@ export function classify(file: SlackFileRef): AttachmentKind {
 
 const displayName = (file: SlackFileRef) => file.name ?? file.title ?? file.id ?? "file";
 
-/** 형식, 크기, 개수 제한으로 읽을 파일을 고른다. 앞에 있는 후보가 우선이다. */
+/** Picks the files to read by format, size, and count limits. Earlier candidates take priority. */
 export function planAttachments(candidates: FileCandidate[]): {
   planned: PlannedFile[];
   skipped: SkippedFile[];
@@ -172,13 +172,16 @@ export function planAttachments(candidates: FileCandidate[]): {
     const { file } = candidate;
     const name = displayName(file);
     if (file.is_external) {
-      skipped.push({ name, reason: "외부 파일(Google Drive 등)은 읽을 수 없음" });
+      skipped.push({
+        name,
+        reason: "External files (Google Drive, etc.) cannot be read",
+      });
       continue;
     }
     if (!file.url_private_download) {
       skipped.push({
         name,
-        reason: "다운로드 주소 없음 (files:read 권한 또는 파일 접근 제한)",
+        reason: "No download URL (files:read scope or file access restriction)",
       });
       continue;
     }
@@ -186,7 +189,7 @@ export function planAttachments(candidates: FileCandidate[]): {
     if (kind === "unsupported") {
       skipped.push({
         name,
-        reason: `지원하지 않는 형식 (${file.filetype || file.mimetype || "?"})`,
+        reason: `Unsupported format (${file.filetype || file.mimetype || "?"})`,
       });
       continue;
     }
@@ -198,11 +201,14 @@ export function planAttachments(candidates: FileCandidate[]): {
           ? LIMITS.pdfBytes
           : LIMITS.textBytes;
     if (size > limit) {
-      skipped.push({ name, reason: `크기 제한 초과 (${Math.round(size / 1024)}KB)` });
+      skipped.push({
+        name,
+        reason: `Size limit exceeded (${Math.round(size / 1024)}KB)`,
+      });
       continue;
     }
     if (kind === "image" ? images >= LIMITS.images : documents >= LIMITS.documents) {
-      skipped.push({ name, reason: "개수 제한 초과" });
+      skipped.push({ name, reason: "Count limit exceeded" });
       continue;
     }
     if (kind === "image") images += 1;
@@ -212,7 +218,7 @@ export function planAttachments(candidates: FileCandidate[]): {
   return { planned, skipped };
 }
 
-/** 파일 이름을 경로에 안전한 형태로 바꾼다. */
+/** Converts a file name into a path-safe form. */
 export function safeFileName(
   index: number,
   name: string | undefined,
@@ -225,12 +231,12 @@ export function safeFileName(
   return `${index + 1}-${base || "file"}.${extension}`;
 }
 
-/** 텍스트로 볼 수 있는 내용인지 (앞부분에 NUL 바이트가 없는지) */
+/** Whether the content looks like text (no NUL bytes near the start) */
 export function looksLikeText(buffer: Buffer): boolean {
   return !buffer.subarray(0, 8192).includes(0);
 }
 
-/** 프롬프트 경계 태그를 내용이 끝내지 못하게 한다. */
+/** Prevents the content from closing the prompt boundary tag. */
 export function escapeBoundary(text: string): string {
   return text.replace(/<\/attached_file/gi, "</attached_file_");
 }
@@ -238,14 +244,14 @@ export function escapeBoundary(text: string): string {
 export interface DownloadDeps {
   token: string;
   dir: string;
-  /** PDF 에서 텍스트를 뽑는다. (샌드박스 컨테이너 또는 호스트) */
+  /** Extracts text from a PDF. (sandbox container or host) */
   extractPdfText(pdfPath: string): Promise<string>;
   fetchImpl?: typeof fetch;
 }
 
 /**
- * 봇 토큰(files:read)으로 파일을 내려받는다.
- * 권한이 없으면 Slack 이 로그인 HTML 을 200 으로 돌려주므로 Content-Type 으로 실패를 구분한다.
+ * Downloads files with the bot token (files:read).
+ * Without permission Slack returns a login HTML page with 200, so failures are detected by Content-Type.
  */
 export async function loadAttachments(
   planned: PlannedFile[],
@@ -269,13 +275,15 @@ export async function loadAttachments(
       const type = (res.headers.get("content-type") ?? "").toLowerCase();
       const isHtmlFile = (item.file.filetype ?? "") === "html";
       if (type.startsWith("text/html") && !isHtmlFile) {
-        throw new Error("파일 대신 로그인 페이지가 왔습니다 (files:read 권한 확인)");
+        throw new Error(
+          "Got a login page instead of the file (check the files:read scope)"
+        );
       }
       const buffer = Buffer.from(await res.arrayBuffer());
 
       if (item.kind === "image") {
-        if (!type.startsWith("image/")) throw new Error("이미지가 아닌 응답");
-        if (buffer.length > LIMITS.imageBytes) throw new Error("크기 제한 초과");
+        if (!type.startsWith("image/")) throw new Error("Response is not an image");
+        if (buffer.length > LIMITS.imageBytes) throw new Error("Size limit exceeded");
         const mimetype = item.file.mimetype!;
         const filePath = path.join(
           deps.dir,
@@ -289,18 +297,18 @@ export async function loadAttachments(
       let text: string;
       if (item.kind === "pdf") {
         if (buffer.subarray(0, 5).toString("latin1") !== "%PDF-")
-          throw new Error("PDF 가 아닌 응답");
+          throw new Error("Response is not a PDF");
         const filePath = path.join(deps.dir, safeFileName(index, item.file.name, "pdf"));
         await writeFile(filePath, buffer);
         text = await deps.extractPdfText(filePath);
         if (!text.trim())
-          throw new Error("PDF 에서 텍스트를 찾지 못했습니다 (스캔 이미지일 수 있음)");
+          throw new Error("No text found in the PDF (it may be a scanned image)");
       } else {
-        if (buffer.length > LIMITS.textBytes) throw new Error("크기 제한 초과");
-        if (!looksLikeText(buffer)) throw new Error("텍스트 파일이 아닙니다");
+        if (buffer.length > LIMITS.textBytes) throw new Error("Size limit exceeded");
+        if (!looksLikeText(buffer)) throw new Error("Not a text file");
         text = buffer.toString("utf8");
       }
-      if (remainingChars <= 0) throw new Error("전체 분량 제한 초과");
+      if (remainingChars <= 0) throw new Error("Total length limit exceeded");
       const limit = Math.min(LIMITS.charsPerDocument, remainingChars);
       const content = text.length > limit ? text.slice(0, limit) : text;
       remainingChars -= content.length;
@@ -318,7 +326,7 @@ export async function loadAttachments(
   return { images, documents, failed };
 }
 
-/** 모델에 넘긴 첨부의 목록, 출처, 읽지 못한 첨부, 텍스트 내용을 프롬프트 조각으로 만든다. */
+/** Builds the prompt fragment listing the attachments passed to the model, their sources, unreadable attachments, and text contents. */
 export function attachmentSection(
   images: Pick<SavedImage, "name" | "source">[],
   documents: LoadedDocument[],
@@ -327,19 +335,19 @@ export function attachmentSection(
   if (images.length + documents.length + unreadable.length === 0) return [];
   const lines = ["", "<attachments>"];
   images.forEach((image, i) =>
-    lines.push(`이미지 ${i + 1}: ${image.name} (${image.source})`)
+    lines.push(`Image ${i + 1}: ${image.name} (${image.source})`)
   );
   documents.forEach((doc, i) => {
     const cut =
       doc.content.length < doc.totalChars
-        ? `, 전체 ${doc.totalChars}자 중 앞 ${doc.content.length}자`
+        ? `, first ${doc.content.length} of ${doc.totalChars} characters`
         : "";
     lines.push(
-      `파일 ${i + 1}: ${doc.name} (${doc.source}, ${doc.kind === "pdf" ? "PDF 텍스트" : "텍스트"}${cut})`
+      `File ${i + 1}: ${doc.name} (${doc.source}, ${doc.kind === "pdf" ? "PDF text" : "text"}${cut})`
     );
   });
   for (const file of unreadable)
-    lines.push(`읽지 못한 첨부: ${file.name} - ${file.reason}`);
+    lines.push(`Unreadable attachment: ${file.name} - ${file.reason}`);
   lines.push("</attachments>");
   documents.forEach((doc, i) => {
     lines.push(

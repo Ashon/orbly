@@ -26,7 +26,7 @@ describe("dockerRunArgs", () => {
     "c1"
   );
 
-  it("격리 옵션을 모두 건다", () => {
+  it("applies all isolation options", () => {
     expect(args.slice(0, 3)).toEqual(["run", "--rm", "-i"]);
     expect(args).toContain("--read-only");
     expect(valueAfter(args, "--network")).toBe("sbx");
@@ -36,7 +36,7 @@ describe("dockerRunArgs", () => {
     expect(args).toContain("HTTPS_PROXY=http://egress-proxy:8888");
   });
 
-  it("참고 디렉터리는 읽기 전용으로만 마운트하고 비밀 값은 인자에 넣지 않는다", () => {
+  it("mounts the reference directory read-only and keeps secrets out of the arguments", () => {
     expect(args).toContain("/repo:/workspace:ro");
     expect(valueAfter(args, "-w")).toBe("/workspace");
     expect(args).toContain("CLAUDE_CODE_OAUTH_TOKEN");
@@ -45,7 +45,7 @@ describe("dockerRunArgs", () => {
     expect(args.slice(-3)).toEqual(["img:1", "claude", "-p"]);
   });
 
-  it("내부 서비스는 프록시를 거치지 않도록 NO_PROXY 를 넘긴다", () => {
+  it("passes NO_PROXY so internal services bypass the proxy", () => {
     const withBroker = dockerRunArgs(
       { ...options, noProxy: ["ops-broker"] },
       { tool: "codex", args: [] },
@@ -55,7 +55,7 @@ describe("dockerRunArgs", () => {
     expect(args.some((a) => a.startsWith("NO_PROXY="))).toBe(false);
   });
 
-  it("codex 는 인증 파일만 읽기 전용으로 받고 claude 인증은 받지 않는다", () => {
+  it("gives codex only its auth file read-only and no claude credentials", () => {
     const codex = dockerRunArgs(options, { tool: "codex", args: ["exec"] }, "c2");
     expect(codex).toContain("/home/me/.codex/auth.json:/run/secrets/codex-auth.json:ro");
     expect(codex).not.toContain("CLAUDE_CODE_OAUTH_TOKEN");
@@ -65,7 +65,7 @@ describe("dockerRunArgs", () => {
 });
 
 describe("parseCodexDefaults", () => {
-  it("최상위 키만 읽고 테이블 안의 값은 무시한다", () => {
+  it("reads only top-level keys and ignores values inside tables", () => {
     const toml = [
       'model = "gpt-x"',
       'model_reasoning_effort = "medium"',
@@ -92,7 +92,7 @@ describe("loadConfig sandbox", () => {
     SLACK_APP_TOKEN: "xapp-1",
   };
 
-  it("claude 샌드박스는 컨테이너용 인증 값이 없으면 시작하지 않는다", () => {
+  it("does not start the claude sandbox without container credentials", () => {
     expect(() => loadConfig({ ...env, REASONER_SANDBOX: "docker" })).toThrow(
       /SANDBOX_CLAUDE_OAUTH_TOKEN/
     );
@@ -107,7 +107,7 @@ describe("loadConfig sandbox", () => {
     expect(config.reasoner.sandbox?.codexAuthFile).toBeUndefined();
   });
 
-  it("codex 샌드박스는 인증 파일이 필요하고 모델은 호스트 config.toml 에서 가져온다", () => {
+  it("requires an auth file for the codex sandbox and takes the model from the host config.toml", () => {
     const auth = path.join(dir, "auth.json");
     expect(() =>
       loadConfig({
@@ -116,7 +116,7 @@ describe("loadConfig sandbox", () => {
         REASONER_SANDBOX: "docker",
         SANDBOX_CODEX_AUTH_FILE: auth,
       })
-    ).toThrow(/로그인 파일/);
+    ).toThrow(auth);
 
     writeFileSync(auth, "{}");
     writeFileSync(

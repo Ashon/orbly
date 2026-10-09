@@ -1,11 +1,11 @@
 import type { RunEvent, StepStatus } from "./types.js";
 
-/** 도구 결과, 명령 출력은 이 길이까지만 기록한다. */
+/** Records tool results and command output only up to this length. */
 const MAX_OUTPUT_CHARS = 8_000;
 
 const clip = (text: string) =>
   text.length > MAX_OUTPUT_CHARS
-    ? `${text.slice(0, MAX_OUTPUT_CHARS)}\n... (${text.length}자 중 일부)`
+    ? `${text.slice(0, MAX_OUTPUT_CHARS)}\n... (truncated, ${text.length} chars total)`
     : text;
 
 const stepStatus = (status: unknown): StepStatus =>
@@ -41,7 +41,7 @@ interface CodexItem {
   message?: string;
 }
 
-/** codex exec --json 한 줄을 실행 기록 단계로 바꾼다. 관심 없는 줄은 빈 배열. */
+/** Converts one codex exec --json line into run history steps. Irrelevant lines give an empty array. */
 export function codexLineToEvents(
   line: string,
   at = new Date().toISOString()
@@ -136,7 +136,7 @@ export function codexLineToEvents(
   }
 }
 
-/** 단계 목록에서 마지막 메시지(최종 답변)를 꺼낸다. */
+/** Returns the last message (the final answer) from a step list. */
 export function lastMessage(events: RunEvent[]): string | undefined {
   for (let i = events.length - 1; i >= 0; i -= 1) {
     const event = events[i]!;
@@ -165,7 +165,7 @@ interface ClaudeBlock {
   is_error?: boolean;
 }
 
-/** claude -p --output-format stream-json 한 줄을 실행 기록 단계로 바꾼다. */
+/** Converts one claude -p --output-format stream-json line into run history steps. */
 export function claudeLineToEvents(
   line: string,
   at = new Date().toISOString()

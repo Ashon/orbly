@@ -29,10 +29,10 @@ import { CodeBlock } from "./code-block";
 import { VerdaMark } from "./logo";
 import { Markdown } from "./markdown";
 
-/** 요청 -> 진행 단계 -> 답변 -> 산출물 순으로 보여 준다. */
+/** Shows the request -> steps -> reply -> outputs in order. */
 export function Timeline({ run }: { run: RunRecord }) {
   const answer = run.answer?.trim();
-  // 마지막 메시지는 최종 답변과 같으므로 단계에서는 뺀다.
+  // The last message is the same as the final reply, so it is left out of the steps.
   const lastMessageIndex = run.events.findLastIndex((e) => e.kind === "message");
   const steps = run.events.filter(
     (event, i) =>
@@ -58,13 +58,18 @@ export function Timeline({ run }: { run: RunRecord }) {
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
           {run.request || (
-            <span className="text-muted-foreground">(빈 요청: 대화 맥락으로 답함)</span>
+            <span className="text-muted-foreground">
+              (empty request: answered from the conversation context)
+            </span>
           )}
         </p>
         {run.context.messages > 0 && (
           <p className="mt-1.5 text-[11px] text-muted-foreground">
-            스레드 맥락 {run.context.messages}건
-            {run.attachments.length > 0 ? `, 첨부 ${run.attachments.length}개` : ""}
+            {run.context.messages} thread{" "}
+            {run.context.messages === 1 ? "message" : "messages"}
+            {run.attachments.length > 0
+              ? `, ${run.attachments.length} ${run.attachments.length === 1 ? "attachment" : "attachments"}`
+              : ""}
           </p>
         )}
       </Bubble>
@@ -88,7 +93,7 @@ export function Timeline({ run }: { run: RunRecord }) {
               />
             ))}
           </span>
-          작업 중
+          Working
         </div>
       )}
 
@@ -116,10 +121,10 @@ export function Timeline({ run }: { run: RunRecord }) {
               </a>
               <figcaption className="border-t border-canvas px-3 py-1.5 text-xs text-muted-foreground">
                 {output.title}
-                {output.kind === "diagram" ? " (그림 블록)" : " (생성 이미지)"}
+                {output.kind === "diagram" ? " (diagram block)" : " (generated image)"}
               </figcaption>
               {output.source && (
-                <Disclosure label="원문" className="border-t border-canvas">
+                <Disclosure label="Source" className="border-t border-canvas">
                   <CodeBlock
                     code={output.source}
                     className="m-2 mt-0"
@@ -137,7 +142,7 @@ export function Timeline({ run }: { run: RunRecord }) {
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-status-failed" />
           <div className="min-w-0">
             <p className="font-medium text-status-failed">
-              {run.status === "interrupted" ? "중단됨" : "실패"}
+              {run.status === "interrupted" ? "Interrupted" : "Failed"}
             </p>
             <p className="mt-0.5 font-mono text-xs break-words whitespace-pre-wrap text-muted-foreground">
               {run.error}
@@ -168,7 +173,7 @@ function Bubble({
       <div
         className={cn(
           "min-w-0 flex-1 px-5 py-4",
-          // 봇 답변은 민트 면, 요청은 카드 면으로 구분한다. (개요 카드와 같은 모양)
+          // Bot replies use the mint surface and requests the card surface. (same look as the Overview cards)
           accent ? "surface-card-accent [--code-bg:var(--card)]" : "surface-card"
         )}
       >
@@ -222,7 +227,7 @@ function Step({ event }: { event: RunEvent }) {
       return (
         <ExpandableRow
           icon={<Brain className="size-3.5 text-muted-foreground" />}
-          label="생각"
+          label="Thinking"
           preview={event.text}
         >
           <p className="px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
@@ -275,7 +280,7 @@ function ToolStep({ event }: { event: Extract<RunEvent, { kind: "tool" | "comman
     <ExpandableRow
       icon={icon}
       label={
-        // 서버(ops, codex_apps 등)는 작은 표로, 도구 이름만 크게 보여 준다.
+        // The server (ops, codex_apps, etc.) is a small tag; only the tool name is shown large.
         <span className="flex items-center gap-1.5">
           <span className="flex items-center gap-1 rounded-md bg-well px-1.5 py-px text-[10px] font-medium text-muted-foreground [&_svg]:size-3">
             {isTool ? <Wrench /> : <SquareTerminal />}
@@ -290,26 +295,28 @@ function ToolStep({ event }: { event: Extract<RunEvent, { kind: "tool" | "comman
       <div className="space-y-2 p-2">
         {isTool && event.arguments !== undefined && (
           <CodeBlock
-            label="인자"
+            label="Arguments"
             code={JSON.stringify(event.arguments, null, 2)}
             maxHeight="max-h-52"
           />
         )}
-        {!isTool && <CodeBlock label="명령" code={event.command} maxHeight="max-h-40" />}
+        {!isTool && (
+          <CodeBlock label="Command" code={event.command} maxHeight="max-h-40" />
+        )}
         {output ? (
           <CodeBlock
             label={
               failed
-                ? "오류"
+                ? "Error"
                 : isTool
-                  ? "결과"
-                  : `출력${event.kind === "command" && event.exitCode != null ? ` (종료 코드 ${event.exitCode})` : ""}`
+                  ? "Result"
+                  : `Output${event.kind === "command" && event.exitCode != null ? ` (exit code ${event.exitCode})` : ""}`
             }
             code={output}
           />
         ) : (
           event.status === "running" && (
-            <p className="px-1 text-xs text-muted-foreground">실행 중...</p>
+            <p className="px-1 text-xs text-muted-foreground">Running...</p>
           )
         )}
       </div>
@@ -338,7 +345,7 @@ function ExpandableRow({
       className={cn("rounded-lg", open && "bg-card")}
     >
       <CollapsibleTrigger className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent/60">
-        {/* 미리보기가 길어도 아이콘은 줄어들지 않는다. 줄어드는 것은 미리보기 글자뿐이다. */}
+        {/* A long preview never shrinks the icon. Only the preview text shrinks. */}
         <span className="flex shrink-0">{icon}</span>
         <span className="shrink-0 font-medium">{label}</span>
         {preview && (

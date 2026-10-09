@@ -30,27 +30,27 @@ const dir = (name: string) => {
   return d;
 };
 
-describe("로그 파일", () => {
-  it("scope 를 붙여 쓰고, 비밀 값과 Socket Mode ticket 을 가린다", () => {
+describe("log file", () => {
+  it("writes the scope and redacts secrets and the Socket Mode ticket", () => {
     const file = path.join(dir("log"), LOG_FILE);
     const log = createLogger("info", "verda", [fileSink(file)]);
     log
       .child("socket")
-      .info("연결 wss://wss-primary.slack.com/link/?ticket=abc-123&app_id=A1");
-    log.warn("토큰 xoxb-1234567890-abcdefghij 노출");
-    log.debug("debug 는 기록하지 않는다");
-    log.error("실패", new Error("boom"));
+      .info("connect wss://wss-primary.slack.com/link/?ticket=abc-123&app_id=A1");
+    log.warn("token xoxb-1234567890-abcdefghij exposed");
+    log.debug("debug is not recorded");
+    log.error("failed", new Error("boom"));
     const text = readFileSync(file, "utf8");
     expect(text).toContain(
-      "INFO  [verda:socket] 연결 wss://wss-primary.slack.com/link/?ticket=[REDACTED]&app_id=A1"
+      "INFO  [verda:socket] connect wss://wss-primary.slack.com/link/?ticket=[REDACTED]&app_id=A1"
     );
     expect(text).toContain("[REDACTED SLACK TOKEN]");
-    expect(text).not.toContain("debug 는");
-    expect(text).toMatch(/ERROR \[verda\] 실패\nError: boom\n\s+at /);
+    expect(text).not.toContain("debug is");
+    expect(text).toMatch(/ERROR \[verda\] failed\nError: boom\n\s+at /);
     expect(redactLogLine("x?ticket=t1")).toBe("x?ticket=[REDACTED]");
   });
 
-  it("크기를 넘으면 .1 로 넘기고 새로 쓴다", () => {
+  it("rotates to .1 and starts fresh past the size limit", () => {
     const file = path.join(dir("rotate"), LOG_FILE);
     const log = createLogger("info", "verda", [fileSink(file, 200)]);
     for (let i = 0; i < 5; i += 1) log.info(`line ${i} ${"x".repeat(40)}`);
@@ -58,12 +58,12 @@ describe("로그 파일", () => {
     expect(readFileSync(file, "utf8")).toContain("line 4");
   });
 
-  it("마지막 부분을 줄 단위로 읽고 여러 줄 로그는 합친다", () => {
+  it("reads the tail line by line and joins multi-line entries", () => {
     const d = dir("tail");
     const log = createLogger("info", "verda", [fileSink(path.join(d, LOG_FILE))]);
-    log.child("socket").info("Socket Mode 연결됨");
-    log.child("mention").warn("첨부 실패");
-    log.error("오류", new Error("multi"));
+    log.child("socket").info("Socket Mode connected");
+    log.child("mention").warn("attachment failed");
+    log.error("error", new Error("multi"));
     const lines = tailLogs(d);
     expect(lines.map((l) => [l.level, l.scope])).toEqual([
       ["INFO", "verda:socket"],
@@ -77,7 +77,7 @@ describe("로그 파일", () => {
     expect(parseLogLine("plain")).toEqual({ message: "plain" });
   });
 
-  it("Slack 라이브러리 로그를 봇 로거로 보낸다", () => {
+  it("routes Slack library logs to the bot logger", () => {
     const d = dir("slack");
     const log = createLogger("info", "verda", [fileSink(path.join(d, LOG_FILE))]);
     const slack = slackLogger(log.child("socket"), "info");
@@ -94,8 +94,8 @@ describe("로그 파일", () => {
   });
 });
 
-describe("봇 상태 파일", () => {
-  it("이전 프로세스가 죽었으면 잠금을 가져가고, 소켓 상태와 재연결 수를 남긴다", async () => {
+describe("bot status file", () => {
+  it("takes the lock when the previous process is dead and records socket state and reconnects", async () => {
     const d = dir("status");
     writeFileSync(
       path.join(d, STATUS_FILE),
@@ -119,9 +119,9 @@ describe("봇 상태 파일", () => {
     expect(existsSync(path.join(d, STATUS_FILE))).toBe(false);
   });
 
-  it("다른 봇이 살아 있으면 기다렸다가 실패한다", async () => {
+  it("waits and then fails when another bot is alive", async () => {
     const d = dir("locked");
-    // 부모 프로세스(vitest)는 테스트 동안 살아 있다.
+    // The parent process (vitest) stays alive during the test.
     writeFileSync(
       path.join(d, STATUS_FILE),
       JSON.stringify({ pid: process.ppid, managedBy: "terminal" })
@@ -132,16 +132,16 @@ describe("봇 상태 파일", () => {
   });
 });
 
-describe("조회 API: 봇", () => {
-  it("상태와 로그를 읽기 전용으로 준다", async () => {
+describe("query API: bot", () => {
+  it("serves status and logs read-only", async () => {
     const d = dir("api");
     const reader = new HistoryReader(d);
     const get = async (p: string) =>
       (await handleLocalApi(reader, "GET", new URL(p, "verda://app"))).json();
     expect(await get("/api/bot")).toEqual({ alive: false });
     const log = createLogger("info", "verda", [fileSink(path.join(d, LOG_FILE))]);
-    log.child("socket").warn("Socket Mode 재연결 중");
-    log.info("시작");
+    log.child("socket").warn("Socket Mode reconnecting");
+    log.info("started");
     expect(await get("/api/bot/logs?level=warn")).toEqual([
       expect.objectContaining({ level: "WARN", scope: "verda:socket" }),
     ]);

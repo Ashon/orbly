@@ -24,8 +24,8 @@ await build({
   external: ["electron"],
   format: "cjs",
 });
-// 트레이는 링에 맞춘 투명 로고(18pt, 레티나 @2x, assets/verda.svg 에서 그림)
-// 독/창 아이콘은 macOS 아이콘 격자에 맞춘 앱 아이콘 (assets/verda-icon.svg, pnpm --filter @verda/desktop icon)
+// The tray uses a transparent logo fitted to the ring (18pt, Retina @2x, drawn from assets/verda.svg)
+// The dock/window icon is the app icon fitted to the macOS icon grid (assets/verda-icon.svg, pnpm --filter @verda/desktop icon)
 await cp(path.join(assetsDir, "verda-tray.png"), path.join(distDir, "tray.png"));
 await cp(path.join(assetsDir, "verda-tray@2x.png"), path.join(distDir, "tray@2x.png"));
 await cp(path.join(assetsDir, "verda-icon.png"), path.join(distDir, "icon.png"));

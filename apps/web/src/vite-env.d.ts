@@ -12,7 +12,7 @@ import type {
 
 declare global {
   interface Window {
-    /** 데스크톱 앱(preload)에서만 있다. */
+    /** Present only in the desktop app (preload). */
     verdaDesktop?: {
       platform: string;
       bot: {

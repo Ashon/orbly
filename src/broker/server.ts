@@ -28,15 +28,15 @@ import {
 import { redactSecrets } from "./redact.js";
 
 /**
- * 운영 점검 중계(ops-broker). 샌드박스 내부 네트워크에서만 접근되는 MCP(Streamable HTTP) 서버다.
- * SSH 키, kubeconfig, 작업 디렉터리는 이 컨테이너에만 있고, 추론 컨테이너는 정해진 조회만 요청한다.
- * - host_*: 인벤토리 호스트 읽기 전용 점검 (SSH)
- * - k8s_*: 조회 전용 ServiceAccount 로 kubectl 조회
- * - fs_*: 작업 디렉터리 읽기 전용 탐색 (비밀 파일 제외)
- * - ws_*: 원격 기본 브랜치에서 만든 별도 작업 공간에서 코드 수정, draft PR 생성
- * - gh_*: 허용된 조직의 GitHub 저장소, PR 읽기 전용 조회 (토큰은 이 컨테이너에만 있다)
- * - jira_*: 허용된 프로젝트의 Jira 이슈 조회, 요청 시 이슈 생성과 댓글 (토큰은 이 컨테이너에만 있다)
- * 설정이 비어 있거나 마운트한 파일이 비어 있는 기능은 도구를 등록하지 않는다.
+ * Ops check relay (ops-broker). An MCP (Streamable HTTP) server reachable only from the sandbox internal network.
+ * SSH keys, kubeconfig, and the work directory exist only in this container; the reasoner container only requests predefined lookups.
+ * - host_*: read-only host checks on inventory hosts (SSH)
+ * - k8s_*: kubectl lookups with a read-only ServiceAccount
+ * - fs_*: read-only browsing of the work directory (secret files excluded)
+ * - ws_*: code edits and draft PR creation in a separate workspace created from the remote default branch
+ * - gh_*: read-only lookups of GitHub repositories and PRs in allowed orgs (the token exists only in this container)
+ * - jira_*: Jira issue lookups in allowed projects, plus issue creation and comments on request (the token exists only in this container)
+ * Features with empty settings or an empty mounted file do not register their tools.
  */
 const Env = z.object({
   BROKER_PORT: z.coerce.number().int().positive().default(8080),
@@ -71,9 +71,9 @@ function audit(entry: Record<string, unknown>): void {
   console.log(JSON.stringify({ ts: new Date().toISOString(), ...entry }));
 }
 
-// ------------------------------------------------------------------ 기능별 준비
+// ------------------------------------------------------------------ Per-feature setup
 
-/** 설정하지 않은 마운트는 빈 파일이나 빈 디렉터리로 들어온다. */
+/** Unconfigured mounts arrive as an empty file or an empty directory. */
 function nonEmptyFile(file: string): boolean {
   try {
     const stat = statSync(file);
@@ -99,7 +99,7 @@ const hosts = sshEnabled
   ? loadHostMap(env.HOSTS_FILE, env.ALLOWED_CIDR)
   : new Map<string, string>();
 if (hosts.size > 0) {
-  // 마운트된 키는 소유자/권한이 맞지 않을 수 있어 tmpfs 로 복사하고 600 으로 둔다.
+  // The mounted key may have the wrong owner/permissions, so copy it to tmpfs and set it to 600.
   mkdirSync(SSH_DIR, { recursive: true, mode: 0o700 });
   copyFileSync(env.SSH_KEY_FILE, KEY);
   chmodSync(KEY, 0o600);
@@ -109,7 +109,7 @@ if (hosts.size > 0) {
 const k8sEnabled = nonEmptyFile(env.KUBECONFIG_FILE);
 let clusters: string[] = [];
 const fsEnabled = nonEmptyDir(env.FS_ROOT);
-/** PR 생성(ws_*)과 GitHub 조회(gh_*)가 함께 쓰는 허용 조직 */
+/** Allowed owners shared by PR creation (ws_*) and GitHub lookups (gh_*) */
 const allowedOwners = env.GIT_ALLOWED_OWNERS.split(",")
   .map((owner) => owner.trim())
   .filter(Boolean);
@@ -149,17 +149,17 @@ const jira =
       })
     : undefined;
 
-// ------------------------------------------------------------------ 실행 공통
+// ------------------------------------------------------------------ Shared execution
 
 let running = 0;
 
 /**
- * 외부 명령(ssh, kubectl, rg)의 환경 변수. broker 환경에는 GH_TOKEN, JIRA_TOKEN 같은 자격 증명이
- * 있으므로 물려주지 않는다.
+ * Environment variables for external commands (ssh, kubectl, rg). The broker environment holds credentials
+ * such as GH_TOKEN and JIRA_TOKEN, so it is not passed down.
  */
 const TOOL_ENV: NodeJS.ProcessEnv = { PATH: process.env.PATH, HOME: "/tmp" };
 
-/** 외부 명령을 실행한다. 0 이 아닌 종료도 결과로 돌려주고, 출력은 비밀 값을 가리고 자른다. */
+/** Runs an external command. A nonzero exit is also returned as a result, and the output has secrets redacted and is truncated. */
 async function exec(
   tool: string,
   command: string,
@@ -167,7 +167,7 @@ async function exec(
   meta: Record<string, unknown>
 ): Promise<string> {
   if (running >= env.MAX_CONCURRENT)
-    throw new Error("동시 요청이 많습니다. 잠시 후 다시 시도하세요.");
+    throw new Error("Too many concurrent requests. Try again shortly.");
   running += 1;
   const started = Date.now();
   let exitCode: number | null = 0;
@@ -198,7 +198,7 @@ async function exec(
 function finish(output: string): string {
   const clean = redactSecrets(output);
   return clean.length > env.OUTPUT_LIMIT
-    ? `${clean.slice(0, env.OUTPUT_LIMIT)}\n... (출력 ${clean.length}자 중 앞부분만)`
+    ? `${clean.slice(0, env.OUTPUT_LIMIT)}\n... (output truncated, ${clean.length} characters total)`
     : clean;
 }
 
@@ -215,19 +215,19 @@ async function respond(run: () => Promise<string>): Promise<ToolResult> {
 }
 const readOnly = { readOnlyHint: true, openWorldHint: false };
 
-// ------------------------------------------------------------------ 도구 등록
+// ------------------------------------------------------------------ Tool registration
 
 function registerHostTools(server: McpServer): void {
   server.registerTool(
     "host_list",
     {
       description:
-        "점검할 수 있는 호스트 이름과 주소 목록 (인벤토리에서 허용 대역 안의 호스트만)",
+        "Lists host names and addresses available for checks (only inventory hosts within the allowed CIDR range).",
       annotations: readOnly,
     },
     async () =>
       respond(
-        async () => [...hosts].map(([name, ip]) => `${name} ${ip}`).join("\n") || "(없음)"
+        async () => [...hosts].map(([name, ip]) => `${name} ${ip}`).join("\n") || "(none)"
       )
   );
 
@@ -235,25 +235,25 @@ function registerHostTools(server: McpServer): void {
     "host_check",
     {
       description: [
-        "호스트에 SSH 로 정해진 읽기 전용 점검을 실행한다. 임의 명령은 실행할 수 없다.",
-        "check 종류:",
+        "Runs a predefined read-only check on a host over SSH. Arbitrary commands cannot be run.",
+        "check types:",
         ...CHECK_NAMES.map((name) => `- ${name}: ${CHECKS[name].description}`),
       ].join("\n"),
       inputSchema: {
-        host: z.string().describe("호스트 이름 (host_list 의 이름, 예: web-01)"),
-        check: z.enum(CHECK_NAMES).describe("점검 종류"),
+        host: z.string().describe("Host name (a name from host_list, e.g. web-01)"),
+        check: z.enum(CHECK_NAMES).describe("Check type"),
         lines: z
           .number()
           .int()
           .min(1)
           .max(500)
           .optional()
-          .describe("dmesg/journal 줄 수"),
-        unit: z.string().optional().describe("service/journal 의 systemd 유닛 이름"),
+          .describe("Number of lines for dmesg/journal"),
+        unit: z.string().optional().describe("systemd unit name for service/journal"),
         vendor: z
           .string()
           .optional()
-          .describe("pci_devices 의 PCI 벤더 ID (16진수 4자리, 예: 10de)"),
+          .describe("PCI vendor ID for pci_devices (4 hex digits, e.g. 10de)"),
       },
       annotations: readOnly,
     },
@@ -261,7 +261,7 @@ function registerHostTools(server: McpServer): void {
       respond(async () => {
         const ip = hosts.get(host);
         if (!ip)
-          throw new Error(`허용된 호스트가 아닙니다: ${host} (host_list 로 목록 확인)`);
+          throw new Error(`Host is not allowed: ${host} (see host_list for the list)`);
         const command = buildCheckCommand(check as CheckName, { lines, unit, vendor });
         const sshArgs = [
           "-F",
@@ -297,21 +297,23 @@ function registerHostTools(server: McpServer): void {
 }
 
 function registerK8sTools(server: McpServer): void {
-  const cluster = z.string().describe(`클러스터 컨텍스트 (${clusters.join(", ")})`);
-  const ns = z.string().optional().describe("네임스페이스");
+  const cluster = z.string().describe(`Cluster context (${clusters.join(", ")})`);
+  const ns = z.string().optional().describe("Namespace");
 
   server.registerTool(
     "k8s_get",
     {
       description:
-        "kubectl get 으로 리소스를 조회한다. 조회 전용 권한이며 secrets 는 볼 수 없다. 기본 출력은 wide.",
+        "Looks up resources with kubectl get. Access is read-only and secrets cannot be viewed. Default output is wide.",
       inputSchema: {
         cluster,
-        kind: z.string().describe("리소스 종류 (예: pods, nodes, deployments, services)"),
+        kind: z
+          .string()
+          .describe("Resource kind (e.g. pods, nodes, deployments, services)"),
         namespace: ns,
-        name: z.string().optional().describe("리소스 이름"),
-        selector: z.string().optional().describe("라벨 셀렉터 (예: app=nginx)"),
-        all_namespaces: z.boolean().optional().describe("모든 네임스페이스"),
+        name: z.string().optional().describe("Resource name"),
+        selector: z.string().optional().describe("Label selector (e.g. app=nginx)"),
+        all_namespaces: z.boolean().optional().describe("All namespaces"),
         output: z.enum(["wide", "yaml"]).optional(),
       },
       annotations: readOnly,
@@ -340,7 +342,7 @@ function registerK8sTools(server: McpServer): void {
   server.registerTool(
     "k8s_describe",
     {
-      description: "kubectl describe 로 리소스 상세와 최근 이벤트를 본다.",
+      description: "Shows resource details and recent events with kubectl describe.",
       inputSchema: { cluster, kind: z.string(), name: z.string(), namespace: ns },
       annotations: readOnly,
     },
@@ -358,15 +360,18 @@ function registerK8sTools(server: McpServer): void {
   server.registerTool(
     "k8s_logs",
     {
-      description: `파드 로그 마지막 N줄 (기본 200, 최대 ${MAX_LOG_LINES}).`,
+      description: `Last N lines of pod logs (default 200, max ${MAX_LOG_LINES}).`,
       inputSchema: {
         cluster,
         namespace: z.string(),
         pod: z.string(),
         container: z.string().optional(),
         tail: z.number().int().min(1).max(MAX_LOG_LINES).optional(),
-        since: z.string().optional().describe("예: 30m, 2h"),
-        previous: z.boolean().optional().describe("직전에 종료된 컨테이너 로그"),
+        since: z.string().optional().describe("e.g. 30m, 2h"),
+        previous: z
+          .boolean()
+          .optional()
+          .describe("Logs of the previously terminated container"),
       },
       annotations: readOnly,
     },
@@ -385,7 +390,8 @@ function registerK8sTools(server: McpServer): void {
   server.registerTool(
     "k8s_events",
     {
-      description: "이벤트를 시간순으로 본다. namespace 를 생략하면 전체.",
+      description:
+        "Shows events in chronological order. Omit namespace for all namespaces.",
       inputSchema: { cluster, namespace: ns },
       annotations: readOnly,
     },
@@ -401,7 +407,7 @@ function registerK8sTools(server: McpServer): void {
   server.registerTool(
     "k8s_top",
     {
-      description: "노드 또는 파드의 CPU/메모리 사용량 (metrics-server).",
+      description: "CPU/memory usage of nodes or pods (metrics-server).",
       inputSchema: { cluster, target: z.enum(["nodes", "pods"]), namespace: ns },
       annotations: readOnly,
     },
@@ -416,7 +422,7 @@ function registerK8sTools(server: McpServer): void {
   );
 }
 
-/** 전체 루트 검색은 마운트 위에서 너무 느려서, 최소 저장소 단위로 좁혀서 받는다. */
+/** Searching the whole root is too slow on the mount, so the scope must be at least one repository. */
 function requireScope(requested: string): string {
   const scoped = requested
     .trim()
@@ -424,7 +430,7 @@ function requireScope(requested: string): string {
     .replace(/\/+$/, "");
   if (!scoped || scoped === ".") {
     throw new Error(
-      "path 를 저장소 이상으로 좁혀서 지정하세요. (예: my-repo, my-repo/docs)"
+      "Narrow path to a repository or a directory inside one (e.g. my-repo, my-repo/docs)."
     );
   }
   return scoped;
@@ -432,13 +438,13 @@ function requireScope(requested: string): string {
 
 function registerFsTools(server: McpServer): void {
   const root = env.FS_ROOT;
-  const rel = z.string().describe("작업 루트 기준 상대 경로 (예: my-repo/docs)");
+  const rel = z.string().describe("Path relative to the work root (e.g. my-repo/docs)");
 
   server.registerTool(
     "fs_list",
     {
       description:
-        "작업 디렉터리의 목록을 본다. 최상위는 저장소 디렉터리들이다. 읽기 전용이며 비밀 파일은 보이지 않는다.",
+        "Lists the work directory. The top level holds repository directories. Read-only; secret files are hidden.",
       inputSchema: { path: rel.optional() },
       annotations: readOnly,
     },
@@ -452,10 +458,10 @@ function registerFsTools(server: McpServer): void {
   server.registerTool(
     "fs_read",
     {
-      description: `텍스트 파일을 줄 번호와 함께 읽는다. 한 번에 최대 ${MAX_READ_LINES}줄.`,
+      description: `Reads a text file with line numbers. Up to ${MAX_READ_LINES} lines at a time.`,
       inputSchema: {
         path: rel,
-        offset: z.number().int().min(1).optional().describe("시작 줄 (1부터)"),
+        offset: z.number().int().min(1).optional().describe("Starting line (1-based)"),
         limit: z.number().int().min(1).max(MAX_READ_LINES).optional(),
       },
       annotations: readOnly,
@@ -471,12 +477,19 @@ function registerFsTools(server: McpServer): void {
     "fs_search",
     {
       description:
-        "ripgrep 으로 파일 내용을 검색한다. .gitignore 와 비밀 파일 제외 규칙을 따른다. 결과는 최대 200줄.",
+        "Searches file contents with ripgrep. Follows .gitignore and the secret file deny rules. Results are capped at 200 lines.",
       inputSchema: {
-        pattern: z.string().min(1).max(200).describe("정규식 (ripgrep 문법)"),
-        path: rel.describe("검색할 하위 경로 (저장소 이상, 예: my-repo)"),
-        glob: z.string().max(100).optional().describe("파일 이름 필터 (예: *.yaml)"),
-        fixed_strings: z.boolean().optional().describe("정규식이 아닌 문자열로 검색"),
+        pattern: z
+          .string()
+          .min(1)
+          .max(200)
+          .describe("Regular expression (ripgrep syntax)"),
+        path: rel.describe("Subpath to search (a repository or deeper, e.g. my-repo)"),
+        glob: z.string().max(100).optional().describe("File name filter (e.g. *.yaml)"),
+        fixed_strings: z
+          .boolean()
+          .optional()
+          .describe("Search for a literal string instead of a regex"),
       },
       annotations: readOnly,
     },
@@ -500,7 +513,7 @@ function registerFsTools(server: McpServer): void {
         const lines = filterRgOutput(output, root).split("\n");
         const shown = lines.slice(0, 201).join("\n");
         return lines.length > 201
-          ? `${shown}\n... (${lines.length - 201}줄 더, path/glob 으로 좁히세요)`
+          ? `${shown}\n... (${lines.length - 201} more ${lines.length - 201 === 1 ? "line" : "lines"}, narrow with path/glob)`
           : shown;
       })
   );
@@ -508,10 +521,10 @@ function registerFsTools(server: McpServer): void {
   server.registerTool(
     "fs_find",
     {
-      description: "파일 이름 glob 으로 파일을 찾는다. (예: **/*.yaml)",
+      description: "Finds files by file name glob (e.g. **/*.yaml).",
       inputSchema: {
         glob: z.string().min(1).max(100),
-        path: rel.describe("찾을 하위 경로 (저장소 이상)"),
+        path: rel.describe("Subpath to search (a repository or deeper)"),
       },
       annotations: readOnly,
     },
@@ -522,15 +535,15 @@ function registerFsTools(server: McpServer): void {
         const output = await exec("fs_find", "rg", args, { glob, path });
         const lines = filterRgOutput(output, root).split("\n");
         return lines.length > 201
-          ? `${lines.slice(0, 201).join("\n")}\n... (${lines.length - 201}개 더)`
+          ? `${lines.slice(0, 201).join("\n")}\n... (${lines.length - 201} more)`
           : lines.join("\n");
       })
   );
 }
 
 function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): void {
-  const ws = z.string().describe("ws_prepare 가 돌려준 작업 공간 id");
-  const file = z.string().describe("작업 공간 기준 상대 경로");
+  const ws = z.string().describe("Workspace id returned by ws_prepare");
+  const file = z.string().describe("Path relative to the workspace");
   const write = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
   const logged = (
     tool: string,
@@ -553,12 +566,15 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
     "ws_prepare",
     {
       description: [
-        "코드 수정용 작업 공간을 만든다. 로컬 저장소 이름(fs_list 의 최상위 디렉터리)으로 GitHub 원격을 찾아,",
-        "원격 기본 브랜치(또는 base)에서 새 verda/ 브랜치를 만든다. 사용자의 로컬 작업 트리는 바뀌지 않는다.",
+        "Creates a workspace for code changes. Finds the GitHub remote from the local repository name (a top-level directory in fs_list)",
+        "and creates a new verda/ branch from the remote default branch (or base). The user's local working tree is not changed.",
       ].join(" "),
       inputSchema: {
-        repo: z.string().describe("로컬 저장소 디렉터리 이름 (예: my-repo)"),
-        base: z.string().optional().describe("기준 브랜치. 생략하면 원격 기본 브랜치"),
+        repo: z.string().describe("Local repository directory name (e.g. my-repo)"),
+        base: z
+          .string()
+          .optional()
+          .describe("Base branch. Defaults to the remote default branch"),
       },
       annotations: { ...write, openWorldHint: true },
     },
@@ -572,7 +588,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
   server.registerTool(
     "ws_list",
     {
-      description: "작업 공간의 디렉터리 목록",
+      description: "Lists a directory in the workspace.",
       inputSchema: { ws, path: file.optional() },
       annotations: readOnly,
     },
@@ -583,7 +599,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
   server.registerTool(
     "ws_read",
     {
-      description: `작업 공간의 파일을 줄 번호와 함께 읽는다. 한 번에 최대 ${MAX_READ_LINES}줄.`,
+      description: `Reads a workspace file with line numbers. Up to ${MAX_READ_LINES} lines at a time.`,
       inputSchema: {
         ws,
         path: file,
@@ -601,7 +617,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
   server.registerTool(
     "ws_search",
     {
-      description: "작업 공간에서 ripgrep 으로 내용을 검색한다.",
+      description: "Searches file contents in the workspace with ripgrep.",
       inputSchema: {
         ws,
         pattern: z.string().min(1).max(200),
@@ -639,7 +655,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
     "ws_write",
     {
       description:
-        "작업 공간에 파일을 새로 쓰거나 전체를 덮어쓴다. 일부만 바꿀 때는 ws_edit 을 쓴다.",
+        "Writes a new file in the workspace or overwrites a whole file. Use ws_edit to change only part of a file.",
       inputSchema: { ws, path: file, content: z.string() },
       annotations: write,
     },
@@ -653,7 +669,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
     "ws_edit",
     {
       description:
-        "파일에서 old_string 을 new_string 으로 정확히 바꾼다. old_string 은 파일에 한 번만 있어야 한다 (replace_all 제외).",
+        "Replaces old_string with new_string exactly in a file. old_string must appear exactly once in the file (unless replace_all).",
       inputSchema: {
         ws,
         path: file,
@@ -672,7 +688,7 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
   server.registerTool(
     "ws_delete",
     {
-      description: "작업 공간에서 파일을 지운다.",
+      description: "Deletes a file from the workspace.",
       inputSchema: { ws, path: file },
       annotations: { ...write, destructiveHint: true },
     },
@@ -682,7 +698,8 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
   server.registerTool(
     "ws_diff",
     {
-      description: "작업 공간의 변경 내용(git diff)을 본다. PR 전에 반드시 확인한다.",
+      description:
+        "Shows the workspace changes (git diff). Always review them before creating a PR.",
       inputSchema: { ws },
       annotations: readOnly,
     },
@@ -693,14 +710,17 @@ function registerWorkspaceTools(server: McpServer, workspaces: GitWorkspaces): v
     "ws_create_pr",
     {
       description: [
-        "변경을 커밋하고 verda/ 브랜치로 push 한 뒤 draft PR 을 만든다.",
-        "사용자가 PR 을 요청한 경우에만 쓴다. 제목은 저장소의 커밋 메시지 관례(예: feat: ..., fix: ...)를 따른다.",
-        "보호 경로(.github/workflows 등)나 비밀 값이 포함된 변경은 거부된다.",
+        "Commits the changes, pushes them to the verda/ branch, and opens a draft PR.",
+        "Use only when the user asked for a PR. The title follows the repository's commit message convention (e.g. feat: ..., fix: ...).",
+        "Changes that touch protected paths (such as .github/workflows) or contain secrets are rejected.",
       ].join(" "),
       inputSchema: {
         ws,
         title: z.string().min(1).max(200),
-        body: z.string().max(10_000).describe("변경 이유, 내용, 확인 방법"),
+        body: z
+          .string()
+          .max(10_000)
+          .describe("Why the change was made, what changed, and how to verify it"),
       },
       annotations: { ...write, openWorldHint: true },
     },
@@ -716,7 +736,7 @@ function registerGitHubTools(server: McpServer, reader: GitHubReader): void {
   const repo = z
     .string()
     .describe(
-      `저장소. owner/repo, repo(허용된 조직에서 찾음), GitHub URL 모두 된다. 조회 가능한 조직: ${owners}`
+      `Repository. Accepts owner/repo, repo (looked up in the allowed orgs), or a GitHub URL. Orgs available for lookup: ${owners}`
     );
   const limit = z.number().int().min(1).max(50).optional();
   const read = { readOnlyHint: true, openWorldHint: true };
@@ -740,9 +760,9 @@ function registerGitHubTools(server: McpServer, reader: GitHubReader): void {
   server.registerTool(
     "gh_repo_search",
     {
-      description: `GitHub 저장소를 이름, 설명으로 찾는다. 조직(${owners}) 안에서만 찾는다. 저장소 이름이 확실하지 않을 때 먼저 쓴다.`,
+      description: `Finds GitHub repositories by name and description. Searches only within the orgs (${owners}). Use this first when unsure of a repository name.`,
       inputSchema: {
-        query: z.string().min(1).describe("검색어 (GitHub 검색 문법)"),
+        query: z.string().min(1).describe("Search query (GitHub search syntax)"),
         limit,
       },
       annotations: read,
@@ -754,10 +774,10 @@ function registerGitHubTools(server: McpServer, reader: GitHubReader): void {
     "gh_pr_list",
     {
       description:
-        "저장소의 PR 목록을 최근 생성 순으로 본다. (번호, 제목, 작성자, 상태, 브랜치, 날짜, 라벨)",
+        "Lists a repository's PRs, newest first (number, title, author, state, branch, dates, labels).",
       inputSchema: {
         repo,
-        state: z.enum(["open", "closed", "all"]).optional().describe("기본 open"),
+        state: z.enum(["open", "closed", "all"]).optional().describe("Default open"),
         limit,
       },
       annotations: read,
@@ -770,9 +790,9 @@ function registerGitHubTools(server: McpServer, reader: GitHubReader): void {
     "gh_pr_search",
     {
       description: [
-        "여러 저장소에 걸쳐 PR 을 검색한다. GitHub 검색 문법을 쓴다.",
-        "(예: is:open repo:owner/a repo:owner/b, is:open author:someone, review-requested:someone)",
-        `repo:/org: 가 없으면 조직(${owners}) 전체에서 찾는다.`,
+        "Searches PRs across repositories using GitHub search syntax.",
+        "(e.g. is:open repo:owner/a repo:owner/b, is:open author:someone, review-requested:someone)",
+        `Without repo: or org:, searches all of the orgs (${owners}).`,
       ].join(" "),
       inputSchema: { query: z.string().min(1), limit },
       annotations: read,
@@ -784,7 +804,7 @@ function registerGitHubTools(server: McpServer, reader: GitHubReader): void {
     "gh_pr_view",
     {
       description:
-        "PR 상세를 본다. 상태, 작성자, 브랜치, 변경 규모, 라벨, 리뷰 요청과 리뷰 결과, CI 체크, 본문, 변경 파일 목록.",
+        "Shows PR details: state, author, branch, change size, labels, review requests and review results, CI checks, body, and changed files.",
       inputSchema: {
         repo,
         number: z
@@ -792,7 +812,7 @@ function registerGitHubTools(server: McpServer, reader: GitHubReader): void {
           .int()
           .positive()
           .optional()
-          .describe("PR 번호 (repo 가 owner/repo#번호나 PR URL 이면 생략)"),
+          .describe("PR number (omit if repo is owner/repo#number or a PR URL)"),
       },
       annotations: read,
     },
@@ -803,11 +823,14 @@ function registerGitHubTools(server: McpServer, reader: GitHubReader): void {
     "gh_pr_diff",
     {
       description:
-        "PR 의 변경 내용(unified diff)을 본다. 길면 잘리므로 큰 PR 은 path 로 파일을 골라 본다.",
+        "Shows a PR's changes (unified diff). Long output is truncated, so for large PRs pick files with path.",
       inputSchema: {
         repo,
         number: z.number().int().positive().optional(),
-        path: z.string().optional().describe("이 파일(경로 앞부분)의 변경만 본다"),
+        path: z
+          .string()
+          .optional()
+          .describe("Show only changes to this file (path prefix)"),
       },
       annotations: read,
     },
@@ -819,7 +842,7 @@ function registerJiraTools(server: McpServer, client: JiraClient): void {
   const projects = client.projects.join(", ");
   const key = z
     .string()
-    .describe(`이슈 키 (예: ${client.projects[0]}-123) 또는 이슈 URL`);
+    .describe(`Issue key (e.g. ${client.projects[0]}-123) or issue URL`);
   const write = { readOnlyHint: false, destructiveHint: false, openWorldHint: true };
   const logged = (
     tool: string,
@@ -842,11 +865,15 @@ function registerJiraTools(server: McpServer, client: JiraClient): void {
     "jira_search",
     {
       description: [
-        `JQL 로 Jira 이슈를 검색한다. 결과는 허용 프로젝트(${projects}) 안으로 고정된다.`,
-        '(예: assignee = currentUser() AND statusCategory != Done, text ~ "키워드", updated >= -7d ORDER BY priority DESC)',
+        `Searches Jira issues with JQL. Results are restricted to the allowed projects (${projects}).`,
+        '(e.g. assignee = currentUser() AND statusCategory != Done, text ~ "keyword", updated >= -7d ORDER BY priority DESC)',
       ].join(" "),
       inputSchema: {
-        jql: z.string().min(1).max(1000).describe("JQL. project 조건은 자동으로 붙는다"),
+        jql: z
+          .string()
+          .min(1)
+          .max(1000)
+          .describe("JQL. The project condition is added automatically"),
         limit: z.number().int().min(1).max(50).optional(),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -858,7 +885,7 @@ function registerJiraTools(server: McpServer, client: JiraClient): void {
     "jira_issue",
     {
       description:
-        "Jira 이슈 상세를 본다. 유형, 상태, 담당, 설명, 하위 이슈, 연결된 이슈, 최근 댓글, 링크.",
+        "Shows Jira issue details: type, status, assignee, description, subtasks, linked issues, recent comments, and link.",
       inputSchema: {
         key,
         comments: z
@@ -867,7 +894,7 @@ function registerJiraTools(server: McpServer, client: JiraClient): void {
           .min(0)
           .max(50)
           .optional()
-          .describe("보여 줄 최근 댓글 수 (기본 10)"),
+          .describe("Number of recent comments to show (default 10)"),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -878,27 +905,31 @@ function registerJiraTools(server: McpServer, client: JiraClient): void {
     "jira_create_issue",
     {
       description: [
-        `Jira 이슈를 만든다. 허용 프로젝트(${projects})에만 만들 수 있고, 토큰 주인 계정으로 남는다.`,
-        "사용자가 이슈 생성을 요청한 경우에만 쓴다. 비슷한 이슈가 있는지 jira_search 로 먼저 확인한다.",
-        "유형을 생략하면 Task(작업). 상태 변경은 할 수 없다.",
+        `Creates a Jira issue. Issues can be created only in the allowed projects (${projects}) and are recorded under the token owner's account.`,
+        "Use only when the user asked for an issue to be created. Check for similar issues with jira_search first.",
+        "If the type is omitted, Task is used. Status changes are not supported.",
       ].join(" "),
       inputSchema: {
-        project: z.string().describe(`프로젝트 키 (${projects})`),
-        summary: z.string().min(1).max(255).describe("제목"),
+        project: z.string().describe(`Project key (${projects})`),
+        summary: z.string().min(1).max(255).describe("Summary"),
         description: z
           .string()
           .max(20_000)
           .optional()
-          .describe("설명. 빈 줄로 문단을 나누고, - 로 시작하는 줄은 목록이 된다"),
+          .describe(
+            "Description. Blank lines separate paragraphs, and lines starting with - become list items"
+          ),
         issue_type: z
           .string()
           .optional()
-          .describe("유형 이름 (예: Task, Bug, Story, Sub-task)"),
+          .describe("Issue type name (e.g. Task, Bug, Story, Sub-task)"),
         labels: z.array(z.string().max(50)).max(10).optional(),
         parent: z
           .string()
           .optional()
-          .describe("상위 이슈 키 (하위 작업이나 에픽 하위로 만들 때)"),
+          .describe(
+            "Parent issue key (when creating a subtask or an issue under an epic)"
+          ),
       },
       annotations: write,
     },
@@ -927,10 +958,14 @@ function registerJiraTools(server: McpServer, client: JiraClient): void {
     "jira_add_comment",
     {
       description:
-        "Jira 이슈에 댓글을 남긴다. 사용자가 댓글을 요청한 경우에만 쓴다. 토큰 주인 계정으로 남는다.",
+        "Adds a comment to a Jira issue. Use only when the user asked for a comment. The comment is posted under the token owner's account.",
       inputSchema: {
         key,
-        body: z.string().min(1).max(20_000).describe("댓글 내용. 빈 줄로 문단을 나눈다"),
+        body: z
+          .string()
+          .min(1)
+          .max(20_000)
+          .describe("Comment body. Blank lines separate paragraphs"),
       },
       annotations: write,
     },
@@ -975,7 +1010,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return;
   }
   if (req.method !== "POST") {
-    // 상태 없는(stateless) 모드라 SSE 스트림/세션 종료 요청은 받지 않는다.
+    // Stateless mode, so SSE stream and session termination requests are not accepted.
     res.writeHead(405, { Allow: "POST" }).end();
     return;
   }

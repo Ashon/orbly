@@ -22,8 +22,8 @@ import { redactSecrets } from "../src/broker/redact.js";
 
 const clusters = ["main", "staging"];
 
-describe("k8s 인자", () => {
-  it("조회 명령을 인자 배열로 만든다", () => {
+describe("k8s arguments", () => {
+  it("builds read-only commands as argument arrays", () => {
     expect(
       getArgs({ cluster: "main", kind: "pods", namespace: "kube-system" }, clusters)
     ).toEqual([
@@ -74,7 +74,7 @@ describe("k8s 인자", () => {
     ]);
   });
 
-  it("secrets, 허용 밖 클러스터, 잘못된 값은 거부한다", () => {
+  it("rejects secrets, clusters outside the allowlist, and invalid values", () => {
     expect(() => getArgs({ cluster: "main", kind: "secrets" }, clusters)).toThrow(
       /secrets/
     );
@@ -82,7 +82,7 @@ describe("k8s 인자", () => {
       /secrets/
     );
     expect(() => getArgs({ cluster: "prod", kind: "pods" }, clusters)).toThrow(
-      /클러스터/
+      /Cluster is not allowed/
     );
     expect(() =>
       getArgs({ cluster: "main", kind: "pods", name: "x;rm -rf /" }, clusters)
@@ -115,7 +115,7 @@ describe("fs", () => {
   writeFileSync(path.join(outside, "data.txt"), "outside");
   symlinkSync(outside, path.join(root, "repo/escape"));
 
-  it("비밀 파일 규칙", () => {
+  it("secret file rules", () => {
     for (const p of [
       "a/.env",
       "a/.env.local",
@@ -135,7 +135,7 @@ describe("fs", () => {
     }
   });
 
-  it("목록에서 비밀 파일과 .git 을 숨긴다", async () => {
+  it("hides secret files and .git in listings", async () => {
     const listing = await listDir(root, "repo");
     expect(listing).toContain("README.md");
     expect(listing).toContain(".env.example");
@@ -144,18 +144,24 @@ describe("fs", () => {
     expect(listing).not.toContain("admin.conf");
   });
 
-  it("줄 번호와 함께 읽고, 범위를 넘는 경로는 거부한다", async () => {
+  it("reads with line numbers and rejects out-of-scope paths", async () => {
     expect(await readText(root, "repo/README.md", 2, 1)).toContain("2\tline2");
     expect(await readText(root, path.join(root, "repo/README.md"))).toContain("1\tline1");
-    await expect(resolveInRoot(root, "repo/.env")).rejects.toThrow(/제한/);
-    await expect(resolveInRoot(root, "../etc/passwd")).rejects.toThrow(/밖/);
-    await expect(resolveInRoot(root, "/etc/passwd")).rejects.toThrow(/상대 경로/);
-    await expect(resolveInRoot(root, "repo/escape/data.txt")).rejects.toThrow(/밖/);
+    await expect(resolveInRoot(root, "repo/.env")).rejects.toThrow(/restricted/);
+    await expect(resolveInRoot(root, "../etc/passwd")).rejects.toThrow(
+      /outside the work root/
+    );
+    await expect(resolveInRoot(root, "/etc/passwd")).rejects.toThrow(
+      /relative to the work root/
+    );
+    await expect(resolveInRoot(root, "repo/escape/data.txt")).rejects.toThrow(
+      /outside the work root/
+    );
   });
 });
 
-describe("ripgrep 제외 규칙", () => {
-  /** isDenied 가 막는 파일. 대소문자와 위치를 섞는다. */
+describe("ripgrep deny rules", () => {
+  /** Files that isDenied blocks, with mixed case and locations. */
   const SECRET_FILES = [
     ".env",
     ".env.production",
@@ -171,7 +177,7 @@ describe("ripgrep 제외 규칙", () => {
     ".git/config",
   ];
 
-  it("요청한 glob 을 먼저, 제외 glob 을 --iglob 으로 뒤에 둔다", () => {
+  it("puts the requested glob first and the exclude globs after it with --iglob", () => {
     expect(rgFilterArgs("!**/.env").slice(0, 3)).toEqual([
       "--glob",
       "**/.env",
@@ -180,7 +186,7 @@ describe("ripgrep 제외 규칙", () => {
     expect(rgFilterArgs()[0]).toBe("--iglob");
   });
 
-  it("검색 결과에서 제외 대상 파일을 빼고 상대 경로로 바꾼다", () => {
+  it("drops excluded files from search results and makes paths relative", () => {
     const output = [
       "(exit 0, 3ms)",
       "/workspace/repo/README.md\u00002:token here",
@@ -201,7 +207,7 @@ describe("ripgrep 제외 규칙", () => {
 
   const hasRg = spawnSync("rg", ["--version"]).status === 0;
   it.skipIf(!hasRg)(
-    "glob 으로 제외 규칙을 풀 수 없고, 제외 glob 은 isDenied 와 같다",
+    "a glob cannot lift the deny rules, and the exclude globs match isDenied",
     () => {
       const repo = mkdtempSync(path.join(tmpdir(), "ops-rg-"));
       try {
@@ -210,7 +216,7 @@ describe("ripgrep 제외 규칙", () => {
           writeFileSync(path.join(repo, file), "API_KEY=supersecretvalue\n");
         }
         for (const file of SECRET_FILES) expect(isDenied(file), file).toBe(true);
-        // fs_search 와 같은 인자. 후처리(filterRgOutput) 없이 glob 만으로 걸러지는지 본다.
+        // Same arguments as fs_search. Checks that the globs alone filter, without post-processing (filterRgOutput).
         const search = (glob?: string) =>
           spawnSync(
             "rg",
@@ -248,7 +254,7 @@ describe("ripgrep 제외 규칙", () => {
 });
 
 describe("redactSecrets", () => {
-  it("대표적인 비밀 값 형식을 가린다", () => {
+  it("redacts common secret formats", () => {
     const text = [
       "token: abcdefghijklmnop",
       "SLACK=xoxb-1234567890-abcdefghij",

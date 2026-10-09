@@ -3,7 +3,7 @@ import { checkSlackTokens } from "../slack/check.js";
 
 export { missingScopes, REQUIRED_BOT_SCOPES } from "../slack/check.js";
 
-/** .env 의 토큰으로 Slack 앱 설정이 이 봇에 맞는지 점검한다. 메시지는 보내지 않는다. */
+/** Checks with the .env tokens that the Slack app settings fit this bot. Sends no messages. */
 async function main(): Promise<void> {
   const items = await checkSlackTokens({
     botToken: process.env.SLACK_BOT_TOKEN,
@@ -15,7 +15,7 @@ async function main(): Promise<void> {
     );
   }
   console.log(
-    "\n봇 이벤트 app_mention 구독은 API 로 확인할 수 없어 앱 설정 화면(Event Subscriptions)에서 확인합니다."
+    "\nThe app_mention bot event subscription cannot be checked through the API. Check it in the app settings (Event Subscriptions)."
   );
   process.exitCode = items.every((item) => item.ok) ? 0 : 1;
 }

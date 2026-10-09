@@ -14,19 +14,19 @@ import { Directory } from "./slack/directory.js";
 import { slackLogger } from "./slack/logger.js";
 
 const SOCKET_STATES: Record<SocketState, { level: "info" | "warn"; text: string }> = {
-  connecting: { level: "info", text: "Slack 에 연결하는 중" },
-  connected: { level: "info", text: "Socket Mode 연결됨, 이벤트 수신 중" },
-  reconnecting: { level: "warn", text: "Socket Mode 재연결 중" },
-  disconnecting: { level: "info", text: "Socket Mode 연결을 닫는 중" },
-  disconnected: { level: "warn", text: "Socket Mode 연결 끊김" },
+  connecting: { level: "info", text: "Connecting to Slack" },
+  connected: { level: "info", text: "Socket Mode connected, receiving events" },
+  reconnecting: { level: "warn", text: "Socket Mode reconnecting" },
+  disconnecting: { level: "info", text: "Closing Socket Mode connection" },
+  disconnected: { level: "warn", text: "Socket Mode disconnected" },
 };
 
-/** 시작 실패도 로그 파일에 남기려고 로거가 만들어지면 여기에 둔다. */
+/** Holds the logger once created, so startup failures also reach the log file. */
 let startupLog: Logger | undefined;
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  // 콘솔과 함께 VERDA_DATA_DIR/logs/bot.log 에 남긴다. 데스크톱 앱이 이 파일을 보여 준다.
+  // Logs to VERDA_DATA_DIR/logs/bot.log as well as the console. The desktop app shows this file.
   const log = createLogger(config.logLevel, "verda", [
     consoleSink,
     fileSink(path.join(config.dataDir, LOG_FILE)),
@@ -37,9 +37,9 @@ async function main(): Promise<void> {
     process.env.VERDA_MANAGED_BY === "desktop" ? "desktop" : "terminal"
   );
   status.update({ configHash: configFingerprint(process.env) });
-  log.info(`시작 중 (pid ${process.pid}, ${status.current.managedBy})`);
+  log.info(`Starting (pid ${process.pid}, ${status.current.managedBy})`);
 
-  // Socket Mode 클라이언트와 Bolt 로그도 같은 로거(콘솔 + 파일)로 보낸다.
+  // Sends Socket Mode client and Bolt logs to the same logger (console + file).
   const socketLog = log.child("socket");
   const receiver = new SocketModeReceiver({
     appToken: config.slack.appToken,
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
     receiver.client.on(state, () => {
       status.socket(state);
       const { level, text } = SOCKET_STATES[state];
-      // 종료하면서 끊는 것은 정상이다.
+      // Disconnecting during shutdown is expected.
       socketLog[stopping && level === "warn" ? "info" : level](text);
     });
   }
@@ -67,7 +67,7 @@ async function main(): Promise<void> {
     }) => {
       const kind = [args.type, args.body?.event?.type].filter(Boolean).join("/");
       socketLog.info(
-        `이벤트 수신 ${kind} (envelope ${args.envelope_id ?? "-"}${args.retry_num ? `, 재전송 ${args.retry_num}회` : ""})`
+        `Received event ${kind} (envelope ${args.envelope_id ?? "-"}${args.retry_num ? `, retry ${args.retry_num}` : ""})`
       );
     }
   );
@@ -79,7 +79,7 @@ async function main(): Promise<void> {
   });
   const auth = await app.client.auth.test();
   const botUserId = auth.user_id;
-  if (!botUserId) throw new Error("봇 사용자 ID 를 확인할 수 없습니다.");
+  if (!botUserId) throw new Error("Could not determine the bot user ID.");
   const problems: string[] = [];
 
   const executor = config.reasoner.sandbox
@@ -89,14 +89,14 @@ async function main(): Promise<void> {
         codex: config.reasoner.codexBin,
       });
   const reasoner = createReasoner(config.reasoner, executor);
-  // 샌드박스가 준비되지 않았으면 추론 호출은 실패한다. 호스트 실행으로 대신하지 않는다.
+  // If the sandbox is not ready, reasoner calls fail. They do not fall back to the host.
   for (const problem of await executor.verify()) {
-    log.error(`샌드박스: ${problem}`);
-    problems.push(`샌드박스: ${problem}`);
+    log.error(`Sandbox: ${problem}`);
+    problems.push(`Sandbox: ${problem}`);
   }
   if (config.mention.workspace && !reasoner.canReadFiles) {
     log.warn(
-      `${reasoner.backend} 는 ${executor.kind} 샌드박스에서 파일을 읽을 수 없어 MENTION_WORKSPACE 를 쓰지 않습니다.`
+      `${reasoner.backend} cannot read files in the ${executor.kind} sandbox, so MENTION_WORKSPACE is not used.`
     );
   }
 
@@ -109,8 +109,8 @@ async function main(): Promise<void> {
     });
     const rendererProblems = await candidate.verify();
     for (const problem of rendererProblems) {
-      log.warn(`그림 렌더링 꺼짐: ${problem}`);
-      problems.push(`그림 렌더링 꺼짐: ${problem}`);
+      log.warn(`Diagram rendering disabled: ${problem}`);
+      problems.push(`Diagram rendering disabled: ${problem}`);
     }
     if (rendererProblems.length === 0) renderer = candidate;
   }
@@ -123,9 +123,11 @@ async function main(): Promise<void> {
     try {
       const removed = history.prune(config.history.retentionDays);
       if (removed > 0)
-        log.info(`보관 기간이 지난 실행 기록 ${removed}일치를 지웠습니다.`);
+        log.info(
+          `Deleted ${removed} ${removed === 1 ? "day" : "days"} of run history past the retention period.`
+        );
     } catch (err) {
-      log.warn(`실행 기록 정리 실패: ${(err as Error).message}`);
+      log.warn(`Run history cleanup failed: ${(err as Error).message}`);
     }
   };
   pruneHistory();
@@ -150,7 +152,7 @@ async function main(): Promise<void> {
     await responder.handle(event);
   });
   app.error(async (err) => {
-    log.error("Slack 이벤트 처리 오류", err);
+    log.error("Slack event handling error", err);
   });
 
   status.update({
@@ -166,23 +168,26 @@ async function main(): Promise<void> {
   await responder.resumePending();
   const allowed = config.mention.allowedUserIds;
   log.info(
-    `시작: bot=${auth.user} (${botUserId}) @ ${auth.team}, ` +
+    `Started: bot=${auth.user} (${botUserId}) @ ${auth.team}, ` +
       `reasoner=${reasoner.backend}@${executor.kind}, ` +
-      `허용 사용자=${allowed.length > 0 ? `${allowed.length}명` : "전체"}, ` +
-      `참고 디렉터리=${config.mention.workspace && reasoner.canReadFiles ? config.mention.workspace : "없음"}, ` +
-      `MCP=[${reasoner.mcpServerNames.join(", ")}], 그림=${renderer ? "on" : "off"}, ` +
-      `데이터=${config.dataDir}${history ? "" : " (기록 off)"}`
+      `allowed users=${allowed.length > 0 ? `${allowed.length}` : "all"}, ` +
+      `reference directory=${config.mention.workspace && reasoner.canReadFiles ? config.mention.workspace : "none"}, ` +
+      `MCP=[${reasoner.mcpServerNames.join(", ")}], diagrams=${renderer ? "on" : "off"}, ` +
+      `data=${config.dataDir}${history ? "" : " (history off)"}`
   );
 
   const shutdown = async (signal: string) => {
     if (stopping) return;
     stopping = true;
     status.update({ state: "stopping" });
-    log.info(`${signal} 수신, 처리 중인 요청을 기다린 뒤 종료합니다.`);
+    log.info(
+      `Received ${signal}, waiting for in-progress requests before shutting down.`
+    );
     await app.stop().catch(() => undefined);
-    // 끝나지 않은 요청은 VERDA_DATA_DIR/inflight.json 에 남아 다음 시작 때 이어서 처리된다.
-    if (!(await responder.drain(20_000))) log.warn("처리 중인 요청을 남기고 종료합니다.");
-    log.info(`종료 (pid ${process.pid})`);
+    // Unfinished requests stay in VERDA_DATA_DIR/inflight.json and resume on the next start.
+    if (!(await responder.drain(20_000)))
+      log.warn("Shutting down with requests still in progress.");
+    log.info(`Stopped (pid ${process.pid})`);
     process.exit(0);
   };
   process.on("SIGINT", () => void shutdown("SIGINT"));
@@ -191,7 +196,7 @@ async function main(): Promise<void> {
 
 main().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
-  if (startupLog) startupLog.error(`시작 실패: ${message}`);
+  if (startupLog) startupLog.error(`Startup failed: ${message}`);
   else console.error(message);
   process.exit(1);
 });

@@ -6,15 +6,16 @@ import { tailLogs } from "./runtime/logs.js";
 import { readBotStatus } from "./runtime/status.js";
 
 /**
- * 로컬 조회 API (읽기 전용). 데스크톱 앱의 verda:// 프로토콜과 web 개발 서버가 같이 쓴다.
- * 데이터 디렉터리는 reader.root 다. 봇 시작/중지 같은 제어는 여기 없고 데스크톱 앱 IPC 로만 한다.
+ * Local query API (read-only). Shared by the desktop app's verda:// protocol and the web dev server.
+ * The data directory is reader.root. Controls such as bot start/stop are not here; they go through
+ * desktop app IPC only.
  *   GET /api/health
  *   GET /api/runs?status=&q=&limit=
  *   GET /api/runs/:id
  *   GET /api/runs/:id/artifacts/:file
  *   GET /api/stats
- *   GET /api/bot                                봇 상태 (bot.json + pid 생존 여부)
- *   GET /api/bot/logs?lines=&scope=&level=      봇 로그 (logs/bot.log 의 마지막 부분)
+ *   GET /api/bot                                bot status (bot.json + whether the pid is alive)
+ *   GET /api/bot/logs?lines=&scope=&level=      bot logs (tail of logs/bot.log)
  */
 const STATUSES = new Set<RunStatus>(["running", "succeeded", "failed", "interrupted"]);
 

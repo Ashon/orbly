@@ -12,7 +12,7 @@ const readMode = (): ThemeMode => {
   }
 };
 
-/** 시스템 설정을 따르고, 직접 고르면 그 값을 기억한다. */
+/** Follows the system setting, and remembers the choice when picked manually. */
 export function useTheme() {
   const [mode, setMode] = useState<ThemeMode>(readMode);
   useEffect(() => {
@@ -25,7 +25,7 @@ export function useTheme() {
     try {
       localStorage.setItem(KEY, mode);
     } catch {
-      // 저장하지 못해도 이번 실행에서는 적용된다.
+      // Even if saving fails, it still applies for this session.
     }
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);

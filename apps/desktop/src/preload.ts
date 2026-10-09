@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 
-// 화면에 플랫폼(창 버튼 자리), 봇 제어, 설정 읽기/쓰기, 샌드박스 관리만 연다. 기록 조회는 verda://app/api 로 한다.
+// Exposes only the platform (window button placement), bot control, settings read/write, and sandbox management to the UI. History queries go through verda://app/api.
 contextBridge.exposeInMainWorld("verdaDesktop", {
   platform: process.platform,
   bot: {

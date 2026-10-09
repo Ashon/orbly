@@ -3,8 +3,8 @@ import path from "node:path";
 import { runProcess } from "../reasoner/process.js";
 
 /**
- * 답변에 들어 있는 다이어그램/차트 코드 블록을 PNG 로 그린다.
- * 렌더링은 네트워크 없는 일회용 컨테이너(sandbox/renderer)에서 한다.
+ * Renders the diagram/chart code blocks in an answer to PNG.
+ * Rendering runs in a disposable container without network access (sandbox/renderer).
  */
 export type DiagramFormat = "mermaid" | "dot" | "vega-lite" | "svg";
 
@@ -30,11 +30,11 @@ const MAX_PNG_BYTES = 10 * 1024 * 1024;
 export interface DiagramBlock {
   format: DiagramFormat;
   source: string;
-  /** 답변 안의 코드 블록 원문 (``` 포함) */
+  /** Raw code block text in the answer (including the ```) */
   raw: string;
 }
 
-/** ```mermaid 같은 그림용 코드 블록을 순서대로 찾는다. 다른 언어 블록은 그대로 둔다. */
+/** Finds diagram code blocks such as ```mermaid in order. Blocks in other languages are left alone. */
 export function extractDiagrams(markdown: string): DiagramBlock[] {
   const blocks: DiagramBlock[] = [];
   for (const match of markdown.matchAll(
@@ -49,7 +49,7 @@ export function extractDiagrams(markdown: string): DiagramBlock[] {
   return blocks;
 }
 
-/** 그린 블록은 (그림 N) 표시로 바꾸고, 그리지 못한 블록은 원문을 남긴다. */
+/** Replaces rendered blocks with a (Figure N) marker and keeps the source of blocks that could not be rendered. */
 export function composeAnswer(
   markdown: string,
   results: { block: DiagramBlock; figure?: number }[]
@@ -59,14 +59,14 @@ export function composeAnswer(
     text = text.replace(
       block.raw,
       figure !== undefined
-        ? `_(그림 ${figure}: 아래 이미지)_`
-        : `${block.raw}\n_(그림으로 그리지 못해 원문을 남깁니다)_`
+        ? `_(Figure ${figure}: image below)_`
+        : `${block.raw}\n_(Couldn't render this diagram, so the source is shown)_`
     );
   }
   return text;
 }
 
-/** 렌더링 컨테이너 인자. 네트워크 없음, 읽기 전용 루트, 권한 제거, 자원 제한. */
+/** Rendering container arguments. No network, read-only root, capabilities dropped, resource limits. */
 export function renderArgs(
   image: string,
   dir: string,
@@ -102,7 +102,7 @@ export function renderArgs(
   ];
 }
 
-/** 이미지 크기 조정 컨테이너 인자. 렌더링과 같은 격리 조건이다. */
+/** Image resize container arguments. Same isolation as rendering. */
 export function resizeArgs(
   image: string,
   dir: string,
@@ -110,7 +110,7 @@ export function resizeArgs(
   maxPx: number
 ): string[] {
   const args = renderArgs(image, dir, "svg", name);
-  // renderArgs 의 마지막 세 인자(형식, 입력, 출력)를 resize 용으로 바꾼다.
+  // Replaces the last three renderArgs arguments (format, input, output) with the resize ones.
   return [
     ...args.slice(0, -3),
     "resize",
@@ -129,7 +129,7 @@ export interface DiagramRendererOptions {
 export class DiagramRenderer {
   constructor(private readonly options: DiagramRendererOptions) {}
 
-  /** 블록 하나를 그려 PNG 버퍼를 돌려준다. dir 은 colima 가 마운트할 수 있는 홈 아래 경로여야 한다. */
+  /** Renders one block and returns the PNG buffer. dir must be a path under home that colima can mount. */
   async render(block: DiagramBlock, dir: string, name: string): Promise<Buffer> {
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, `${name}.${EXTENSION[block.format]}`), block.source);
@@ -140,12 +140,12 @@ export class DiagramRenderer {
     );
     const png = await readFile(path.join(dir, `${name}.png`));
     if (png.length === 0 || png.length > MAX_PNG_BYTES) {
-      throw new Error(`PNG 크기가 올바르지 않습니다 (${png.length} bytes)`);
+      throw new Error(`Invalid PNG size (${png.length} bytes)`);
     }
     return png;
   }
 
-  /** 긴 변이 maxPx 를 넘으면 비율을 유지한 채 줄인 PNG 를 돌려준다. */
+  /** Returns a PNG scaled down with the aspect ratio kept when the long edge exceeds maxPx. */
   async resize(image: Buffer, dir: string, name: string, maxPx: number): Promise<Buffer> {
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, `${name}.src`), image);
@@ -159,7 +159,7 @@ export class DiagramRenderer {
       }
     );
     const png = await readFile(path.join(dir, `${name}.png`));
-    if (png.length === 0) throw new Error("크기 조정 결과가 비어 있습니다.");
+    if (png.length === 0) throw new Error("The resize result is empty.");
     return png;
   }
 
@@ -172,7 +172,7 @@ export class DiagramRenderer {
       });
       return [];
     } catch {
-      return [`렌더링 이미지 ${this.options.image} 가 없습니다. (pnpm sandbox:build)`];
+      return [`Renderer image ${this.options.image} not found. (pnpm sandbox:build)`];
     }
   }
 }

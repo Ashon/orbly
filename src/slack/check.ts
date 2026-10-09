@@ -1,4 +1,4 @@
-/** slack-app-manifest.yaml 의 oauth_config.scopes.bot 과 같아야 한다. (tests/slack-check.test.ts) */
+/** Must match oauth_config.scopes.bot in slack-app-manifest.yaml. (tests/slack-check.test.ts) */
 export const REQUIRED_BOT_SCOPES = [
   "app_mentions:read",
   "channels:history",
@@ -45,9 +45,9 @@ async function call(
 }
 
 /**
- * 토큰으로 Slack 앱 설정이 이 봇에 맞는지 점검한다. 메시지는 보내지 않는다.
- * - 봇 토큰(auth.test), 봇 스코프, 앱 토큰과 봇이 같은 앱인지(bots.info), Socket Mode(apps.connections.open)
- * apps.connections.open 은 접속 주소만 받고 연결하지 않는다. (주소는 버린다)
+ * Checks with the tokens that the Slack app settings fit this bot. Sends no messages.
+ * - Bot token (auth.test), bot scopes, whether the app token and the bot belong to the same app (bots.info), Socket Mode (apps.connections.open)
+ * apps.connections.open only obtains a connection URL and does not connect. (the URL is discarded)
  */
 export async function checkSlackTokens(
   tokens: { botToken?: string; appToken?: string },
@@ -56,7 +56,13 @@ export async function checkSlackTokens(
   const items: SlackCheckItem[] = [];
   const { botToken, appToken } = tokens;
   if (!botToken || !appToken) {
-    return [{ label: "토큰", ok: false, detail: "봇 토큰과 앱 토큰이 모두 필요합니다." }];
+    return [
+      {
+        label: "Tokens",
+        ok: false,
+        detail: "Both the bot token and the app token are required.",
+      },
+    ];
   }
   const failure = (err: unknown) => (err as Error).message;
 
@@ -64,11 +70,11 @@ export async function checkSlackTokens(
   try {
     const { body, headers } = await call(fetchImpl, "auth.test", botToken);
     if (!body.ok) {
-      items.push({ label: "봇 토큰", ok: false, detail: body.error });
+      items.push({ label: "Bot token", ok: false, detail: body.error });
     } else {
       botId = body.bot_id as string | undefined;
       items.push({
-        label: "봇 토큰",
+        label: "Bot token",
         ok: true,
         detail: `${String(body.user)} (${String(body.user_id)}) @ ${String(body.team)}`,
       });
@@ -78,13 +84,13 @@ export async function checkSlackTokens(
         .filter(Boolean);
       const missing = missingScopes(REQUIRED_BOT_SCOPES, granted);
       items.push({
-        label: "봇 스코프",
+        label: "Bot scopes",
         ok: missing.length === 0,
-        detail: missing.length ? `없음: ${missing.join(", ")}` : undefined,
+        detail: missing.length ? `Missing: ${missing.join(", ")}` : undefined,
       });
     }
   } catch (err) {
-    items.push({ label: "봇 토큰", ok: false, detail: failure(err) });
+    items.push({ label: "Bot token", ok: false, detail: failure(err) });
   }
 
   const appIdFromToken = appToken.split("-")[2];
@@ -93,12 +99,12 @@ export async function checkSlackTokens(
       const { body } = await call(fetchImpl, "bots.info", botToken, { bot: botId });
       const appId = (body.bot as { app_id?: string } | undefined)?.app_id;
       items.push({
-        label: "같은 앱",
+        label: "Same app",
         ok: body.ok && appId === appIdFromToken,
-        detail: `봇=${appId ?? "?"}, 앱 토큰=${appIdFromToken ?? "?"}`,
+        detail: `bot=${appId ?? "?"}, app token=${appIdFromToken ?? "?"}`,
       });
     } catch (err) {
-      items.push({ label: "같은 앱", ok: false, detail: failure(err) });
+      items.push({ label: "Same app", ok: false, detail: failure(err) });
     }
   }
 
@@ -107,7 +113,7 @@ export async function checkSlackTokens(
     items.push({
       label: "Socket Mode",
       ok: body.ok,
-      detail: body.ok ? "접속 주소 발급됨 (연결은 하지 않음)" : body.error,
+      detail: body.ok ? "Connection URL issued (not connected)" : body.error,
     });
   } catch (err) {
     items.push({ label: "Socket Mode", ok: false, detail: failure(err) });

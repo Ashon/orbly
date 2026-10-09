@@ -28,19 +28,21 @@ import {
   type RunStatus,
 } from "./types.js";
 
-/** 한 실행에 남기는 최대 단계 수. 넘으면 이후 단계는 버리고 한 번 알린다. */
+/** Max steps recorded per run. Past it, later steps are dropped with a single note. */
 const MAX_EVENTS = 2_000;
 const MAX_TEXT_CHARS = 20_000;
 const MAX_PROMPT_CHARS = 200_000;
-/** 진행 중 기록을 파일에 쓰는 간격 */
+/** Interval for writing an in-progress record to the file */
 const WRITE_DELAY_MS = 400;
 
 const clip = (text: string, max: number) =>
-  text.length > max ? `${text.slice(0, max)}\n... (${text.length}자 중 일부)` : text;
+  text.length > max
+    ? `${text.slice(0, max)}\n... (truncated, ${text.length} chars total)`
+    : text;
 
 export type RunInit = Pick<RunRecord, "slack" | "request" | "backend">;
 
-/** 실행 기록 파일 쓰기. 봇 프로세스에서만 쓴다. */
+/** Writes run history files. Used only in the bot process. */
 export class HistoryStore {
   constructor(
     readonly root: string,
@@ -69,7 +71,7 @@ export class HistoryStore {
     return handle;
   }
 
-  /** 재시작 후 이어서 처리할 때 기존 기록을 다시 연다. */
+  /** Reopens an existing record when resuming after a restart. */
   reopen(id: string): RunHandle | undefined {
     const record = this.read(id);
     if (!record) return undefined;
@@ -87,8 +89,8 @@ export class HistoryStore {
   }
 
   /**
-   * 시작할 때, 진행 중으로 남아 있지만 이어서 처리하지 않을 실행을 중단으로 표시한다.
-   * keep 에 있는 id 는 이어서 처리될 실행이라 건드리지 않는다.
+   * At startup, marks runs still left running that will not be resumed as interrupted.
+   * Ids in keep belong to runs that will be resumed, so they are left alone.
    */
   interruptStale(keep: ReadonlySet<string>, now = new Date()): number {
     let count = 0;
@@ -102,16 +104,16 @@ export class HistoryStore {
         handle.event({
           kind: "note",
           at: now.toISOString(),
-          text: "봇이 재시작되어 중단됨",
+          text: "Interrupted because the bot restarted",
         });
-        handle.finish("interrupted", { error: "봇 재시작으로 중단" }, now);
+        handle.finish("interrupted", { error: "Interrupted by bot restart" }, now);
         count += 1;
       }
     }
     return count;
   }
 
-  /** 보관 기간이 지난 날짜 디렉터리를 지운다. 0 이면 지우지 않는다. */
+  /** Deletes day directories past the retention period. 0 deletes nothing. */
   prune(retentionDays: number, now = new Date()): number {
     if (retentionDays <= 0) return 0;
     const cutoff = dayDirFor(new Date(now.getTime() - retentionDays * 86_400_000));
@@ -124,7 +126,7 @@ export class HistoryStore {
     return removed;
   }
 
-  /** 날짜 디렉터리 이름 (최신순) */
+  /** Day directory names (newest first) */
   private days(): string[] {
     const dir = path.join(this.root, RUNS_DIR);
     if (!existsSync(dir)) return [];
@@ -137,11 +139,11 @@ export class HistoryStore {
   }
 }
 
-/** 한 실행의 기록. 바뀔 때마다 잠시 모았다가 run.json 을 통째로 다시 쓴다. */
+/** The record of one run. Batches changes briefly, then rewrites run.json in full. */
 export class RunHandle {
   private timer?: NodeJS.Timeout;
   private dropped = false;
-  /** 재시도한 실행은 도구 호출 id 가 겹치지 않게 시도 번호를 붙인다. */
+  /** Retried runs prefix tool call ids with the attempt number so they do not collide. */
   private idPrefix: string;
 
   constructor(
@@ -156,7 +158,7 @@ export class RunHandle {
     return this.record.id;
   }
 
-  /** 재시작 후 이어서 처리한다. */
+  /** Resumes after a restart. */
   resume(now = new Date()): void {
     this.record.attempts += 1;
     this.idPrefix = `${this.record.attempts}:`;
@@ -167,7 +169,7 @@ export class RunHandle {
     this.event({
       kind: "note",
       at: now.toISOString(),
-      text: `봇이 재시작되어 이어서 처리 (시도 ${this.record.attempts}회째)`,
+      text: `Resumed after a bot restart (attempt ${this.record.attempts})`,
     });
   }
 
@@ -182,7 +184,7 @@ export class RunHandle {
     });
   }
 
-  /** 단계를 추가한다. 도구/명령 단계는 같은 id 면 이전 단계에 합친다. (시작 -> 완료) */
+  /** Adds a step. Tool/command steps with the same id merge into the earlier step. (start -> done) */
   event(event: RunEvent): void {
     const events = this.record.events;
     if (event.kind === "tool" || event.kind === "command") {
@@ -195,7 +197,7 @@ export class RunHandle {
       if (index >= 0) {
         const merged = { ...events[index] } as Record<string, unknown>;
         for (const [key, value] of Object.entries(event)) {
-          // claude 의 도구 결과에는 서버/도구 이름이 비어 있다. 시작 시점 값을 유지한다.
+          // claude tool results have empty server/tool names. Keeps the values from the start.
           if (key === "at" || key === "id" || value === undefined || value === "")
             continue;
           merged[key] = value;
@@ -218,7 +220,7 @@ export class RunHandle {
         events.push({
           kind: "note",
           at: new Date().toISOString(),
-          text: "단계가 너무 많아 이후 기록은 생략",
+          text: "Too many steps, later steps not recorded",
         });
       }
       return;
@@ -227,10 +229,9 @@ export class RunHandle {
     this.schedule();
   }
 
-  /** 산출물(PNG 등)을 artifacts/ 에 저장하고 파일 이름을 돌려준다. */
+  /** Saves an output (PNG etc.) to artifacts/ and returns the file name. */
   async saveArtifact(name: string, data: Buffer): Promise<string> {
-    if (!isSafeArtifactName(name))
-      throw new Error(`산출물 이름이 올바르지 않습니다: ${name}`);
+    if (!isSafeArtifactName(name)) throw new Error(`Invalid output name: ${name}`);
     const dir = path.join(this.dir, ARTIFACTS_DIR);
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, name), data);
@@ -249,7 +250,7 @@ export class RunHandle {
     this.flush();
   }
 
-  /** 지금 바로 run.json 을 쓴다. 반쯤 쓴 파일이 남지 않도록 임시 파일에 쓰고 바꾼다. */
+  /** Writes run.json now. Writes a temp file and renames it so no half-written file is left. */
   flush(): void {
     if (this.timer) {
       clearTimeout(this.timer);
@@ -262,8 +263,8 @@ export class RunHandle {
       writeFileSync(`${file}.tmp`, `${JSON.stringify(this.record, null, 2)}\n`);
       renameSync(`${file}.tmp`, file);
     } catch (err) {
-      // 기록 실패가 응답을 막지 않게 한다.
-      this.log?.warn(`실행 기록 저장 실패 ${this.id}: ${(err as Error).message}`);
+      // A history write failure must not block the answer.
+      this.log?.warn(`Failed to save run history ${this.id}: ${(err as Error).message}`);
     }
   }
 

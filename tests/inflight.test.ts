@@ -15,7 +15,7 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 const entry = (key: string, extra: Partial<InflightEntry> = {}): InflightEntry => ({
   key,
-  event: { channel: "C1", ts: "1.0", user: "U1", text: "<@UBOT> 그려줘" },
+  event: { channel: "C1", ts: "1.0", user: "U1", text: "<@UBOT> draw it" },
   threadTs: "1.0",
   label: "#general",
   placeholderTs: "1.1",
@@ -25,7 +25,7 @@ const entry = (key: string, extra: Partial<InflightEntry> = {}): InflightEntry =
 });
 
 describe("InflightStore", () => {
-  it("요청을 기록하고 지운다", () => {
+  it("records and removes requests", () => {
     const store = new InflightStore(path.join(dir, "a", "inflight.json"));
     expect(store.list()).toEqual([]);
     store.upsert(entry("C1:1.0"));
@@ -39,7 +39,7 @@ describe("InflightStore", () => {
     expect(store.list().map((e) => e.key)).toEqual(["C1:1.0"]);
   });
 
-  it("깨진 파일은 빈 목록으로 본다", () => {
+  it("treats a corrupt file as an empty list", () => {
     const file = path.join(dir, "broken.json");
     writeFileSync(file, "{not json");
     expect(new InflightStore(file).list()).toEqual([]);
@@ -47,7 +47,7 @@ describe("InflightStore", () => {
 });
 
 describe("resumeDecision", () => {
-  it("한 번만 이어서 처리하고, 오래된 요청은 포기한다", () => {
+  it("resumes only once and gives up on old requests", () => {
     const now = 1_000_000 + 60_000;
     expect(resumeDecision(entry("k", { attempts: 1 }), now)).toBe("resume");
     expect(resumeDecision(entry("k", { attempts: MAX_ATTEMPTS }), now)).toBe("give_up");

@@ -24,11 +24,11 @@ import { describeBot, TONE_CLASS } from "./bot-state";
 import { CodeBlock } from "./code-block";
 
 const SOCKET_LABEL: Record<BotStatus["socket"]["state"], string> = {
-  connecting: "연결 중",
-  connected: "연결됨",
-  reconnecting: "재연결 중",
-  disconnecting: "닫는 중",
-  disconnected: "끊김",
+  connecting: "connecting",
+  connected: "connected",
+  reconnecting: "reconnecting",
+  disconnecting: "disconnecting",
+  disconnected: "disconnected",
 };
 
 export function BotPage() {
@@ -52,16 +52,16 @@ export function BotPage() {
             </span>
             <div className="min-w-0 flex-1">
               <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-                Verda 봇
+                Verda bot
                 <span className={cn("text-sm font-medium", TONE_CLASS[tone].text)}>
                   {label}
                 </span>
               </h1>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {status
-                  ? `Socket Mode ${SOCKET_LABEL[status.socket.state]} ${formatRelative(status.socket.since).replace(" 전", "")}째` +
-                    `, 재연결 ${status.socket.reconnects}회`
-                  : "Slack Socket Mode 로 멘션을 받아 처리하는 프로세스입니다."}
+                  ? `Socket Mode ${SOCKET_LABEL[status.socket.state]} ${formatRelative(status.socket.since)}` +
+                    `, ${status.socket.reconnects} ${status.socket.reconnects === 1 ? "reconnect" : "reconnects"}`
+                  : "The process that receives and handles mentions over Slack Socket Mode."}
               </p>
             </div>
             <Controls supervisor={supervisor} />
@@ -80,30 +80,30 @@ export function BotPage() {
             </p>
           )}
           <div className="mt-4 grid grid-cols-4 gap-3">
-            <Info icon={<Bot />} label="봇 계정">
+            <Info icon={<Bot />} label="Bot account">
               {status?.bot ? `@${status.bot.user}` : "-"}
               <Sub>{status?.bot?.team}</Sub>
             </Info>
-            <Info icon={<Cpu />} label="추론">
+            <Info icon={<Cpu />} label="Reasoner">
               {status?.reasoner ?? "-"}
               <Sub>
                 {status
-                  ? `MCP ${status.mcp?.length ? status.mcp.join(", ") : "없음"} / 그림 ${status.diagrams ? "on" : "off"}`
+                  ? `MCP ${status.mcp?.length ? status.mcp.join(", ") : "none"} / diagrams ${status.diagrams ? "on" : "off"}`
                   : undefined}
               </Sub>
             </Info>
-            <Info icon={<Inbox />} label="요청">
-              {status ? `처리 중 ${status.requests.active}건` : "-"}
+            <Info icon={<Inbox />} label="Requests">
+              {status ? `${status.requests.active} active` : "-"}
               <Sub>
                 {status
-                  ? `이번 실행에서 ${status.requests.handled}건 처리` +
+                  ? `${status.requests.handled} handled since start` +
                     (status.requests.lastAt
-                      ? `, 마지막 ${formatRelative(status.requests.lastAt)}`
+                      ? `, last ${formatRelative(status.requests.lastAt)}`
                       : "")
                   : undefined}
               </Sub>
             </Info>
-            <Info icon={<Square />} label="프로세스">
+            <Info icon={<Square />} label="Process">
               {status
                 ? `pid ${status.pid}`
                 : supervisor?.pid
@@ -111,7 +111,7 @@ export function BotPage() {
                   : "-"}
               <Sub>
                 {status
-                  ? `${status.managedBy === "desktop" ? "데스크톱 앱" : "터미널"}, ${formatDuration(Date.now() - Date.parse(status.startedAt))} 동작`
+                  ? `${status.managedBy === "desktop" ? "Desktop app" : "Terminal"}, up ${formatDuration(Date.now() - Date.parse(status.startedAt))}`
                   : undefined}
               </Sub>
             </Info>
@@ -134,7 +134,7 @@ export function BotPage() {
             (supervisor.phase === "crashed" || supervisor.phase === "building") && (
               <CodeBlock
                 className="mt-3"
-                label="마지막 출력"
+                label="Last output"
                 code={supervisor.output.slice(-40).join("\n")}
                 maxHeight="max-h-48"
               />
@@ -152,9 +152,9 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
   if (!control || !supervisor) {
     return (
       <p className="shrink-0 text-right text-xs text-muted-foreground">
-        봇 시작과 중지는
+        Start and stop the bot
         <br />
-        데스크톱 앱에서 할 수 있습니다.
+        from the desktop app.
       </p>
     );
   }
@@ -175,7 +175,7 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
             onClick={() => run(() => control.start())}
           >
             <Play />
-            시작
+            Start
           </Button>
         )}
         {live && (
@@ -186,7 +186,7 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
             onClick={() => run(() => control.restart())}
           >
             <RotateCw />
-            재시작
+            Restart
           </Button>
         )}
         {supervisor.canBuild && (
@@ -197,7 +197,7 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
             onClick={() => run(() => control.restart(true))}
           >
             <Hammer />
-            빌드 후 재시작
+            Rebuild and restart
           </Button>
         )}
         {live && (
@@ -208,7 +208,7 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
             onClick={() => run(() => control.stop())}
           >
             <Square />
-            중지
+            Stop
           </Button>
         )}
       </div>
@@ -247,10 +247,10 @@ function Sub({ children }: { children?: React.ReactNode }) {
 type LogView = "all" | "socket" | "mention" | "problems";
 
 const LOG_VIEWS: { value: LogView; label: string }[] = [
-  { value: "all", label: "전체" },
+  { value: "all", label: "All" },
   { value: "socket", label: "Socket Mode" },
-  { value: "mention", label: "멘션 처리" },
-  { value: "problems", label: "경고, 오류" },
+  { value: "mention", label: "Mentions" },
+  { value: "problems", label: "Warnings and errors" },
 ];
 
 const matchesView = (line: LogLine, view: LogView) => {
@@ -297,7 +297,7 @@ function LogPanel() {
     <section className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2 border-b px-8 py-2">
         <div className="mx-auto flex w-full max-w-5xl items-center gap-2">
-          <span className="text-sm font-medium">로그</span>
+          <span className="text-sm font-medium">Logs</span>
           <div className="ml-2 flex gap-1">
             {LOG_VIEWS.map((item) => (
               <button
@@ -320,7 +320,7 @@ function LogPanel() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="로그 검색"
+              placeholder="Search logs"
               className="h-7 pl-7 text-xs"
             />
           </div>
@@ -331,13 +331,13 @@ function LogPanel() {
             aria-pressed={follow}
           >
             <ArrowDownToLine />
-            따라가기
+            Follow
           </Button>
           {botControl() && (
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="로그 폴더 열기"
+              aria-label="Open logs folder"
               onClick={() => void botControl()?.openLogs()}
             >
               <FolderOpen />
@@ -358,7 +358,7 @@ function LogPanel() {
           ))}
           {lines.length === 0 && (
             <p className="py-10 text-center font-sans text-sm text-muted-foreground">
-              {isError ? "로그를 읽지 못했습니다." : "표시할 로그가 없습니다."}
+              {isError ? "Could not load logs." : "No logs to show."}
             </p>
           )}
         </div>

@@ -2,19 +2,19 @@ import { describe, expect, it } from "vitest";
 import { claudeArgs, codexArgs, parseClaudeOutput } from "../src/reasoner/index.js";
 
 describe("claudeArgs", () => {
-  it("기본은 도구 없이, 사용자 설정과 MCP 를 읽지 않는다", () => {
+  it("by default has no tools and does not read user settings or MCP config", () => {
     const args = claudeArgs({ system: "sys", model: "claude-opus-5-5", readOnly: false });
     expect(args).toEqual(expect.arrayContaining(["-p", "--strict-mcp-config"]));
     expect(args[args.indexOf("--setting-sources") + 1]).toBe("");
     expect(args[args.indexOf("--tools") + 1]).toBe("");
     expect(args[args.indexOf("--model") + 1]).toBe("claude-opus-5-5");
-    // 진행 단계를 기록하려고 출력은 항상 stream-json 이다.
+    // Output is always stream-json so progress steps can be recorded.
     expect(args[args.indexOf("--output-format") + 1]).toBe("stream-json");
     expect(args).toContain("--verbose");
     expect(args).not.toContain("--input-format");
   });
 
-  it("읽기 전용이면 읽기 도구만 허용하고 나머지는 자동 거부한다", () => {
+  it("in read-only mode allows only read tools and denies the rest automatically", () => {
     const args = claudeArgs({ system: "sys", readOnly: true });
     expect(args[args.indexOf("--tools") + 1]).toBe("Read,Grep,Glob");
     expect(args[args.indexOf("--permission-mode") + 1]).toBe("dontAsk");
@@ -22,10 +22,10 @@ describe("claudeArgs", () => {
   });
 });
 
-describe("MCP 서버 연결", () => {
+describe("MCP server connection", () => {
   const ops = [{ name: "ops", url: "http://ops-broker:8080/mcp" }];
 
-  it("claude 는 --mcp-config 로 붙이고 그 도구만 허용한다", () => {
+  it("claude attaches servers with --mcp-config and allows only their tools", () => {
     const args = claudeArgs({ system: "s", readOnly: false, mcpServers: ops });
     expect(args[args.indexOf("--tools") + 1]).toBe("");
     expect(args[args.indexOf("--allowedTools") + 1]).toBe("mcp__ops");
@@ -35,12 +35,12 @@ describe("MCP 서버 연결", () => {
     });
   });
 
-  it("claude 읽기 전용 도구와 MCP 도구를 함께 허용할 수 있다", () => {
+  it("claude can allow read-only tools and MCP tools together", () => {
     const args = claudeArgs({ system: "s", readOnly: true, mcpServers: ops });
     expect(args[args.indexOf("--allowedTools") + 1]).toBe("Read,Grep,Glob,mcp__ops");
   });
 
-  it("codex 는 -c mcp_servers.<name>.url 로 붙인다", () => {
+  it("codex attaches servers with -c mcp_servers.<name>.url", () => {
     const args = codexArgs({ mcpServers: ops });
     expect(args).toContain('mcp_servers.ops.url="http://ops-broker:8080/mcp"');
     expect(args).toContain('mcp_servers.ops.default_tools_approval_mode="approve"');
@@ -49,7 +49,7 @@ describe("MCP 서버 연결", () => {
 });
 
 describe("codexArgs", () => {
-  it("read-only 샌드박스, 승인 요청 없음, 임시 세션, stdin 프롬프트로 실행한다", () => {
+  it("runs with the read-only sandbox, no approval requests, an ephemeral session, and the prompt on stdin", () => {
     const args = codexArgs({});
     expect(args[0]).toBe("exec");
     expect(args[args.indexOf("--sandbox") + 1]).toBe("read-only");
@@ -61,7 +61,7 @@ describe("codexArgs", () => {
     expect(args.at(-1)).toBe("-");
   });
 
-  it("모델과 추론 강도를 넘길 수 있다", () => {
+  it("can pass the model and reasoning effort", () => {
     const args = codexArgs({ model: "m1", reasoningEffort: "medium" });
     expect(args[args.indexOf("--model") + 1]).toBe("m1");
     expect(args).toContain('model_reasoning_effort="medium"');
@@ -69,17 +69,17 @@ describe("codexArgs", () => {
 });
 
 describe("parseClaudeOutput", () => {
-  it("성공 결과만 텍스트로 돌려준다", () => {
+  it("returns text only for successful results", () => {
     expect(
       parseClaudeOutput(
         JSON.stringify({
           type: "result",
           subtype: "success",
           is_error: false,
-          result: " 네 \n",
+          result: " yes \n",
         })
       )
-    ).toBe("네");
+    ).toBe("yes");
     expect(() =>
       parseClaudeOutput(
         JSON.stringify({ subtype: "success", is_error: true, result: "boom" })

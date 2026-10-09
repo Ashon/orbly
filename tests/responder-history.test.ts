@@ -30,8 +30,12 @@ function setup(complete: (request: ReasonRequest) => Promise<string>) {
     conversations: {
       replies: async () => ({
         messages: [
-          { ts: "1791443475.275049", user: "U0BOSS", text: "web-01 가 NotReady 래요" },
-          { ts: "1791443480.000100", user: "U0BOB", text: "확인 부탁해요" },
+          {
+            ts: "1791443475.275049",
+            user: "U0BOSS",
+            text: "web-01 is NotReady, apparently",
+          },
+          { ts: "1791443480.000100", user: "U0BOB", text: "Could someone check?" },
         ],
       }),
       history: async () => ({ messages: [] }),
@@ -76,12 +80,12 @@ const mention = (ts: string): AppMentionEvent =>
     ts,
     thread_ts: "1791443475.275049",
     user: "U0BOSS",
-    text: "<@U0VERDA> web-01 상태 봐 줘",
+    text: "<@U0VERDA> check the status of web-01",
     event_ts: ts,
   }) as AppMentionEvent;
 
-describe("멘션 처리 기록", () => {
-  it("요청, 맥락, 프롬프트, 도구 단계, 답변을 남기고 완료로 표시한다", async () => {
+describe("mention run history", () => {
+  it("records the request, context, prompt, tool steps, and answer, and marks the run succeeded", async () => {
     const { responder, updates, reader } = setup(async (request) => {
       request.onEvent?.({
         kind: "tool",
@@ -102,7 +106,7 @@ describe("멘션 처리 기록", () => {
         result: "up 3 days",
         finishedAt: new Date().toISOString(),
       });
-      return "*정상* 입니다.";
+      return "It is *healthy*.";
     });
     await responder.handle(mention("1791443490.000200"));
     expect(await responder.drain(5_000)).toBe(true);
@@ -114,20 +118,20 @@ describe("멘션 처리 기록", () => {
       userName: "alice",
     });
     const run = reader.get(summary!.id)!;
-    expect(run.request).toBe("web-01 상태 봐 줘");
+    expect(run.request).toBe("check the status of web-01");
     expect(run.context.messages).toBe(2);
-    expect(run.answer).toBe("*정상* 입니다.");
+    expect(run.answer).toBe("It is *healthy*.");
     expect(run.prompt?.user).toContain('<request from="@alice">');
     expect(run.slack.permalink).toBe(
       "https://example.slack.com/archives/C0OPS/p1791453237582449?thread_ts=1791443475.275049&cid=C0OPS"
     );
     expect(run.events[0]).toMatchObject({ status: "completed", result: "up 3 days" });
-    expect(updates.at(-1)).toBe("*정상* 입니다.");
+    expect(updates.at(-1)).toBe("It is *healthy*.");
   });
 
-  it("추론이 실패하면 오류와 함께 실패로 남긴다", async () => {
+  it("records a failed run with the error when the reasoner fails", async () => {
     const { responder, reader } = setup(async () => {
-      throw new Error("codex 실행 실패: quota exceeded");
+      throw new Error("codex run failed: quota exceeded");
     });
     await responder.handle(mention("1791443500.000300"));
     expect(await responder.drain(5_000)).toBe(true);

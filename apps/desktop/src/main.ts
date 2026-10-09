@@ -27,33 +27,33 @@ import { resolveAppPaths } from "./app-paths.js";
 import { SettingsStore } from "./settings.js";
 
 /**
- * Verda 데스크톱 앱. 봇(Slack Socket Mode)을 자식 프로세스로 띄워 관리하고, 상태, 로그, 작업 기록을 보여 준다.
- * - 화면(apps/web 빌드)과 조회 API 는 verda://app 프로토콜로만 제공해서 외부 포트를 열지 않는다.
- * - 봇 제어(시작, 중지, 재시작)는 preload 의 IPC 로만 한다.
- * - 창을 닫으면 트레이로 숨고 봇은 계속 동작한다. 앱을 종료하면 봇도 처리 중인 요청을 마무리하고 종료한다.
+ * Verda desktop app. Runs and manages the bot (Slack Socket Mode) as a child process and shows its status, logs, and run history.
+ * - The UI (apps/web build) and the query API are served only over the verda://app protocol, so no external port is opened.
+ * - Bot control (start, stop, restart) goes only through the preload IPC.
+ * - Closing the window hides it to the tray and the bot keeps running. Quitting the app lets the bot finish active requests and then stops it.
  */
 const distDir = path.dirname(fileURLToPath(import.meta.url));
-/** 개발 실행은 저장소의 빌드 결과를, 패키지 앱(Verda.app)은 앱 안의 묶음 파일을 쓴다. */
+/** Dev runs use the repository build output; the packaged app (Verda.app) uses the bundled files inside the app. */
 const paths = resolveAppPaths(distDir, app.isPackaged);
 const webDistDir = paths.webDist;
-/** 설정 파일은 저장소 밖에 둔다. (VERDA_HOME, 기본 ~/.verda) */
+/** The settings file lives outside the repository. (VERDA_HOME, default ~/.verda) */
 const envFile = envFilePath();
 const webDevUrl = app.isPackaged ? undefined : process.env.VERDA_WEB_DEV_URL;
-/** 화면을 PNG 로 저장하고 종료한다. (빌드 확인용) */
+/** Saves the window as a PNG and quits. (for checking builds) */
 const captureFile = process.env.VERDA_DESKTOP_CAPTURE;
 const dataDir = resolveDataDir();
 const reader = new HistoryReader(dataDir);
 /**
- * VERDA_DESKTOP_BOT=off 이면 봇을 관리하지 않고 기록만 본다.
- * 화면 캡처 때는 봇을 건드리지 않는다. (VERDA_DESKTOP_BOT=on 이면 캡처 때도 관리)
+ * With VERDA_DESKTOP_BOT=off the app does not manage the bot and only shows history.
+ * Screen captures leave the bot alone. (VERDA_DESKTOP_BOT=on manages it during captures too)
  */
 const botSetting = process.env.VERDA_DESKTOP_BOT;
 const manageBot = botSetting === "on" || (botSetting !== "off" && !captureFile);
 
 app.setName("Verda");
-// 화면 캡처는 따로 된 사용자 데이터 폴더를 써서, 실행 중인 앱의 단일 실행 잠금에 걸리지 않게 한다.
+// Screen captures use a separate user data folder so they do not hit the running app's single-instance lock.
 if (captureFile) app.setPath("userData", path.join(tmpdir(), "verda-desktop-capture"));
-// 화면 테마: system(기본), light, dark
+// UI theme: system (default), light, dark
 const themeSource = process.env.VERDA_DESKTOP_THEME;
 if (themeSource === "light" || themeSource === "dark")
   nativeTheme.themeSource = themeSource;
@@ -63,7 +63,7 @@ let mainWindow: BrowserWindow | undefined;
 let tray: Tray | undefined;
 let toolPathCache: string | undefined;
 
-/** Finder 로 띄운 앱은 터미널의 PATH(Homebrew, nvm, docker, codex, pnpm)를 물려받지 못한다. */
+/** An app launched from Finder does not inherit the terminal's PATH (Homebrew, nvm, docker, codex, pnpm). */
 function toolPath(): string {
   if (toolPathCache) return toolPathCache;
   try {
@@ -78,7 +78,7 @@ function toolPath(): string {
       .find((l) => l.startsWith("VERDA_PATH="));
     if (line) toolPathCache = line.slice("VERDA_PATH=".length);
   } catch {
-    // 아래 기본 경로를 쓴다.
+    // Falls back to the default paths below.
   }
   toolPathCache ||= [
     process.env.PATH,
@@ -92,14 +92,14 @@ function toolPath(): string {
   return toolPathCache;
 }
 
-/** 설정 파일(.env)을 고치는 설정 화면. 봇을 관리하지 않을 때도 쓸 수 있다. */
+/** Settings screen that edits the settings file (.env). Works even when the bot is not managed. */
 const settings = new SettingsStore({
   envFile,
   dataDir,
   env: process.env,
 });
 
-/** 샌드박스 상태, 허용 도메인, 적용 작업 */
+/** Sandbox status, allowed domains, apply jobs */
 const sandbox = new SandboxService({
   sandboxDir: paths.sandboxDir,
   jobRunner: paths.jobRunner,
@@ -113,7 +113,7 @@ const supervisor = manageBot
   ? new BotSupervisor({
       entry: paths.botEntry,
       repoRoot: paths.repoRoot,
-      // 패키지 앱은 쓰기 가능한 데이터 폴더에서 봇을 띄운다.
+      // The packaged app runs the bot from the writable data folder.
       cwd: paths.repoRoot ?? dataDir,
       envFile,
       dataDir,
@@ -129,7 +129,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-/** 환경 변수, 설정 파일의 VERDA_DATA_DIR, 기본값(~/.verda) 순으로 정한다. */
+/** Resolved from the environment variable, then VERDA_DATA_DIR in the settings file, then the default (~/.verda). */
 function resolveDataDir(): string {
   let value = process.env.VERDA_DATA_DIR;
   if (!value) {
@@ -142,7 +142,7 @@ function resolveDataDir(): string {
         .trim()
         .replace(/^["']|["']$/g, "");
     } catch {
-      // .env 가 없으면 기본값을 쓴다.
+      // Without .env, the default is used.
     }
   }
   value ||= "~/.verda";
@@ -201,27 +201,27 @@ function showMainWindow(): void {
 }
 
 const PHASE_LABEL: Record<SupervisorState["phase"], string> = {
-  idle: "중지됨",
-  building: "빌드 중",
-  starting: "시작 중",
-  running: "실행 중",
-  stopping: "종료 중",
-  crashed: "오류로 종료",
-  external: "터미널에서 실행 중",
+  idle: "Stopped",
+  building: "Building",
+  starting: "Starting",
+  running: "Running",
+  stopping: "Stopping",
+  crashed: "Crashed",
+  external: "Running in terminal",
 };
 
 function botSummary(): { label: string; active: number } {
   const view = readBotStatus(dataDir);
   const status = view.alive ? view.status : undefined;
   const phase = supervisor?.current.phase;
-  let label = phase ? PHASE_LABEL[phase] : status ? "실행 중" : "중지됨";
+  let label = phase ? PHASE_LABEL[phase] : status ? "Running" : "Stopped";
   if (status?.state === "running" && status.socket.state !== "connected") {
-    label = `Socket Mode ${status.socket.state === "reconnecting" ? "재연결 중" : "끊김"}`;
+    label = `Socket Mode ${status.socket.state === "reconnecting" ? "reconnecting" : "disconnected"}`;
   } else if (
     status?.state === "running" &&
     (phase === "running" || phase === "external")
   ) {
-    label = `${phase === "external" ? "터미널에서 " : ""}연결됨 (${status.reasoner ?? "?"})`;
+    label = `Connected${phase === "external" ? " in terminal" : ""} (${status.reasoner ?? "?"})`;
   }
   return { label, active: status?.requests.active ?? 0 };
 }
@@ -234,17 +234,17 @@ function updateTray(): void {
   const key = JSON.stringify([summary, phase]);
   if (key === lastTrayKey) return;
   lastTrayKey = key;
-  tray.setToolTip(`Verda - 봇 ${summary.label}`);
-  // 처리 중인 요청이 있으면 메뉴 막대 아이콘 옆에 수를 표시한다. (macOS)
+  tray.setToolTip(`Verda - Bot: ${summary.label}`);
+  // Shows the number of active requests next to the menu bar icon. (macOS)
   tray.setTitle(summary.active > 0 ? String(summary.active) : "");
-  // 트레이는 상태와 바로 쓰는 동작만 둔다. 봇 제어는 봇 화면, 앱 설정(자동 시작, 기록 폴더)은 설정 화면에 있다.
+  // The tray holds only the status and quick actions. Bot control is on the Bot screen; app settings (start automatically, run history folder) are on the Settings screen.
   const live = phase === "running" || phase === "starting";
   const controls: MenuItemConstructorOptions[] = supervisor
     ? [
         live
-          ? { label: "봇 재시작", click: () => void supervisor.restart() }
+          ? { label: "Restart bot", click: () => void supervisor.restart() }
           : {
-              label: "봇 시작",
+              label: "Start bot",
               enabled: phase === "idle" || phase === "crashed",
               click: () => void supervisor.start(),
             },
@@ -253,28 +253,33 @@ function updateTray(): void {
     : [];
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: `봇: ${summary.label}`, enabled: false },
+      { label: `Bot: ${summary.label}`, enabled: false },
       ...(summary.active > 0
-        ? [{ label: `처리 중인 요청 ${summary.active}건`, enabled: false }]
+        ? [
+            {
+              label: `${summary.active} active ${summary.active === 1 ? "request" : "requests"}`,
+              enabled: false,
+            },
+          ]
         : []),
       { type: "separator" },
       ...controls,
-      { label: "Verda 열기", click: showMainWindow },
+      { label: "Open Verda", click: showMainWindow },
       { type: "separator" },
-      { label: "Verda 종료", click: () => app.quit() },
+      { label: "Quit Verda", click: () => app.quit() },
     ])
   );
 }
 
 function createTray(): void {
-  // tray@2x.png 가 같은 디렉터리에 있으면 레티나에서 자동으로 쓴다.
+  // If tray@2x.png is in the same directory, Retina displays use it automatically.
   tray = new Tray(nativeImage.createFromPath(path.join(distDir, "tray.png")));
   tray.on("click", () => tray?.popUpContextMenu());
   updateTray();
   setInterval(updateTray, 2_000).unref();
 }
 
-/** 화면의 봇 제어. 메인 창이 보낸 요청만 받는다. */
+/** Bot control from the UI. Accepts requests only from the main window. */
 function registerBotIpc(): void {
   const fromMainWindow = (event: Electron.IpcMainInvokeEvent) =>
     event.sender === mainWindow?.webContents;
@@ -314,7 +319,7 @@ function registerBotIpc(): void {
       if (issues.length > 0 || restart !== true || !supervisor) {
         return { issues, restarted: false };
       }
-      // 새 설정은 봇을 다시 띄워야 적용된다. 멈춰 있던 봇이면 새로 띄운다.
+      // New settings take effect only after the bot restarts. A stopped bot is started fresh.
       const phase = supervisor.current.phase;
       if (phase === "running" || phase === "starting") await supervisor.restart();
       else if (phase === "idle" || phase === "crashed") await supervisor.start();
@@ -335,7 +340,7 @@ function registerBotIpc(): void {
     fromMainWindow(event) ? (sandbox.job ?? null) : null
   );
   ipcMain.handle("verda:sandbox:run", (event, kind: unknown) =>
-    fromMainWindow(event) ? sandbox.run(kind) : { error: "거부됨" }
+    fromMainWindow(event) ? sandbox.run(kind) : { error: "Denied" }
   );
   ipcMain.handle("verda:sandbox:save-allowlist", (event, domains: unknown) =>
     fromMainWindow(event) ? sandbox.saveAllowlist(domains) : []
@@ -356,7 +361,7 @@ async function createWindow(): Promise<void> {
   }
   const window = new BrowserWindow({
     width: 1360,
-    // 캡처할 때는 긴 화면도 담을 수 있게 높이를 바꿀 수 있다.
+    // For captures the height can be changed to fit long screens.
     height: (captureFile && Number(process.env.VERDA_DESKTOP_CAPTURE_HEIGHT)) || 880,
     minWidth: 960,
     minHeight: 600,
@@ -384,7 +389,7 @@ async function createWindow(): Promise<void> {
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = undefined;
   });
-  // Slack 링크 등 외부 주소는 기본 브라우저로 연다.
+  // External addresses such as Slack links open in the default browser.
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https:\/\//.test(url)) void shell.openExternal(url);
     return { action: "deny" };
@@ -399,17 +404,17 @@ async function createWindow(): Promise<void> {
   if (captureFile) await capture(window, captureFile);
 }
 
-/** 개발 서버가 뜰 때까지 기다린다. (pnpm desktop:dev 는 화면과 앱을 함께 띄운다) */
+/** Waits until the dev server is up. (pnpm desktop:dev starts the UI and the app together) */
 async function waitForUrl(url: string): Promise<void> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     try {
       if ((await fetch(url, { signal: AbortSignal.timeout(1_000) })).ok) return;
     } catch {
-      // 아직 시작 중이다.
+      // Still starting.
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error(`${url} 에 연결하지 못했습니다.`);
+  throw new Error(`Could not connect to ${url}.`);
 }
 
 async function capture(window: BrowserWindow, file: string): Promise<void> {
@@ -428,7 +433,7 @@ async function capture(window: BrowserWindow, file: string): Promise<void> {
 function reportStartupError(error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
   console.error(message);
-  dialog.showErrorBox("Verda 를 시작하지 못했습니다", message);
+  dialog.showErrorBox("Verda could not start", message);
   app.quit();
 }
 
@@ -445,7 +450,7 @@ if (!app.requestSingleInstanceLock()) {
         app.dock?.setIcon(nativeImage.createFromPath(path.join(distDir, "icon.png")));
       }
       if (!captureFile) createTray();
-      // 봇은 창과 따로 뜬다. 창을 기다리지 않는다.
+      // The bot starts independently of the window and does not wait for it.
       if (supervisor?.current.autoStart && supervisor.current.phase === "idle") {
         void supervisor.start();
       }
@@ -458,10 +463,10 @@ if (!app.requestSingleInstanceLock()) {
 let botStopped = false;
 app.on("before-quit", (event) => {
   isQuitting = true;
-  // 직접 띄운 봇은 처리 중인 요청을 마무리하게 한 뒤 종료한다. (최대 30초)
+  // A bot started by the app finishes active requests before it stops. (up to 30 seconds)
   if (supervisor?.managing && !botStopped) {
     event.preventDefault();
-    tray?.setToolTip("Verda - 봇 종료 중");
+    tray?.setToolTip("Verda - Bot: Stopping");
     void supervisor.stop().finally(() => {
       botStopped = true;
       supervisor.dispose();

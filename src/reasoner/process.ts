@@ -5,9 +5,9 @@ export interface RunOptions {
   input: string;
   timeoutMs: number;
   signal?: AbortSignal;
-  /** 자식 프로세스 환경 변수. 기본은 현재 프로세스 환경 */
+  /** Environment variables for the child process. Defaults to the current process environment */
   env?: NodeJS.ProcessEnv;
-  /** stdout 을 줄 단위로 받는다. (JSONL 이벤트 스트림 처리용) */
+  /** Receives stdout line by line. (for JSONL event streams) */
   onStdoutLine?: (line: string) => void;
 }
 
@@ -18,7 +18,7 @@ export interface RunResult {
 
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
 
-/** 0 이 아닌 종료 코드. 호출 측이 출력 형식에 맞게 원인을 해석할 수 있도록 출력을 담는다. */
+/** Non-zero exit code. Carries the output so callers can interpret the cause for their output format. */
 export class ProcessExitError extends Error {
   constructor(
     message: string,
@@ -30,7 +30,7 @@ export class ProcessExitError extends Error {
   }
 }
 
-/** CLI 를 실행하고 stdin 으로 입력을 넘긴다. 시간 초과/중단 시 프로세스를 종료한다. */
+/** Runs a CLI and passes input through stdin. Kills the process on timeout or abort. */
 export function runProcess(
   command: string,
   args: string[],
@@ -62,10 +62,10 @@ export function runProcess(
     };
 
     const timer = setTimeout(
-      () => kill(`${command} 응답 시간 초과 (${Math.round(options.timeoutMs / 1000)}s)`),
+      () => kill(`${command} timed out (${Math.round(options.timeoutMs / 1000)}s)`),
       options.timeoutMs
     );
-    const onAbort = () => kill(`${command} 실행이 중단되었습니다.`);
+    const onAbort = () => kill(`${command} run was aborted.`);
     options.signal?.addEventListener("abort", onAbort, { once: true });
 
     child.stdout.on("data", (chunk: Buffer) => {
@@ -76,7 +76,7 @@ export function runProcess(
         pending = lines.pop() ?? "";
         for (const line of lines) if (line.trim()) options.onStdoutLine(line);
       }
-      if (stdout.length > MAX_OUTPUT_BYTES) kill(`${command} 출력이 너무 큽니다.`);
+      if (stdout.length > MAX_OUTPUT_BYTES) kill(`${command} output is too large.`);
     });
     child.stderr.on("data", (chunk: Buffer) => {
       stderr = (stderr + chunk.toString("utf8")).slice(-64 * 1024);
@@ -84,7 +84,7 @@ export function runProcess(
     child.on("error", (err) => {
       const hint =
         (err as NodeJS.ErrnoException).code === "ENOENT"
-          ? `${command} 실행 파일을 찾을 수 없습니다. PATH 또는 *_BIN 설정을 확인하세요.`
+          ? `${command} executable not found. Check PATH or the *_BIN setting.`
           : err.message;
       finish(new Error(hint));
     });
@@ -94,7 +94,7 @@ export function runProcess(
         finish();
         return;
       }
-      // claude -p 는 실패 내용을 stdout(JSON)으로 내보내므로 stderr 가 비면 stdout 을 쓴다.
+      // claude -p writes failure details to stdout (JSON), so stdout is used when stderr is empty.
       const tail = (stderr.trim() || stdout.trim())
         .split("\n")
         .slice(-5)
@@ -102,7 +102,7 @@ export function runProcess(
         .slice(-500);
       finish(
         new ProcessExitError(
-          `${command} 종료 코드 ${code}${tail ? `: ${tail}` : ""}`,
+          `${command} exited with code ${code}${tail ? `: ${tail}` : ""}`,
           code,
           stdout,
           stderr
@@ -111,7 +111,7 @@ export function runProcess(
     });
 
     child.stdin.on("error", () => {
-      // 프로세스가 입력을 다 읽기 전에 끝난 경우. close 이벤트에서 처리한다.
+      // The process exited before reading all input. Handled in the close event.
     });
     child.stdin.end(options.input);
   });

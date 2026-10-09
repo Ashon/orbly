@@ -1,11 +1,11 @@
 import AppKit
 
-// assets/verda-icon.svg 의 색과 도형을 PNG 로 그린다.
-// - 기본: 개발 실행(electron .)용 독 아이콘. 독이 PNG 를 그대로 쓰므로, 시스템이 패키지 앱 아이콘에 해 주는 처리
-//   (1024 중 824 본체, 둥근 사각형, 그림자, 위쪽 반사광)를 직접 그린다.
-//   사용: swift apps/desktop/scripts/icon.swift <assets 디렉터리>
-// - --iconset: 패키지 앱(.icns)용 macOS 아이콘 세트. svg 그대로 꽉 채워 그리고, 격자와 효과는 시스템이 입힌다.
-//   사용: swift apps/desktop/scripts/icon.swift --iconset <Verda.iconset>
+// Draws the colors and shapes of assets/verda-icon.svg as PNG.
+// - Default: dock icon for dev runs (electron .). The dock uses the PNG as is, so this draws the treatment the system
+//   applies to packaged app icons (824 body out of 1024, rounded square, shadow, top highlight) by hand.
+//   Usage: swift apps/desktop/scripts/icon.swift <assets directory>
+// - --iconset: macOS icon set for the packaged app (.icns). Draws the svg full bleed; the system applies the grid and effects.
+//   Usage: swift apps/desktop/scripts/icon.swift --iconset <Verda.iconset>
 let iconsetMode = CommandLine.arguments[1] == "--iconset"
 let destination = URL(fileURLWithPath: CommandLine.arguments[iconsetMode ? 2 : 1])
 
@@ -14,7 +14,7 @@ let green = CGColor(red: 0x1f / 255, green: 0xc2 / 255, blue: 0x89 / 255, alpha:
 let mint = CGColor(red: 0x48 / 255, green: 0xc8 / 255, blue: 0x9c / 255, alpha: 1)
 let space = CGColorSpaceCreateDeviceRGB()
 
-/// macOS 아이콘 윤곽에 가까운 초타원(n=5)
+/// Superellipse (n=5) close to the macOS icon outline
 func squircle(_ rect: CGRect) -> CGPath {
     let path = CGMutablePath()
     let a = rect.width / 2, cx = rect.midX, cy = rect.midY, n: CGFloat = 5
@@ -39,12 +39,12 @@ func render(pixels: Int, to name: String) throws {
         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
     let context = NSGraphicsContext(bitmapImageRep: bitmap)!.cgContext
     let k = CGFloat(pixels) / 1024
-    // y 가 위로 커지는 좌표. 본체는 1024 격자에서 (100, 100) 부터 824
+    // Coordinates where y grows upward. The body is 824 from (100, 100) on the 1024 grid
     let body = CGRect(x: 100 * k, y: 100 * k, width: 824 * k, height: 824 * k)
-    let unit = body.width / 32 // verda-icon.svg 의 32 격자 한 칸
+    let unit = body.width / 32 // one cell of the verda-icon.svg 32 grid
     let shape = squircle(body)
 
-    // 1. 바닥 그림자
+    // 1. Drop shadow
     context.saveGState()
     context.setShadow(offset: CGSize(width: 0, height: -12 * k), blur: 30 * k,
         color: CGColor(gray: 0, alpha: 0.32))
@@ -53,7 +53,7 @@ func render(pixels: Int, to name: String) throws {
     context.fillPath()
     context.restoreGState()
 
-    // 2. 왼쪽 아래 에메랄드 -> 오른쪽 위 민트 (svg: (4, 28) -> (28, 4))
+    // 2. Emerald bottom left -> mint top right (svg: (4, 28) -> (28, 4))
     context.saveGState()
     context.addPath(shape)
     context.clip()
@@ -62,13 +62,13 @@ func render(pixels: Int, to name: String) throws {
         end: CGPoint(x: body.minX + 28 * unit, y: body.minY + 28 * unit),
         options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
 
-    // 3. 위쪽 반사광
+    // 3. Top highlight
     context.drawLinearGradient(
         gradient([CGColor(gray: 1, alpha: 0.12), CGColor(gray: 1, alpha: 0)], [0, 1]),
         start: CGPoint(x: body.midX, y: body.maxY),
         end: CGPoint(x: body.midX, y: body.midY), options: [])
 
-    // 4. 링 (svg: 중심 (16, 16), 바깥 8.5, 안쪽 3.25). 살짝 띄워 보이게 그림자를 준다.
+    // 4. Ring (svg: center (16, 16), outer 8.5, inner 3.25). A shadow makes it look slightly raised.
     let center = CGPoint(x: body.midX, y: body.midY)
     let ring = CGMutablePath()
     ring.addEllipse(in: CGRect(x: center.x - 8.5 * unit, y: center.y - 8.5 * unit,
@@ -93,7 +93,7 @@ func render(pixels: Int, to name: String) throws {
     context.restoreGState()
     context.restoreGState()
 
-    // 5. 가장자리 빛 (위는 밝게, 아래로 갈수록 흐리게)
+    // 5. Edge light (bright at the top, fading toward the bottom)
     context.saveGState()
     context.addPath(shape)
     context.clip()
@@ -111,7 +111,7 @@ func render(pixels: Int, to name: String) throws {
         .write(to: destination.appendingPathComponent(name))
 }
 
-/// svg 와 같은 꽉 찬 아이콘: 32 격자, 모서리 8, 대각선 그라데이션, 흰 링
+/// Full-bleed icon matching the svg: 32 grid, corner 8, diagonal gradient, white ring
 func renderFlat(pixels: Int, to name: String) throws {
     let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
@@ -121,7 +121,7 @@ func renderFlat(pixels: Int, to name: String) throws {
     context.addPath(CGPath(roundedRect: CGRect(x: 0, y: 0, width: 32 * unit, height: 32 * unit),
         cornerWidth: 8 * unit, cornerHeight: 8 * unit, transform: nil))
     context.clip()
-    // svg 는 y 가 아래로 커진다: (4, 28) -> (28, 4) 는 여기서 왼쪽 아래 -> 오른쪽 위
+    // In the svg y grows downward: (4, 28) -> (28, 4) is bottom left -> top right here
     context.drawLinearGradient(gradient([emerald, mint], [0, 1]),
         start: CGPoint(x: 4 * unit, y: 4 * unit), end: CGPoint(x: 28 * unit, y: 28 * unit),
         options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
@@ -144,7 +144,7 @@ if iconsetMode {
         }
     }
 } else {
-    // 독/창 아이콘(1024)과 README 로고(256, 화면에서 128 로 보인다)
+    // Dock/window icon (1024) and README logo (256, shown at 128 on screen)
     try render(pixels: 1024, to: "verda-icon.png")
     try render(pixels: 256, to: "verda-icon-256.png")
 }

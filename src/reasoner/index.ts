@@ -7,7 +7,7 @@ import { ProcessExitError } from "./process.js";
 
 export type ReasonerBackend = "claude" | "codex";
 
-/** 모델에 함께 넘길 이미지 (호스트 경로). 모두 같은 디렉터리에 있어야 한다. */
+/** Image passed to the model with the prompt (host path). All must be in the same directory. */
 export interface ReasonImage {
   path: string;
   mimetype: string;
@@ -17,28 +17,28 @@ export interface ReasonRequest {
   system: string;
   prompt: string;
   images?: ReasonImage[];
-  /** CLI 가 만든 산출물(codex 생성 이미지)을 받을 호스트 디렉터리 */
+  /** Host directory that receives outputs the CLI creates (codex generated images) */
   outputDir?: string;
-  /** 읽기 전용으로 참고할 디렉터리. canReadFiles 가 false 면 무시된다. */
+  /** Directory to consult read-only. Ignored when canReadFiles is false. */
   readOnlyDir?: string;
   signal?: AbortSignal;
-  /** CLI 가 진행 단계(메시지, 도구 호출, 사용량)를 출력할 때마다 호출된다. */
+  /** Called whenever the CLI prints a progress step (message, tool call, usage). */
   onEvent?: (event: RunEvent) => void;
 }
 
-/** 로컬 CLI(claude, codex)로 한 번 추론해서 최종 텍스트를 받는다. */
+/** Runs one inference with a local CLI (claude, codex) and returns the final text. */
 export interface Reasoner {
   readonly backend: ReasonerBackend;
-  /** 실행 위치. host 또는 docker 샌드박스 */
+  /** Where it runs. host or docker sandbox */
   readonly sandbox: Executor["kind"];
-  /** 참고 디렉터리의 파일을 읽을 수 있는지 */
+  /** Whether it can read files in the reference directory */
   readonly canReadFiles: boolean;
-  /** 붙어 있는 MCP 서버 이름 */
+  /** Names of the attached MCP servers */
   readonly mcpServerNames: string[];
   complete(request: ReasonRequest): Promise<string>;
 }
 
-/** 추론 CLI 에 붙일 MCP 서버 (Streamable HTTP) */
+/** MCP server to attach to the reasoner CLI (Streamable HTTP) */
 export interface McpServerRef {
   name: string;
   url: string;
@@ -47,7 +47,7 @@ export interface McpServerRef {
 export interface ReasonerOptions {
   backend: ReasonerBackend;
   model?: string;
-  /** codex 의 model_reasoning_effort. 샌드박스에서는 호스트 설정을 못 읽어서 명시한다. */
+  /** codex model_reasoning_effort. Set explicitly because the sandbox cannot read the host config. */
   codexReasoningEffort?: string;
   timeoutMs: number;
   mcpServers?: McpServerRef[];
@@ -56,20 +56,20 @@ export interface ReasonerOptions {
 const READ_ONLY_TOOLS = "Read,Grep,Glob";
 
 /**
- * claude -p 인자. 사용자 설정, 훅, MCP 를 읽지 않는 격리 실행이다.
- * readOnly 이면 읽기 도구만 허용하고 나머지 권한 요청은 자동 거부(dontAsk)한다.
- * 셸, 웹, 파일 쓰기 도구는 어떤 경우에도 주지 않는다.
+ * claude -p arguments. An isolated run that does not read user settings, hooks, or MCP config.
+ * With readOnly, only read tools are allowed and other permission requests are denied automatically (dontAsk).
+ * Shell, web, and file write tools are never granted.
  */
 export function claudeArgs(options: {
   system: string;
   model?: string;
   readOnly: boolean;
   mcpServers?: McpServerRef[];
-  /** 이미지가 있으면 stdin 을 stream-json(이미지 블록 포함)으로 넘긴다. */
+  /** With images, passes stdin as stream-json (including image blocks). */
   streamInput?: boolean;
 }): string[] {
   const mcpServers = options.mcpServers ?? [];
-  // 진행 단계를 기록하려고 출력은 항상 stream-json 으로 받는다. 마지막 줄이 최종 결과다.
+  // Output is always stream-json so progress steps can be recorded. The last line is the final result.
   const args = [
     "-p",
     ...(options.streamInput ? ["--input-format", "stream-json"] : []),
@@ -88,7 +88,7 @@ export function claudeArgs(options: {
   if (options.model) args.push("--model", options.model);
   args.push("--tools", options.readOnly ? READ_ONLY_TOOLS : "");
 
-  // 허용 목록에 있는 도구만 쓰고, 그 밖의 권한 요청은 자동 거부(dontAsk)한다.
+  // Only allowlisted tools are used, and other permission requests are denied automatically (dontAsk).
   const allowed = [
     ...(options.readOnly ? [READ_ONLY_TOOLS] : []),
     ...mcpServers.map((server) => `mcp__${server.name}`),
@@ -106,17 +106,17 @@ export function claudeArgs(options: {
 }
 
 /**
- * codex exec 인자. 프롬프트는 stdin(-)으로 넘기고 stdout 으로 진행 이벤트(JSONL)를 받는다.
- * ChatGPT 계정에 연결된 앱 커넥터(codex_apps, 예: GitHub)는 끈다. 권한 범위가 다르고 데이터가
- * 다른 경로로 나가므로, 외부 시스템 조회는 ops-broker 도구로만 한다.
- * codex 는 셸 도구를 끌 수 없어서 read-only 샌드박스(쓰기, 네트워크 차단)와
- * approval_policy=never(권한 상승 요청 없음)로 제한한다.
+ * codex exec arguments. The prompt goes through stdin (-) and progress events (JSONL) come back on stdout.
+ * App connectors linked to the ChatGPT account (codex_apps, e.g. GitHub) are disabled. Their permission scope
+ * differs and data leaves through another path, so external systems are queried only with ops-broker tools.
+ * codex cannot disable its shell tool, so it is restricted with the read-only sandbox (no writes, no network)
+ * and approval_policy=never (no escalation requests).
  */
 export function codexArgs(options: {
   model?: string;
   reasoningEffort?: string;
   mcpServers?: McpServerRef[];
-  /** 컨테이너(또는 호스트) 기준 이미지 경로 */
+  /** Image paths as seen from the container (or host) */
   images?: string[];
 }): string[] {
   const args = [
@@ -139,11 +139,11 @@ export function codexArgs(options: {
   }
   for (const server of options.mcpServers ?? []) {
     args.push("-c", `mcp_servers.${server.name}.url=${JSON.stringify(server.url)}`);
-    // approval_policy=never 에서는 읽기 전용이 아닌 MCP 도구가 거부된다.
-    // 허용/거부 판단은 broker 의 정책 검사가 하므로 이 서버의 도구는 자동 승인한다.
+    // With approval_policy=never, MCP tools that are not read-only are rejected.
+    // The broker's policy check decides allow/deny, so this server's tools are approved automatically.
     args.push("-c", `mcp_servers.${server.name}.default_tools_approval_mode="approve"`);
   }
-  // --image 는 값을 여러 개 받는 옵션이라 = 형식으로 하나씩 넘겨야 뒤의 - 를 먹지 않는다.
+  // --image takes multiple values, so each is passed in = form to keep it from consuming the trailing -.
   for (const image of options.images ?? []) args.push(`--image=${image}`);
   args.push("-");
   return args;
@@ -159,7 +159,7 @@ interface ClaudeJsonResult {
 export function parseClaudeOutput(stdout: string): string {
   let parsed: ClaudeJsonResult;
   try {
-    // stream-json 이면 마지막 result 줄을, json 이면 전체를 읽는다.
+    // Reads the last result line for stream-json, or the whole output for json.
     const lines = stdout.trim().split("\n");
     const resultLine =
       lines.length > 1
@@ -167,7 +167,7 @@ export function parseClaudeOutput(stdout: string): string {
         : lines[0];
     parsed = JSON.parse(resultLine ?? "") as ClaudeJsonResult;
   } catch {
-    throw new Error(`claude 출력이 JSON 이 아닙니다: ${stdout.slice(0, 200)}`);
+    throw new Error(`claude output is not JSON: ${stdout.slice(0, 200)}`);
   }
   if (
     parsed.is_error ||
@@ -176,7 +176,7 @@ export function parseClaudeOutput(stdout: string): string {
   ) {
     const kind =
       parsed.subtype && parsed.subtype !== "success" ? ` (${parsed.subtype})` : "";
-    throw new Error(`claude 실행 실패${kind}: ${parsed.result ?? ""}`);
+    throw new Error(`claude run failed${kind}: ${parsed.result ?? ""}`);
   }
   return parsed.result.trim();
 }
@@ -209,7 +209,7 @@ class ClaudeCliReasoner implements Reasoner {
         mcpServers: this.options.mcpServers,
         streamInput: images.length > 0,
       }),
-      // 이미지는 마운트 없이 stdin 의 base64 블록으로 넘긴다.
+      // Images are passed as base64 blocks on stdin, without a mount.
       input:
         images.length > 0
           ? await claudeStreamInput(request.prompt, images)
@@ -224,7 +224,7 @@ class ClaudeCliReasoner implements Reasoner {
     try {
       return parseClaudeOutput((await run).stdout);
     } catch (err) {
-      // 인증 실패 등은 종료 코드 1 과 함께 결과 JSON 이 stdout 에 온다. 그 안의 원인을 보여준다.
+      // Failures such as auth errors exit with code 1 and put the result JSON on stdout. Shows the cause from it.
       if (err instanceof ProcessExitError && err.stdout.includes('"type":"result"')) {
         parseClaudeOutput(err.stdout);
       }
@@ -262,7 +262,7 @@ class CodexCliReasoner implements Reasoner {
       }),
       attachmentsDir,
       outputDir: request.outputDir,
-      // codex exec 에는 별도 system prompt 옵션이 없어 지시문을 앞에 붙인다.
+      // codex exec has no separate system prompt option, so the instructions are prepended.
       input: `<instructions>\n${request.system}\n</instructions>\n\n${request.prompt}`,
       referenceDir: this.canReadFiles ? request.readOnlyDir : undefined,
       timeoutMs: this.options.timeoutMs,
@@ -275,23 +275,23 @@ class CodexCliReasoner implements Reasoner {
     try {
       ({ stdout } = await run);
     } catch (err) {
-      // 실패 원인은 stdout 의 error 이벤트에 있다.
+      // The failure cause is in the error events on stdout.
       const reason = err instanceof ProcessExitError ? codexError(err.stdout) : undefined;
-      if (reason) throw new Error(`codex 실행 실패: ${reason}`, { cause: err });
+      if (reason) throw new Error(`codex run failed: ${reason}`, { cause: err });
       throw err;
     }
     return parseCodexOutput(stdout);
   }
 }
 
-/** codex --json 출력에서 마지막 agent_message 를 최종 답으로 읽는다. */
+/** Reads the last agent_message in codex --json output as the final answer. */
 export function parseCodexOutput(stdout: string): string {
   const events = stdout.split("\n").flatMap((line) => codexLineToEvents(line));
   const answer = lastMessage(events);
   if (answer) return answer;
   const reason = codexError(stdout);
   throw new Error(
-    reason ? `codex 실행 실패: ${reason}` : "codex 가 빈 응답을 반환했습니다."
+    reason ? `codex run failed: ${reason}` : "codex returned an empty response."
   );
 }
 
@@ -303,7 +303,7 @@ function codexError(stdout: string): string | undefined {
   return errors.at(-1);
 }
 
-/** claude stream-json 입력: 이미지 블록들 뒤에 텍스트 프롬프트를 붙인 사용자 메시지 한 줄 */
+/** claude stream-json input: one user message line with the image blocks followed by the text prompt */
 export async function claudeStreamInput(
   prompt: string,
   images: ReasonImage[]

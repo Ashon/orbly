@@ -6,7 +6,7 @@ import { defineConfig, type Plugin } from "vite";
 import { handleLocalApi } from "../../src/local-api";
 import { HistoryReader } from "../../src/history/reader";
 
-/** 개발 서버에서도 데스크톱 앱과 같은 /api 로 실제 기록을 읽는다. (읽기 전용, 127.0.0.1 만) */
+/** The dev server also reads real history through the same /api as the desktop app. (read-only, 127.0.0.1 only) */
 function historyApi(): Plugin {
   return {
     name: "verda-history-api",
@@ -39,6 +39,6 @@ export default defineConfig({
     },
   },
   server: { host: "127.0.0.1", port: 5179, strictPort: true },
-  // 로컬 데스크톱 앱이라 번들 하나로 충분하다.
+  // A single bundle is enough for a local desktop app.
   build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 1500 },
 });

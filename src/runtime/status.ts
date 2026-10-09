@@ -17,7 +17,7 @@ export function isAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (err) {
-    // EPERM 이면 프로세스는 있지만 다른 사용자 소유다.
+    // EPERM means the process exists but belongs to another user.
     return (err as NodeJS.ErrnoException).code === "EPERM";
   }
 }
@@ -39,13 +39,13 @@ export class BotAlreadyRunningError extends Error {
     managedBy: string
   ) {
     super(
-      `다른 Verda 봇이 실행 중입니다 (pid ${pid}, ${managedBy === "desktop" ? "데스크톱 앱" : "터미널"}). ` +
-        "같은 앱 토큰으로 두 개를 띄우면 Slack 이 이벤트를 나눠 보내므로 하나만 실행합니다."
+      `Another Verda bot is running (pid ${pid}, ${managedBy === "desktop" ? "desktop app" : "terminal"}). ` +
+        "Running two with the same app token makes Slack split events between them, so only one runs."
     );
   }
 }
 
-/** 이 프로세스의 상태 파일. 시작할 때 잡고(acquire) 종료할 때 지운다. */
+/** This process's status file. Acquired at startup and deleted on exit. */
 export class BotStatusFile {
   private constructor(
     private readonly file: string,
@@ -53,8 +53,8 @@ export class BotStatusFile {
   ) {}
 
   /**
-   * 다른 봇이 살아 있으면 waitMs 동안 끝나기를 기다린다. (pnpm dev 재시작 때 이전 프로세스가 처리 중 요청을 마무리하는 시간)
-   * 그래도 살아 있으면 BotAlreadyRunningError.
+   * If another bot is alive, waits up to waitMs for it to exit. (Time for the previous process to finish in-progress requests on a pnpm dev restart)
+   * If it is still alive, throws BotAlreadyRunningError.
    */
   static async acquire(
     dataDir: string,
@@ -108,13 +108,13 @@ export class BotStatusFile {
     });
   }
 
-  /** 이 프로세스가 쓴 파일일 때만 지운다. */
+  /** Deletes the file only if this process wrote it. */
   release(): void {
     try {
       const onDisk = JSON.parse(readFileSync(this.file, "utf8")) as BotStatus;
       if (onDisk.pid === process.pid) rmSync(this.file, { force: true });
     } catch {
-      // 이미 없다.
+      // Already gone.
     }
   }
 
@@ -125,7 +125,7 @@ export class BotStatusFile {
       writeFileSync(`${this.file}.tmp`, `${JSON.stringify(this.status, null, 2)}\n`);
       renameSync(`${this.file}.tmp`, this.file);
     } catch {
-      // 상태 파일을 못 써도 봇은 계속 동작한다.
+      // The bot keeps running even if the status file cannot be written.
     }
   }
 }

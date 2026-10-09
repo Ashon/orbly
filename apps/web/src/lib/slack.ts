@@ -1,7 +1,7 @@
 /**
- * 답변은 Slack mrkdwn(*굵게*, ~취소~, <url|라벨>, • 목록)과 Markdown 이 섞여 있다.
- * 화면에서는 Markdown 으로 맞춰 보여 준다. 코드 블록과 인라인 코드는 건드리지 않는다.
- * 줄바꿈은 Slack 처럼 그대로 보이도록 Markdown 컴포넌트가 처리한다. (markdown.tsx)
+ * Replies mix Slack mrkdwn (*bold*, ~strike~, <url|label>, • lists) with Markdown.
+ * The UI normalizes them to Markdown. Code blocks and inline code are left alone.
+ * The Markdown component keeps line breaks as they are, like Slack. (markdown.tsx)
  */
 export function slackToMarkdown(text: string): string {
   let inCode = false;
@@ -15,7 +15,7 @@ export function slackToMarkdown(text: string): string {
       if (inCode) return line;
       return (
         line
-          // Slack 글머리 기호 줄은 Markdown 목록으로
+          // Slack bullet lines become Markdown lists
           .replace(/^(\s*)[•◦▪‣]\s+/, "$1- ")
           .split(/(`[^`]*`)/)
           .map((part, i) =>
