@@ -272,6 +272,11 @@ pnpm package:mac    # build the installable Verda.app as a release zip in releas
 pnpm install:mac    # unpack that zip into /Applications (quit Verda first)
 ```
 
+Runs from the repository (`pnpm desktop`, `pnpm desktop:dev`) are named "Verda Dev": they have their own Electron user data
+folder and single-instance lock, so they start next to an installed Verda. The top bar, the Dock icon (a DEV tag, drawn by
+`icon.swift` as `assets/verda-icon-dev.png`) and the menu bar item say "Dev". Both use the
+same config and data folder (`~/.verda`), so the bot lock still keeps a single bot running.
+
 Packaging:
 
 - `pnpm package:mac` builds `release/Verda-v<version>-macos-<arch>.app.zip` with a `.sha256` file. The arch defaults to
@@ -293,7 +298,9 @@ Using the packaged app:
 
 Layout:
 
-- The top bar holds only navigation ("Overview", "Bot", "Settings").
+- The left rail switches sections: "Overview" (with the run list), "Bot", and "Settings" at the bottom. The top bar holds the
+  run search (Cmd+K focuses it, Esc clears it); the run list shows next to the overview and run details, while the bot and
+  settings screens use the full width.
 - The status bar at the bottom holds status to glance at: bot connection status, reasoner backend, attached tools, startup check issues (when any),
   requests in progress, last request time, and theme. Clicking the bot status item opens the Bot screen.
 
@@ -317,7 +324,7 @@ Bot management:
 
 Settings:
 
-- The gear icon at the top right ("Settings") edits the config file (`~/.verda/.env`). The app and terminal runs use the same file, so settings do not diverge.
+- The gear icon at the bottom of the left rail ("Settings") edits the config file (`~/.verda/.env`). The app and terminal runs use the same file, so settings do not diverge.
 - Fields are grouped into "Slack connection (Socket Mode)", "Mentions", "Reasoning", "Diagrams" and "History and logs", and rarely changed values are collapsed under "Advanced".
   Fields are defined only in `src/settings/fields.ts`, and a test checks that their defaults match the bot config (`src/config.ts`).
 - Secret values such as tokens are never sent to the UI. Only the prefix and the last 4 characters are shown; enter a new value to change one.

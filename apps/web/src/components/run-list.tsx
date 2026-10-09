@@ -1,7 +1,6 @@
 import type { RunStatus, RunSummary } from "@history/types";
-import { ImageIcon, Search, Wrench } from "lucide-react";
+import { ImageIcon, Wrench } from "lucide-react";
 import { useDeferredValue, useState } from "react";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRuns } from "@/lib/api";
 import {
@@ -33,32 +32,42 @@ function groupByDay(runs: RunSummary[]): { day: string; runs: RunSummary[] }[] {
   return groups;
 }
 
+/** Run list column. The search query comes from the top bar (SearchField). */
 export function RunList({
+  q,
   selectedId,
   onSelect,
 }: {
+  q: string;
   selectedId?: string;
   onSelect: (id: string) => void;
 }) {
-  const [q, setQ] = useState("");
   const [status, setStatus] = useState<RunStatus>();
   const query = useDeferredValue(q);
   const runs = useRuns({ status, q: query });
 
   return (
-    <aside className="flex h-full w-[340px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
-      <div className="space-y-2.5 px-3 pt-3 pb-2">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search requests, channels, replies"
-            className="h-8 rounded-lg pl-8 text-[13px]"
-          />
-        </div>
+    <aside className="flex h-full w-full flex-col border-r border-sidebar-border bg-sidebar">
+      {/* The filter adapts to the column, which the viewer can resize: five buttons when they fit, a select when not. */}
+      <div className="@container px-3 pt-3 pb-2">
+        <label className="flex h-7 items-center gap-1.5 rounded-lg bg-muted px-2.5 text-xs text-muted-foreground @min-[295px]:hidden">
+          Status
+          <select
+            value={status ?? ""}
+            onChange={(e) =>
+              setStatus((e.target.value || undefined) as RunStatus | undefined)
+            }
+            className="min-w-0 flex-1 bg-transparent font-medium text-foreground outline-none"
+          >
+            {FILTERS.map((filter) => (
+              <option key={filter.label} value={filter.value ?? ""}>
+                {filter.label}
+              </option>
+            ))}
+          </select>
+        </label>
         {/* Status filter: one-line segmented control */}
-        <div className="flex rounded-lg bg-muted p-0.5">
+        <div className="hidden rounded-lg bg-muted p-0.5 @min-[295px]:flex">
           {FILTERS.map((filter) => (
             <button
               key={filter.label}

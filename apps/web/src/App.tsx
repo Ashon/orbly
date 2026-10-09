@@ -1,13 +1,14 @@
-import { Bot, LayoutDashboard, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { BotPage } from "./components/bot-page";
+import { NavRail, type Section } from "./components/nav-rail";
+import { ResizeHandle, useStoredWidth, useWindowWidth } from "./components/resize-handle";
 import { Overview } from "./components/overview";
 import { RunDetail } from "./components/run-detail";
 import { RunList } from "./components/run-list";
+import { SearchField } from "./components/search-field";
 import { SettingsPage } from "./components/settings-page";
 import { StatusBar } from "./components/status-bar";
 
@@ -37,74 +38,79 @@ function useRoute(): [Route, (hash: string) => void] {
   return [route, (hash) => (window.location.hash = hash)];
 }
 
+/** Run list width: the default, the range the splitter allows, and what the content keeps beside the rail. */
+const LIST_WIDTH = { default: 320, min: 260, max: 560 };
+const RAIL_WIDTH = 56;
+const CONTENT_MIN_WIDTH = 480;
+
 export default function App() {
   const [route, go] = useRoute();
+  const [q, setQ] = useState("");
   const selectedId = route.page === "run" ? route.id : undefined;
   const select = (id?: string) => go(id ? `#/runs/${id}` : "#/");
   const isMacDesktop = window.verdaDesktop?.platform === "darwin";
+  const section: Section =
+    route.page === "bot" ? "bot" : route.page === "settings" ? "settings" : "overview";
+  // The run list belongs to the overview; the bot and settings screens use the full width.
+  const showRuns = section === "overview";
+  const [listWidth, setListWidth] = useStoredWidth(
+    "verda.runList.width",
+    LIST_WIDTH.default
+  );
+  const windowWidth = useWindowWidth();
+  // A narrow window lowers the limit so the content keeps its minimum width.
+  const listMax = Math.max(
+    LIST_WIDTH.min,
+    Math.min(LIST_WIDTH.max, windowWidth - RAIL_WIDTH - CONTENT_MIN_WIDTH)
+  );
+  const listShown = Math.min(listMax, Math.max(LIST_WIDTH.min, listWidth));
+
+  const search = (value: string) => {
+    setQ(value);
+    if (value && !showRuns) go("#/");
+  };
 
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col">
-        <header
-          className={cn(
-            "titlebar-drag flex h-11 shrink-0 items-center gap-2 border-b border-sidebar-border bg-sidebar pr-3",
-            isMacDesktop ? "pl-[84px]" : "pl-4"
-          )}
-        >
-          <button
-            type="button"
-            onClick={() => select()}
-            className="flex items-center gap-2"
-          >
-            <span className="verda-gradient-text text-sm font-semibold tracking-tight">
-              Verda
-            </span>
-          </button>
-          <span className="text-xs text-muted-foreground">Run history</span>
-          {/* The top bar holds only navigation. Bot status and theme are in the status bar below. */}
-          <div className="ml-auto flex items-center gap-1">
-            <Tooltip content="Overview" side="bottom">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Overview"
-                onClick={() => select()}
-                className={cn(
-                  route.page === "overview" && "bg-accent text-accent-foreground"
-                )}
-              >
-                <LayoutDashboard />
-              </Button>
-            </Tooltip>
-            <Tooltip content="Bot" side="bottom">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Bot"
-                onClick={() => go("#/bot")}
-                className={cn(route.page === "bot" && "bg-accent text-accent-foreground")}
-              >
-                <Bot />
-              </Button>
-            </Tooltip>
-            <Tooltip content="Settings" side="bottom">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Settings"
-                onClick={() => go("#/settings")}
-                className={cn(
-                  route.page === "settings" && "bg-accent text-accent-foreground"
-                )}
-              >
-                <Settings />
-              </Button>
-            </Tooltip>
+        {/* Three columns keep the search centered on the window; the left one clears the traffic lights. */}
+        <header className="titlebar-drag grid h-11 shrink-0 grid-cols-[1fr_minmax(0,520px)_1fr] items-center gap-3 border-b border-sidebar-border bg-sidebar px-3">
+          <div className={cn("flex items-center", isMacDesktop && "pl-[72px]")}>
+            <button type="button" onClick={() => select()} aria-label="Verda overview">
+              <span className="verda-gradient-text text-sm font-semibold tracking-tight">
+                Verda
+              </span>
+            </button>
+            {/* A run from the repository is labelled, so it is never mistaken for the installed app. */}
+            {window.verdaDesktop?.dev && (
+              <span className="ml-2 rounded-md bg-status-interrupted/15 px-1.5 py-px text-[11px] font-semibold text-status-interrupted">
+                Dev
+              </span>
+            )}
           </div>
+          <SearchField value={q} onChange={search} />
+          <div />
         </header>
         <div className="flex min-h-0 flex-1">
-          <RunList selectedId={selectedId} onSelect={select} />
+          <NavRail
+            active={section}
+            onNavigate={(next) =>
+              go(next === "bot" ? "#/bot" : next === "settings" ? "#/settings" : "#/")
+            }
+          />
+          {showRuns && (
+            <div className="relative shrink-0" style={{ width: listShown }}>
+              <RunList q={q} selectedId={selectedId} onSelect={select} />
+              <ResizeHandle
+                value={listShown}
+                min={LIST_WIDTH.min}
+                max={listMax}
+                onChange={setListWidth}
+                onReset={() => setListWidth(LIST_WIDTH.default)}
+                label="Resize run list"
+              />
+            </div>
+          )}
           <main className="min-w-0 flex-1 bg-canvas">
             {route.page === "bot" ? (
               <BotPage />
