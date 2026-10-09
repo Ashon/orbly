@@ -1,6 +1,6 @@
 {
   "name": "@verda/web",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Verda UI for status, settings and run history (bundled into the desktop app)",
   "type": "module",
