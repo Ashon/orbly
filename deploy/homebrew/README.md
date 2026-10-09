@@ -1,10 +1,10 @@
 # Homebrew distribution (cask only, no DMG)
 
-This directory is the source of Verda's cask in the [Ashon/homebrew-tap](https://github.com/Ashon/homebrew-tap)
+This directory is the source of Orbly's cask in the [Ashon/homebrew-tap](https://github.com/Ashon/homebrew-tap)
 repository, which it shares with supragnosis. The tap holds rendered output: every release overwrites
-`Casks/verda.rb` from the template here, so a change is made here, never in the tap.
+`Casks/orbly.rb` from the template here, so a change is made here, never in the tap.
 
-- `Casks/verda.rb` - the desktop app. Installs the release's signed and notarized `.app.zip` for the
+- `Casks/orbly.rb` - the desktop app. Installs the release's signed and notarized `.app.zip` for the
   Mac's arch (`arm64` or `x64`). There is no formula: the app carries the bot, the sandbox jobs and
   Electron's Node, so nothing else needs installing (and no bottle or Xcode check is involved). The
   app is tray-resident, so the cask's `uninstall quit:` quits it around an upgrade (the bot finishes
@@ -25,27 +25,27 @@ repository, which it shares with supragnosis. The tap holds rendered output: eve
    - `check`: `pnpm check`;
    - `app` (arm64 and x64, both on an Apple silicon runner): `pnpm desktop:build`, then
      `apps/desktop/scripts/package-mac.mjs --arch <arch>` signs with the hardened runtime,
-     notarizes, staples and zips (`Verda-v<version>-macos-<arch>.app.zip` + `.sha256`);
+     notarizes, staples and zips (`Orbly-v<version>-macos-<arch>.app.zip` + `.sha256`);
    - `publish`: one GitHub Release with both zips;
-   - `tap`: `update-tap.sh` renders `Casks/verda.rb` into the tap and pushes `verda v<version>`
+   - `tap`: `update-tap.sh` renders `Casks/orbly.rb` into the tap and pushes `orbly v<version>`
      (only that file, rebasing if a supragnosis release pushed first).
 
 If the tap job fails or the token is missing, render it by hand from a checkout of the same tag:
 
 ```sh
 git clone git@github.com:Ashon/homebrew-tap && cd homebrew-tap
-../verda/deploy/homebrew/update-tap.sh v0.1.0 .
-git add Casks/verda.rb && git commit -m "verda v0.1.0" && git push
+<this repository>/deploy/homebrew/update-tap.sh v0.1.0 .
+git add Casks/orbly.rb && git commit -m "orbly v0.1.0" && git push
 ```
 
 ## User install
 
 ```sh
 brew tap ashon/tap
-brew install --cask verda
+brew install --cask orbly
 ```
 
-- Upgrade with `brew upgrade --cask verda`. The cask quits the running app first (the bot gets up to
+- Upgrade with `brew upgrade --cask orbly`. The cask quits the running app first (the bot gets up to
   20s to finish its requests, and unfinished ones resume on the next start) and brew reopens it.
-- `brew uninstall --cask verda` removes the app. Config, run history and the sandbox allowlist live in
-  `~/.verda` and are kept; `--zap` also removes the app's Library folders, still not `~/.verda`.
+- `brew uninstall --cask orbly` removes the app. Config, run history and the sandbox allowlist live in
+  `~/.orbly` and are kept; `--zap` also removes the app's Library folders, still not `~/.orbly`.

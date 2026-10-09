@@ -8,7 +8,7 @@ dist/
 build/
 sandbox/ops-broker/dist/
 release/
-# local runtime data (the bot's default data location is VERDA_DATA_DIR)
+# local runtime data (the bot's default data location is ORBLY_DATA_DIR)
 data/
 
 # environment
