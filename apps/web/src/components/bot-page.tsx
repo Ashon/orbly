@@ -24,6 +24,7 @@ import { formatDateTime, formatDuration, formatRelative } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { describeBot, TONE_CLASS } from './bot-state'
 import { CodeBlock } from './code-block'
+import { PaceSpinner } from './pace-spinner'
 
 const SOCKET_LABEL: Record<BotStatus['socket']['state'], string> = {
   connecting: 'connecting',
@@ -44,14 +45,19 @@ export function BotPage() {
       <div className="shrink-0 border-b px-10 pt-8 pb-6">
         <div className="@container mx-auto max-w-5xl">
           <div className="flex items-start gap-4">
-            <span
-              className={cn(
-                'mt-1 grid size-10 place-items-center rounded-xl',
-                TONE_CLASS[tone].bg
-              )}
-            >
-              <Bot className={cn('size-5', TONE_CLASS[tone].text)} />
-            </span>
+            {/* While Pace starts, builds or stops, its mark looks around. */}
+            {tone === 'busy' ? (
+              <PaceSpinner className="mt-1 size-10" />
+            ) : (
+              <span
+                className={cn(
+                  'mt-1 grid size-10 place-items-center rounded-xl',
+                  TONE_CLASS[tone].bg
+                )}
+              >
+                <Bot className={cn('size-5', TONE_CLASS[tone].text)} />
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
                 Pace

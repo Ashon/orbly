@@ -55,6 +55,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { botControl, useSandbox, useSupervisor } from '@/lib/desktop'
 import { useTheme, type ThemeMode } from '@/lib/theme'
 import { cn } from '@/lib/utils'
+import { PaceSpinner } from './pace-spinner'
 import {
   AllowlistCard,
   APPLY_LABEL,
@@ -1384,8 +1385,9 @@ function HubPairing({
                 Cancel
               </Button>
             </div>
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <LoaderCircle className="size-3.5 animate-spin" />
+            {/* Pace itself is watching Slack for the mention. */}
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <PaceSpinner className="size-6" />
               Waiting for the code. It expires in 10 minutes.
             </p>
           </div>
