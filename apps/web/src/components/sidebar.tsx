@@ -63,7 +63,9 @@ export function Sidebar({
           compact ? 'justify-center' : 'px-2.5'
         )}
       >
-        <PacenoteMark className="size-7" />
+        {/* Larger than the icons below, but on their center line and taking
+            their width, so "Pacenote" starts where the labels do. */}
+        <PacenoteMark className="-mx-[5px] size-7" />
         {!compact && (
           <span className="text-[15px] font-semibold tracking-tight">
             Pacenote

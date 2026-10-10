@@ -1,7 +1,12 @@
-import { ArrowLeft, MousePointerClick } from 'lucide-react'
+import {
+  ArrowLeft,
+  MousePointerClick,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { Tooltip, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { BotPage } from './components/bot-page'
 import {
@@ -100,9 +105,15 @@ export default function App() {
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col bg-sidebar">
         {/* Three columns keep the search centered on the window; the left one
-            clears the traffic lights. */}
+            clears the traffic lights and holds the sidebar toggle. */}
         <header className="titlebar-drag grid h-12 shrink-0 grid-cols-[1fr_minmax(0,520px)_1fr] items-center gap-3 px-3">
-          <div className={cn(isMacDesktop && 'pl-[72px]')} />
+          <div className={cn('flex', isMacDesktop && 'pl-[72px]')}>
+            <SidebarToggle
+              compact={compact}
+              forced={windowWidth < SIDEBAR.below}
+              onToggle={() => setCollapsed(!collapsed)}
+            />
+          </div>
           <SearchField value={q} onChange={search} />
           <div />
         </header>
@@ -139,6 +150,50 @@ export default function App() {
         <StatusBar onOpenRoute={go} />
       </div>
     </TooltipProvider>
+  )
+}
+
+/**
+ * Shows or hides the sidebar's labels, like Cmd+B. A window too narrow for them
+ * keeps the icons only, and the button says so instead of doing nothing.
+ */
+function SidebarToggle({
+  compact,
+  forced,
+  onToggle,
+}: {
+  compact: boolean
+  /** The window is too narrow for the labels */
+  forced: boolean
+  onToggle: () => void
+}) {
+  const key = isMac ? '⌘B' : 'Ctrl+B'
+  const label = compact ? 'Show sidebar labels' : 'Hide sidebar labels'
+  return (
+    <Tooltip
+      side="bottom"
+      content={
+        forced ? 'The window is too narrow for labels' : `${label} (${key})`
+      }
+    >
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={!compact}
+        aria-disabled={forced || undefined}
+        onClick={forced ? undefined : onToggle}
+        className={cn(
+          'grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors',
+          forced ? 'opacity-50' : 'hover:bg-selected/50 hover:text-foreground'
+        )}
+      >
+        {compact ? (
+          <PanelLeftOpen className="size-[18px]" strokeWidth={1.75} />
+        ) : (
+          <PanelLeftClose className="size-[18px]" strokeWidth={1.75} />
+        )}
+      </button>
+    </Tooltip>
   )
 }
 

@@ -40,7 +40,8 @@ Using the packaged app:
 Layout:
 
 - The sidebar on the left lists the screens for watching Pace at the top ("Overview", "Runs", "Pace") and "Settings" at the
-  bottom. Cmd+B keeps only its icons, and the choice is remembered. Windows narrower than 900 pixels keep only the icons too.
+  bottom. The toggle at the left of the top bar (or Cmd+B) keeps only its icons, and the choice is remembered. Windows
+  narrower than 900 pixels keep only the icons too.
 - The status bar along the bottom of the window holds indicators to glance at: Pace's connection status, reasoner backend,
   attached tools and startup check issues (when any) on the left; requests in progress, the last request time and a folder
   button that opens the run history in Finder on the right. Clicking "Pace: ..." opens the Pace screen, or the
