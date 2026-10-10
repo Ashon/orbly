@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('pacenoteDesktop', {
       ipcRenderer.invoke('pacenote:settings:save', changes, restart),
     revealEnv: () => ipcRenderer.invoke('pacenote:settings:reveal-env'),
     openDataDir: () => ipcRenderer.invoke('pacenote:settings:open-data-dir'),
+    historyMcp: () => ipcRenderer.invoke('pacenote:settings:history-mcp'),
   },
   // Team hub pairing. The token stays in the main process; these return { error
   // } on failure.

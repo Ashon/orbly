@@ -128,6 +128,7 @@ const required = [
   'apps/web/dist/index.html',
   'build/bot/index.mjs',
   'build/tools/sandbox-job.mjs',
+  'build/tools/history-mcp.mjs',
   'sandbox/ops-broker/dist/server.mjs',
 ]
 for (const file of required) {

@@ -18,6 +18,7 @@ describe('app paths', () => {
       botEntry: '/repo/dist/index.js',
       sandboxDir: '/repo/sandbox',
       jobRunner: '/repo/build/tools/sandbox-job.mjs',
+      historyMcp: '/repo/build/tools/history-mcp.mjs',
       repoRoot: '/repo',
     })
     const app = '/Applications/Pacenote.app/Contents/Resources/app'
@@ -27,6 +28,7 @@ describe('app paths', () => {
       botEntry: `${app}/bot/index.mjs`,
       sandboxDir: `${app}/sandbox`,
       jobRunner: `${app}/tools/sandbox-job.mjs`,
+      historyMcp: `${app}/tools/history-mcp.mjs`,
     })
   })
 })

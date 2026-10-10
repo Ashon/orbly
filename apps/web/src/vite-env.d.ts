@@ -52,6 +52,19 @@ declare global {
         ): Promise<{ issues: SettingsIssue[]; restarted: boolean }>
         revealEnv(): Promise<void>
         openDataDir(): Promise<void>
+        /**
+         * How AI tools launch the run history's MCP server. ready: the bundled
+         * server exists (dev runs need pnpm bundle)
+         */
+        historyMcp(): Promise<
+          | {
+              command: string
+              args: string[]
+              env: Record<string, string>
+              ready: boolean
+            }
+          | undefined
+        >
       }
       /** Team hub pairing. Each call returns { error } instead of throwing. */
       hub: {

@@ -55,6 +55,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { botControl, useSandbox, useSupervisor } from '@/lib/desktop'
 import { useTheme, type ThemeMode } from '@/lib/theme'
 import { cn } from '@/lib/utils'
+import { CodeBlock } from './code-block'
 import { PaceSpinner } from './pace-spinner'
 import {
   AllowlistCard,
@@ -267,6 +268,14 @@ export function SettingsPage() {
   // for setup) is started.
   const botLive =
     supervisor?.phase === 'running' || supervisor?.phase === 'starting'
+  // Changes Pace picks up only when it restarts (not the broker's, which are
+  // applied there, nor those read where they are used)
+  const botChanged = SETTING_FIELDS.some(
+    (field) =>
+      field.applies !== 'broker' &&
+      field.applies !== 'app' &&
+      field.key in changes
+  )
   const save = (restart: boolean) => {
     setSaving(true)
     void settings
@@ -278,9 +287,6 @@ export function SettingsPage() {
         }
         const brokerChanged = SETTING_FIELDS.some(
           (field) => field.applies === 'broker' && field.key in changes
-        )
-        const botChanged = SETTING_FIELDS.some(
-          (field) => field.applies !== 'broker' && field.key in changes
         )
         reset()
         load()
@@ -358,6 +364,7 @@ export function SettingsPage() {
     .map((issue) => settingSectionOf(issue.key))
     .find(Boolean)
   const canRestart =
+    botChanged &&
     supervisor &&
     supervisor.phase !== 'external' &&
     supervisor.phase !== 'building'
@@ -634,7 +641,9 @@ export function SettingsPage() {
     ),
     logs: (
       <>
-        {card('history')}
+        {card('history', {
+          after: valueOf('HISTORY_SHARE') === 'on' && <HistoryShare />,
+        })}
         {card('logs')}
       </>
     ),
@@ -941,6 +950,51 @@ function NavItem({
     </button>
   )
 }
+
+/**
+ * How to add Pacenote's MCP server to an AI tool, with this app's own paths.
+ * Shown while sharing is on; the tool reads the history only while it stays on.
+ */
+function HistoryShare() {
+  const [launch, setLaunch] =
+    useState<Awaited<ReturnType<DesktopSettings['historyMcp']>>>()
+  useEffect(() => {
+    void window.pacenoteDesktop?.settings.historyMcp().then(setLaunch)
+  }, [])
+  if (!launch) return null
+  const env = Object.entries(launch.env)
+  const shell = (value: string) => `'${value.replaceAll("'", `'\\''`)}'`
+  const claude = [
+    'claude mcp add pacenote --scope user',
+    ...env.map(([key, value]) => `--env ${key}=${value}`),
+    '--',
+    shell(launch.command),
+    ...launch.args.map(shell),
+  ].join(' ')
+  const codex = [
+    '[mcp_servers.pacenote]',
+    `command = ${JSON.stringify(launch.command)}`,
+    `args = ${JSON.stringify(launch.args)}`,
+    `env = { ${env.map(([key, value]) => `${key} = ${JSON.stringify(value)}`).join(', ')} }`,
+  ].join('\n')
+  return (
+    <div className="space-y-3 border-t border-border px-4 py-3">
+      <p className="text-xs text-muted-foreground">
+        Add Pacenote to the tool once. It can then look up recent runs, search
+        them, and read one with its steps and answer.
+      </p>
+      {!launch.ready && (
+        <p className="text-xs text-status-interrupted">
+          The server is not built yet: run pnpm bundle in the repository.
+        </p>
+      )}
+      <CodeBlock label="Claude Code: run in a terminal" code={claude} />
+      <CodeBlock label="Codex: add to ~/.codex/config.toml" code={codex} />
+    </div>
+  )
+}
+
+type DesktopSettings = NonNullable<Window['pacenoteDesktop']>['settings']
 
 function SubHeading({
   title,

@@ -483,6 +483,18 @@ function registerBotIpc(): void {
   ipcMain.handle('pacenote:settings:reveal-env', (event) => {
     if (fromMainWindow(event)) shell.showItemInFolder(envFile)
   })
+  // How AI tools launch the run history's MCP server: this app's own binary as
+  // Node, with the bundled server. The settings screen turns it into commands.
+  ipcMain.handle('pacenote:settings:history-mcp', (event) =>
+    fromMainWindow(event)
+      ? {
+          command: process.execPath,
+          args: [paths.historyMcp],
+          env: { ELECTRON_RUN_AS_NODE: '1' },
+          ready: existsSync(paths.historyMcp),
+        }
+      : undefined
+  )
   ipcMain.handle('pacenote:sandbox:status', (event) =>
     fromMainWindow(event) ? sandbox.status() : null
   )

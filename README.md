@@ -62,6 +62,7 @@ upgrades and uninstalls. To run from source instead, see [Installation](docs/ins
 | [Reasoner sandbox](docs/sandbox.md) | The Docker sandbox, the egress proxy and allowed domains, the sandbox's claude or codex login |
 | [Ops tools](docs/ops-tools.md) | ops-broker: hosts, k8s, work directory, GitHub, Jira, and code changes as draft PRs |
 | [Team hub](docs/team-hub.md) | One Slack app for a team, with each member's desktop answering their own mentions |
+| [Run history for AI tools](docs/history-mcp.md) | Pacenote's MCP server: Claude Code, Codex and other tools on your Mac reading what Pace did |
 | [Installation](docs/installation.md) | Homebrew in detail, running from source, restarts and the run lock |
 | [Desktop app](docs/desktop-app.md) | The app's screens, bot management, settings, sandbox controls, packaging |
 | [Migrating](docs/migrating.md) | Moving from Orbly or Verda |

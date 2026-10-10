@@ -153,6 +153,11 @@ export const EnvSchema = z.object({
   HISTORY: z.enum(['on', 'off']).default('on'),
   /** Deletes history older than this many days. 0 keeps everything. */
   HISTORY_RETENTION_DAYS: z.coerce.number().int().min(0).default(30),
+  /**
+   * Lets AI tools on this Mac read the run history through Pacenote's MCP
+   * server (src/tools/history-mcp.ts). The bot does not use it.
+   */
+  HISTORY_SHARE: z.enum(['on', 'off']).default('off'),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 })
@@ -235,6 +240,13 @@ const providedValues = (env: NodeJS.ProcessEnv) =>
   )
 
 /**
+ * Values a bot restart does not need: the data location, which the desktop app
+ * passes as an absolute path when launching the bot, and sharing the history,
+ * which the MCP server reads on each call.
+ */
+const OUTSIDE_FINGERPRINT = new Set(['PACENOTE_DATA_DIR', 'HISTORY_SHARE'])
+
+/**
  * Bot config fingerprint. The bot writes it to the status file at startup, and
  * the desktop app compares it with the value computed from the current .env to
  * decide whether a restart is needed. (The values themselves are not stored)
@@ -242,9 +254,7 @@ const providedValues = (env: NodeJS.ProcessEnv) =>
 export function configFingerprint(env: NodeJS.ProcessEnv): string {
   const provided = providedValues(env)
   const entries = Object.keys(EnvSchema.shape)
-    // Skips the data location, since the desktop app passes it as an absolute
-    // path when launching the bot.
-    .filter((key) => key !== 'PACENOTE_DATA_DIR')
+    .filter((key) => !OUTSIDE_FINGERPRINT.has(key))
     .sort()
     .flatMap((key) =>
       provided[key] === undefined ? [] : [[key, provided[key]]]

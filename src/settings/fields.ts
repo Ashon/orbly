@@ -85,9 +85,10 @@ export interface SettingField {
   /** Value that cannot be empty */
   required?: boolean
   /**
-   * What must be applied again after a change. Defaults to restarting the bot
+   * What must be applied again after a change. Defaults to restarting the bot;
+   * app: nothing, the value is read where it is used.
    */
-  applies?: SandboxComponent
+  applies?: SandboxComponent | 'app'
   /**
    * Shown only while another field has this value (e.g. sandbox limits only for
    * the docker run environment). Hidden values stay in .env.
@@ -660,6 +661,15 @@ export const SETTING_FIELDS: SettingField[] = [
     help: 'Set to 0 to never delete.',
     type: 'number',
     default: '30',
+  },
+  {
+    key: 'HISTORY_SHARE',
+    group: 'history',
+    label: 'Share with AI tools',
+    help: "Lets AI tools on this Mac, such as Claude Code or Codex, read the run history through Pacenote's MCP server, read-only. Applies right away.",
+    type: 'toggle',
+    default: 'off',
+    applies: 'app',
   },
   {
     key: 'LOG_LEVEL',

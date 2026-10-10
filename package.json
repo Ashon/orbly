@@ -31,6 +31,7 @@
     "sandbox:ops-up": "pnpm bundle && tsx src/tools/sandbox-job.ts broker",
     "desktop:build": "pnpm build && pnpm bundle && pnpm --filter @pacenote/web build && pnpm --filter @pacenote/desktop build",
     "spinner": "python3 scripts/spinner-keyframes.py",
+    "mcp": "tsx src/tools/history-mcp.ts",
     "desktop": "VITE_PACENOTE_DEBUG=1 pnpm desktop:build && pnpm --filter @pacenote/desktop start",
     "desktop:dev": "pnpm --filter @pacenote/web dev & pnpm --filter @pacenote/desktop dev",
     "package:mac": "pnpm desktop:build && node apps/desktop/scripts/package-mac.mjs",
