@@ -1,5 +1,6 @@
 import {
   Bot,
+  Bug,
   History,
   LayoutDashboard,
   Settings,
@@ -9,7 +10,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { PacenoteMark } from './logo'
 
-export type Section = 'overview' | 'runs' | 'bot' | 'settings'
+export type Section = 'overview' | 'runs' | 'bot' | 'settings' | 'debug'
 
 type Item = { section: Section; label: string; icon: LucideIcon }
 
@@ -25,6 +26,8 @@ const SETTINGS: Item = {
   label: 'Settings',
   icon: Settings,
 }
+/** Development builds only, above Settings */
+const DEBUG: Item = { section: 'debug', label: 'Debug', icon: Bug }
 
 /**
  * The app's sections as a labeled list: the screens for watching Pace at the
@@ -80,7 +83,10 @@ export function Sidebar({
 
       <div className="flex flex-col gap-1">{ITEMS.map(item)}</div>
 
-      <div className="mt-auto flex flex-col">{item(SETTINGS)}</div>
+      <div className="mt-auto flex flex-col gap-1">
+        {window.pacenoteDesktop?.dev && item(DEBUG)}
+        {item(SETTINGS)}
+      </div>
     </nav>
   )
 }

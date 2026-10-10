@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { BotPage } from './components/bot-page'
+import { DebugPage } from './components/debug-page'
 import {
   ResizeHandle,
   useStoredFlag,
@@ -28,10 +29,12 @@ type Route =
   | { page: 'runs'; id?: string }
   | { page: 'bot' }
   | { page: 'settings' }
+  | { page: 'debug' }
 
 /**
  * #/runs: the run list, #/runs/<id>: one run, #/bot: Pace's status and logs,
- * #/settings: Settings, otherwise: Overview
+ * #/settings: Settings, #/debug: Debug (development builds), otherwise:
+ * Overview
  */
 function readRoute(): Route {
   const hash = window.location.hash
@@ -40,6 +43,8 @@ function readRoute(): Route {
   if (hash.startsWith('#/runs')) return { page: 'runs' }
   if (hash.startsWith('#/bot')) return { page: 'bot' }
   if (hash.startsWith('#/settings')) return { page: 'settings' }
+  if (hash.startsWith('#/debug') && window.pacenoteDesktop?.dev)
+    return { page: 'debug' }
   return { page: 'overview' }
 }
 
@@ -133,6 +138,8 @@ export default function App() {
               <BotPage />
             ) : route.page === 'settings' ? (
               <SettingsPage />
+            ) : route.page === 'debug' ? (
+              <DebugPage />
             ) : route.page === 'runs' ? (
               <RunsPage
                 q={q}

@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils'
 import { CodeBlock } from './code-block'
 import { PacenoteMark } from './logo'
+import { PaceSpinner } from './pace-spinner'
 import { Markdown } from './markdown'
 
 /** Shows the request -> steps -> reply -> outputs in order. */
@@ -86,17 +87,11 @@ export function Timeline({ run }: { run: RunRecord }) {
         </div>
       )}
 
+      {/* Pace at work, where its answer will appear: the mark looks around
+          until the answer replaces it. */}
       {run.status === 'running' && (
-        <div className="ml-3.5 flex items-center gap-2 border-l border-dashed pb-1 pl-6 text-xs text-status-running">
-          <span className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="size-1.5 animate-pulse-dot rounded-full bg-status-running"
-                style={{ animationDelay: `${i * 0.18}s` }}
-              />
-            ))}
-          </span>
+        <div className="flex items-center gap-3 text-xs font-medium text-status-running">
+          <PaceSpinner />
           Working
         </div>
       )}
