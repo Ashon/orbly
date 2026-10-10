@@ -9,9 +9,8 @@ repository, which it shares with supragnosis. The tap holds rendered output: eve
   Electron's Node, so nothing else needs installing (and no bottle or Xcode check is involved). The
   app is tray-resident, so the cask's `uninstall quit:` quits it around an upgrade (the bot finishes
   its requests first) and brew reopens it afterwards.
-- The cask was `verda` until v0.1.2 and `orbly` for v0.2.x. With the rename to Pacenote the tap gets
-  `Casks/pacenote.rb` from the release workflow; by hand, remove `Casks/pacenote.rb` and set `cask_renames.json` to
-  `{"verda": "pacenote", "orbly": "pacenote"}`, so `brew upgrade` moves existing installs to `pacenote`.
+- The cask was `verda` until v0.1.2 and `orbly` for v0.2.x. The tap's `cask_renames.json`,
+  `{"verda": "pacenote", "orbly": "pacenote"}`, moves existing installs to `pacenote` on `brew upgrade`.
 - `update-tap.sh` - after a release, renders the cask into a tap checkout: copies the template, fills
   in the version and both sha256 sums from the release's `.sha256` sidecar files, and fails if a
   placeholder or the template's own version survives. Every sum is fetched before anything is
@@ -20,26 +19,19 @@ repository, which it shares with supragnosis. The tap holds rendered output: eve
 ## Per release
 
 1. Bump `version` in `package.json`, `apps/desktop/package.json` and `apps/web/package.json`
-   (`tests/packaging.test.ts` holds them equal). Optionally add `docs/releases/v<version>.md`; it
-   becomes the release body, otherwise GitHub generates notes.
-2. Commit (`release: v<version>`), then push an annotated tag: `git tag -a v<version> -m v<version> && git push origin v<version>`.
-3. The release workflow runs:
-   - `manifest`: the three package versions equal the tag;
-   - `check`: `pnpm check`;
-   - `app` (arm64 and x64, both on an Apple silicon runner): `pnpm desktop:build`, then
-     `apps/desktop/scripts/package-mac.mjs --arch <arch>` signs with the hardened runtime,
-     notarizes, staples and zips (`Pacenote-v<version>-macos-<arch>.app.zip` + `.sha256`);
-   - `publish`: one GitHub Release with both zips;
-   - `tap`: `update-tap.sh` renders `Casks/pacenote.rb` into the tap and pushes `pacenote v<version>`
-     (only that file, rebasing if a supragnosis release pushed first). If the tap already has that
-     version, for example after a hand update or on a re-run, the job ends successfully without a push.
+   (`tests/packaging.test.ts` holds them equal), and add `docs/releases/v<version>.md`, the release body.
+2. Commit (`release: v<version> - ...`) on main, then push an annotated tag:
+   `git tag -a v<version> -m v<version> && git push origin v<version>`.
+3. The release is built from the tag, signed, notarized and published outside this repository: the GitHub
+   Release gets `Pacenote-v<version>-macos-{arm64,x64}.app.zip` with their `.sha256` files, and the tap gets
+   `Casks/pacenote.rb`, rendered by this tag's `update-tap.sh`.
 
-If the tap job fails or the token is missing, render it by hand from a checkout of the same tag:
+To render the cask by hand once a release's zips are published, from a checkout of the same tag:
 
 ```sh
 git clone git@github.com:Ashon/homebrew-tap && cd homebrew-tap
-<this repository>/deploy/homebrew/update-tap.sh v0.1.0 .
-git add Casks/pacenote.rb && git commit -m "pacenote v0.1.0" && git push
+<this repository>/deploy/homebrew/update-tap.sh v0.3.2 .
+git add Casks/pacenote.rb && git commit -m "pacenote v0.3.2" && git push
 ```
 
 ## User install
@@ -53,3 +45,10 @@ brew install --cask pacenote
   20s to finish its requests, and unfinished ones resume on the next start) and brew reopens it.
 - `brew uninstall --cask pacenote` removes the app. Config, run history and the sandbox allowlist live in
   `~/.pacenote` and are kept; `--zap` also removes the app's Library folders, still not `~/.pacenote`.
+
+## Local builds
+
+`pnpm package:mac` builds an ad-hoc signed app for this Mac as a release zip (`pnpm package:mac --arch x64`
+for Intel) and `pnpm install:mac` unpacks it into `/Applications`; it will not replace a Pacenote installed
+with this cask. Only the zip stays in `release/`: the app is assembled in `release/staging.noindex`, which
+Spotlight skips, so the build never shows up next to the installed app.

@@ -13,7 +13,6 @@
     "icon": "swift scripts/icon.swift ../../assets"
   },
   "devDependencies": {
-    "@electron/osx-sign": "2.7.1",
     "@types/node": "^24.19.1",
     "electron": "39.8.10",
     "esbuild": "0.28.2",

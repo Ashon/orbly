@@ -1,10 +1,9 @@
 import { execFileSync } from 'node:child_process'
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import {
   cp,
   mkdir,
-  mkdtemp,
   readFile,
   readdir,
   rename,
@@ -13,7 +12,6 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -37,6 +35,8 @@ import { parseArgs } from 'node:util'
  * arch's Electron is downloaded, since the bundles themselves are plain JS.
  *
  * The app gets an ad-hoc signature, good for this Mac (pnpm install:mac).
+ * Release builds are signed and notarized from this zip outside this
+ * repository, with scripts/entitlements.plist for the app and its helper.
  */
 if (process.platform !== 'darwin')
   throw new Error('The macOS app can only be built on a Mac.')
@@ -67,7 +67,6 @@ const resourcesDir = path.join(appPath, 'Contents/Resources')
 const appDir = path.join(resourcesDir, 'app')
 const zipName = `Pacenote-v${version}-macos-${arch}.app.zip`
 const bundleId = 'io.github.ashon.pacenote'
-const entitlements = path.join(desktopDir, 'scripts/entitlements.plist')
 
 const run = (command, args, options = {}) =>
   execFileSync(command, args, { stdio: 'inherit', ...options })
@@ -222,8 +221,7 @@ for (const name of await readdir(frameworksDir)) {
 run('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', appPath])
 run('/usr/bin/codesign', ['--verify', '--deep', '--strict', appPath])
 
-// ditto rather than zip: it keeps the signature and the notarization staple
-// intact.
+// ditto rather than zip: it keeps the signature intact.
 const zipPath = path.join(releaseDir, zipName)
 await rm(zipPath, { force: true })
 run('/usr/bin/ditto', [
