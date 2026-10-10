@@ -47,8 +47,8 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <section className="surface-card overflow-hidden">
-      <header className="flex items-start gap-3 border-b border-canvas px-4 py-3">
+    <section className="surface-group">
+      <header className="flex items-start gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold">{title}</h3>
           {help && (
@@ -95,7 +95,7 @@ export function SandboxStatusCard({ sandbox }: { sandbox: Sandbox }) {
       }
     >
       {status && (
-        <div className="divide-y divide-canvas">
+        <div className="divide-y divide-border">
           {status.pending.length > 0 && (
             <PendingList pending={status.pending} sandbox={sandbox} />
           )}
@@ -451,7 +451,7 @@ export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
       title="Apply jobs"
       help="Runs the repository's pnpm scripts from the app. One job runs at a time, and secrets in the output are masked."
     >
-      <div className="divide-y divide-canvas">
+      <div className="divide-y divide-border">
         {JOB_ORDER.map((kind) => {
           const disruptive = kind === 'proxy' || kind === 'broker'
           return (
@@ -488,7 +488,7 @@ export function JobsCard({ sandbox }: { sandbox: Sandbox }) {
         })}
       </div>
       {error && (
-        <p className="border-t border-canvas px-4 py-2 text-xs text-status-failed">
+        <p className="border-t border-border px-4 py-2 text-xs text-status-failed">
           {error}
         </p>
       )}
@@ -508,7 +508,7 @@ function JobOutput({
     (job.finishedAt ? Date.parse(job.finishedAt) : Date.now()) -
     Date.parse(job.startedAt)
   return (
-    <div className="border-t border-canvas px-4 py-3">
+    <div className="border-t border-border px-4 py-3">
       <div className="mb-2 flex items-center gap-2 text-xs">
         {job.state === 'running' ? (
           <LoaderCircle className="size-3.5 shrink-0 animate-spin text-status-running" />

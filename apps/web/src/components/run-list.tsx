@@ -47,10 +47,10 @@ export function RunList({
   const runs = useRuns({ status, q: query })
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-sidebar-border bg-sidebar">
+    <aside className="flex h-full w-full flex-col">
       {/* The filter adapts to the column, which the viewer can resize: five
           buttons when they fit, a select when not. */}
-      <div className="@container px-3 pt-3 pb-2">
+      <div className="@container px-3 pt-4 pb-2">
         <label className="flex h-7 items-center gap-1.5 rounded-lg bg-muted px-2.5 text-xs text-muted-foreground @min-[295px]:hidden">
           Status
           <select
@@ -77,7 +77,7 @@ export function RunList({
               className={cn(
                 'h-6 flex-auto rounded-md px-1.5 text-xs font-medium whitespace-nowrap transition-colors',
                 status === filter.value
-                  ? 'bg-card text-foreground shadow-xs'
+                  ? 'bg-card text-foreground shadow-xs dark:bg-selected'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -149,9 +149,7 @@ function RunListItem({
         'flex w-full gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors',
         // Selection only fills the surface without lifting it. (so one item
         // does not stand out in the list)
-        selected
-          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-          : 'hover:bg-sidebar-accent/50'
+        selected ? 'bg-selected' : 'hover:bg-selected/50'
       )}
     >
       <StatusDot status={run.status} className="mt-[7px]" />

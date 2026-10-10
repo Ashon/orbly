@@ -1,10 +1,9 @@
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ArrowLeft, MousePointerClick } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tooltip, TooltipProvider } from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { BotPage } from './components/bot-page'
-import { NavRail, type Section } from './components/nav-rail'
 import {
   ResizeHandle,
   useStoredFlag,
@@ -16,22 +15,23 @@ import { RunDetail } from './components/run-detail'
 import { RunList } from './components/run-list'
 import { SearchField } from './components/search-field'
 import { SettingsPage } from './components/settings-page'
-import { StatusBar } from './components/status-bar'
+import { Sidebar, type Section } from './components/sidebar'
 
 type Route =
   | { page: 'overview' }
+  | { page: 'runs'; id?: string }
   | { page: 'bot' }
   | { page: 'settings' }
-  | { page: 'run'; id: string }
 
 /**
- * #/runs/<id>: run detail, #/bot: bot status and logs, #/settings: Settings,
- * otherwise: Overview
+ * #/runs: the run list, #/runs/<id>: one run, #/bot: Pace's status and logs,
+ * #/settings: Settings, otherwise: Overview
  */
 function readRoute(): Route {
   const hash = window.location.hash
   const run = /^#\/runs\/([^/?#]+)/.exec(hash)?.[1]
-  if (run) return { page: 'run', id: decodeURIComponent(run) }
+  if (run) return { page: 'runs', id: decodeURIComponent(run) }
+  if (hash.startsWith('#/runs')) return { page: 'runs' }
   if (hash.startsWith('#/bot')) return { page: 'bot' }
   if (hash.startsWith('#/settings')) return { page: 'settings' }
   return { page: 'overview' }
@@ -47,72 +47,30 @@ function useRoute(): [Route, (hash: string) => void] {
   return [route, (hash) => (window.location.hash = hash)]
 }
 
-/**
- * Run list width: the default, the range the splitter allows, and what the
- * content keeps beside the rail.
- */
-const LIST_WIDTH = { default: 320, min: 260, max: 560 }
-const RAIL_WIDTH = 56
-const CONTENT_MIN_WIDTH = 480
-/**
- * What an open overlay list leaves visible of the content, so it still reads as
- * a layer over it
- */
-const OVERLAY_GUTTER = 48
+/** Sidebar widths, and the window width below which it keeps only icons */
+const SIDEBAR = { full: 224, compact: 64, below: 900 }
+/** Run list width inside the content surface: default and splitter range */
+const LIST_WIDTH = { default: 320, min: 260, max: 520 }
+/** What the run detail keeps beside the list; narrower shows one at a time */
+const DETAIL_MIN_WIDTH = 440
+/** The content surface's margin to the window's right edge */
+const SURFACE_MARGIN = 12
 
 const isMac = /Mac/.test(navigator.platform)
 
 export default function App() {
   const [route, go] = useRoute()
   const [q, setQ] = useState('')
-  const selectedId = route.page === 'run' ? route.id : undefined
-  const select = (id?: string) => go(id ? `#/runs/${id}` : '#/')
-  const isMacDesktop = window.pacenoteDesktop?.platform === 'darwin'
-  const section: Section =
-    route.page === 'bot'
-      ? 'bot'
-      : route.page === 'settings'
-        ? 'settings'
-        : 'overview'
-  // The run list belongs to the overview; the bot and settings screens use the
-  // full width.
-  const showRuns = section === 'overview'
-  const [listWidth, setListWidth] = useStoredWidth(
-    'pacenote.runList.width',
-    LIST_WIDTH.default
-  )
   const windowWidth = useWindowWidth()
-  // A narrow window lowers the limit so the content keeps its minimum width.
-  const listMax = Math.max(
-    LIST_WIDTH.min,
-    Math.min(LIST_WIDTH.max, windowWidth - RAIL_WIDTH - CONTENT_MIN_WIDTH)
+  const isMacDesktop = window.pacenoteDesktop?.platform === 'darwin'
+  const [collapsed, setCollapsed] = useStoredFlag(
+    'pacenote.sidebar.collapsed',
+    false
   )
-  const listShown = Math.min(listMax, Math.max(LIST_WIDTH.min, listWidth))
+  const compact = collapsed || windowWidth < SIDEBAR.below
+  const section: Section = route.page
 
-  // The list sits beside the content when both fit and the viewer has not
-  // hidden it. Otherwise it opens as an overlay over the content (the toggle,
-  // Cmd+B, or typing a search) and closes on a pick, Esc, or a click outside
-  // it.
-  const [listPinned, setListPinned] = useStoredFlag(
-    'pacenote.runList.pinned',
-    true
-  )
-  const [overlayOpen, setOverlayOpen] = useState(false)
-  const canDock = windowWidth - RAIL_WIDTH - LIST_WIDTH.min >= CONTENT_MIN_WIDTH
-  const docked = showRuns && listPinned && canDock
-  const overlayShown = showRuns && !docked && overlayOpen
-  const overlayMax = Math.max(
-    LIST_WIDTH.min,
-    Math.min(LIST_WIDTH.max, windowWidth - RAIL_WIDTH - OVERLAY_GUTTER)
-  )
-  const overlayWidth = Math.min(overlayMax, Math.max(LIST_WIDTH.min, listWidth))
-  const toggleList = () => {
-    if (canDock) {
-      setListPinned(!listPinned)
-      setOverlayOpen(false)
-    } else setOverlayOpen(!overlayOpen)
-  }
-
+  // Cmd+B shows or hides the sidebar's labels, as in most macOS apps.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (
@@ -121,150 +79,141 @@ export default function App() {
         !e.shiftKey
       ) {
         e.preventDefault()
-        if (showRuns) toggleList()
-        else {
-          go('#/')
-          if (!(listPinned && canDock)) setOverlayOpen(true)
-        }
-      } else if (e.key === 'Escape' && overlayShown) setOverlayOpen(false)
+        setCollapsed(!collapsed)
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   })
 
+  // Searching is for runs, so typing moves to the run list.
   const search = (value: string) => {
     setQ(value)
-    if (value && !showRuns) go('#/')
-    if (value && !(listPinned && canDock)) setOverlayOpen(true)
+    if (value && route.page !== 'runs') go('#/runs')
   }
-  const pick = (id?: string) => {
-    select(id)
-    setOverlayOpen(false)
-  }
-  const listOpen = docked || overlayShown
+
+  const surfaceWidth =
+    windowWidth - (compact ? SIDEBAR.compact : SIDEBAR.full) - SURFACE_MARGIN
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex h-full flex-col">
-        {/* Three columns keep the search centered on the window; the left
-            one clears the traffic lights. */}
-        <header className="titlebar-drag grid h-11 shrink-0 grid-cols-[1fr_minmax(0,520px)_1fr] items-center gap-3 border-b border-sidebar-border bg-sidebar px-3">
-          {/* The left column clears the traffic lights; a run from the
-              repository is labelled there. */}
-          <div
-            className={cn(
-              'flex items-center gap-1.5',
-              isMacDesktop && 'pl-[72px]'
-            )}
-          >
-            {showRuns && (
-              <Tooltip
-                content={`${listOpen ? 'Hide' : 'Show'} run list (${isMac ? 'Cmd' : 'Ctrl'}+B)`}
-                side="bottom"
-              >
-                <button
-                  type="button"
-                  aria-label={listOpen ? 'Hide run list' : 'Show run list'}
-                  aria-expanded={listOpen}
-                  onClick={toggleList}
-                  className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {listOpen ? (
-                    <PanelLeftClose className="size-4" strokeWidth={1.75} />
-                  ) : (
-                    <PanelLeftOpen className="size-4" strokeWidth={1.75} />
-                  )}
-                </button>
-              </Tooltip>
-            )}
-            {window.pacenoteDesktop?.dev && (
-              <span className="rounded-md bg-status-interrupted/15 px-1.5 py-px text-[11px] font-semibold text-status-interrupted">
-                Dev
-              </span>
-            )}
-          </div>
+      <div className="flex h-full flex-col bg-sidebar">
+        {/* Three columns keep the search centered on the window; the left one
+            clears the traffic lights. */}
+        <header className="titlebar-drag grid h-12 shrink-0 grid-cols-[1fr_minmax(0,520px)_1fr] items-center gap-3 px-3">
+          <div className={cn(isMacDesktop && 'pl-[72px]')} />
           <SearchField value={q} onChange={search} />
           <div />
         </header>
-        {/* isolate keeps the rail, overlay and scrim layers inside the
-            body, so the status bar stays above all of them */}
-        <div className="relative isolate flex min-h-0 flex-1">
-          {/* Above the overlay list, which slides out from under it */}
-          <div className="relative z-40 flex">
-            <NavRail
-              active={section}
-              onNavigate={(next) =>
-                go(
-                  next === 'bot'
-                    ? '#/bot'
-                    : next === 'settings'
-                      ? '#/settings'
-                      : '#/'
-                )
-              }
-            />
-          </div>
-          {docked && (
-            <div className="relative shrink-0" style={{ width: listShown }}>
-              <RunList q={q} selectedId={selectedId} onSelect={select} />
-              <ResizeHandle
-                value={listShown}
-                min={LIST_WIDTH.min}
-                max={listMax}
-                onChange={setListWidth}
-                onReset={() => setListWidth(LIST_WIDTH.default)}
-                label="Resize run list"
-              />
-            </div>
-          )}
-          <main className="min-w-0 flex-1 bg-canvas">
+        <div className="flex min-h-0 flex-1">
+          <Sidebar
+            active={section}
+            compact={compact}
+            onNavigate={(next) => go(next === 'overview' ? '#/' : `#/${next}`)}
+            onOpenRoute={go}
+          />
+          {/* One surface holds the whole screen. Its parts are told apart by
+              space and hairlines, not by cards of their own. */}
+          <main
+            className="content-surface mr-3 mb-3 min-w-0 flex-1 overflow-hidden rounded-[20px] bg-card"
+            style={{ boxShadow: 'var(--card-shadow)' }}
+          >
             {route.page === 'bot' ? (
               <BotPage />
             ) : route.page === 'settings' ? (
               <SettingsPage />
-            ) : selectedId ? (
-              <RunDetail key={selectedId} id={selectedId} />
+            ) : route.page === 'runs' ? (
+              <RunsPage
+                q={q}
+                selectedId={route.id}
+                width={surfaceWidth}
+                onSelect={(id) => go(id ? `#/runs/${id}` : '#/runs')}
+              />
             ) : (
               <ScrollArea className="h-full">
                 <Overview />
               </ScrollArea>
             )}
           </main>
-          {showRuns && !docked && (
-            <>
-              <div
-                aria-hidden
-                onClick={() => setOverlayOpen(false)}
-                className={cn(
-                  'absolute inset-y-0 right-0 left-14 z-20 bg-foreground/10 transition-opacity duration-200 motion-reduce:transition-none dark:bg-black/40',
-                  overlayShown ? 'opacity-100' : 'pointer-events-none opacity-0'
-                )}
-              />
-              <div
-                role="dialog"
-                aria-label="Runs"
-                inert={!overlayShown}
-                style={{ width: overlayWidth }}
-                className={cn(
-                  'absolute inset-y-0 left-14 z-30 border-r border-sidebar-border shadow-xl transition-transform duration-200 ease-out motion-reduce:transition-none',
-                  overlayShown ? 'translate-x-0' : '-translate-x-full'
-                )}
-              >
-                <RunList q={q} selectedId={selectedId} onSelect={pick} />
-                <ResizeHandle
-                  value={overlayWidth}
-                  min={LIST_WIDTH.min}
-                  max={overlayMax}
-                  onChange={setListWidth}
-                  onReset={() => setListWidth(LIST_WIDTH.default)}
-                  label="Resize run list"
-                />
-              </div>
-            </>
-          )}
         </div>
-        <StatusBar onOpenBot={() => go('#/bot')} onOpenSettings={go} />
       </div>
     </TooltipProvider>
+  )
+}
+
+/**
+ * The run list and the selected run, side by side in the one surface with a
+ * line between them. When the surface is too narrow for both, it shows one at a
+ * time: the list, or the run with a way back.
+ */
+function RunsPage({
+  q,
+  selectedId,
+  width,
+  onSelect,
+}: {
+  q: string
+  selectedId?: string
+  width: number
+  onSelect: (id?: string) => void
+}) {
+  const [listWidth, setListWidth] = useStoredWidth(
+    'pacenote.runList.width',
+    LIST_WIDTH.default
+  )
+  const listMax = Math.max(
+    LIST_WIDTH.min,
+    Math.min(LIST_WIDTH.max, width - DETAIL_MIN_WIDTH)
+  )
+  const listShown = Math.min(listMax, Math.max(LIST_WIDTH.min, listWidth))
+  const split = width - LIST_WIDTH.min >= DETAIL_MIN_WIDTH
+
+  if (!split)
+    return selectedId ? (
+      <div className="flex h-full flex-col">
+        <button
+          type="button"
+          onClick={() => onSelect()}
+          className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Runs
+        </button>
+        <div className="min-h-0 flex-1">
+          <RunDetail key={selectedId} id={selectedId} />
+        </div>
+      </div>
+    ) : (
+      <RunList q={q} selectedId={selectedId} onSelect={onSelect} />
+    )
+
+  return (
+    <div className="flex h-full">
+      <div
+        className="relative shrink-0 border-r border-border"
+        style={{ width: listShown }}
+      >
+        <RunList q={q} selectedId={selectedId} onSelect={onSelect} />
+        <ResizeHandle
+          value={listShown}
+          min={LIST_WIDTH.min}
+          max={listMax}
+          onChange={setListWidth}
+          onReset={() => setListWidth(LIST_WIDTH.default)}
+          label="Resize run list"
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        {selectedId ? (
+          <RunDetail key={selectedId} id={selectedId} />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+            <MousePointerClick className="size-5" strokeWidth={1.75} />
+            Pick a run to see what Pace was asked, each step it took, and its
+            answer.
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

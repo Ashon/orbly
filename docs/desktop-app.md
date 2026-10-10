@@ -39,16 +39,16 @@ Using the packaged app:
 
 Layout:
 
-- The left rail switches sections: "Overview" (with the run list), "Pace" (the bot), and "Settings" at the bottom. The top bar holds the
-  run search (Cmd+K focuses it, Esc clears it); the run list shows next to the overview and run details, while the bot and
-  settings screens use the full width.
-- The toggle at the left of the top bar (Cmd+B) hides or shows the run list, and the choice is remembered. When the window
-  is too narrow for the list and the content side by side (under about 800 pixels), the list opens over the content
-  instead: the toggle, Cmd+B or typing a search opens it, and picking a run, Esc or a click outside closes it.
-- The window can be as narrow as 600 pixels. Narrow screens stack their cards and rows, and Settings shows its sections as
-  icons.
-- The status bar at the bottom holds status to glance at: bot connection status, reasoner backend, attached tools, startup check issues (when any),
-  requests in progress, and last request time. Clicking the "Pace: ..." status item opens the Pace screen.
+- The sidebar on the left lists the screens for watching Pace at the top ("Overview", "Runs", "Pace") and "Settings" at the
+  bottom, above Pace's status. Cmd+B keeps only its icons, and the choice is remembered. Windows narrower than 900 pixels
+  keep only the icons too.
+- Pace's status sits at the bottom of the sidebar: connection status, reasoner backend, requests in progress or the last request
+  time, and startup check issues (when any). Clicking "Pace: ..." opens the Pace screen, or the settings to fix when setup is needed.
+- Each screen is one content surface next to the sidebar. Its parts are told apart by space and hairlines, not by cards of their own.
+- The top bar holds the run search (Cmd+K focuses it, Esc clears it). Typing a search opens Runs.
+- Runs shows the run list and the selected run side by side. The line between them can be dragged, and a double-click resets it.
+  When the window is too narrow for both, Runs shows the list, and a picked run with a way back to it.
+- The window can be as narrow as 600 pixels. Narrow screens stack their rows, and Settings shows its sections as icons.
 
 Bot management:
 
@@ -63,7 +63,7 @@ Bot management:
 - Stop and app quit send SIGTERM. The bot waits up to 20 seconds for requests in progress, and the rest resume on the next start.
 - Before launching the bot, the app checks the settings with the bot's own rules. When the Slack tokens are missing (a first run) or a
   value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Pace screen, the Overview,
-  the status bar, and the tray menu). That way opens the section to fix: Slack for missing or rejected tokens, otherwise the section
+  the sidebar, and the tray menu). That way opens the section to fix: Slack for missing or rejected tokens, otherwise the section
   of the first invalid value. Tokens Slack rejects (`invalid_auth` and the like) also end up there. Saving in Settings then starts
   the bot ("Save and start Pace").
 - If the bot dies after running normally for 30 seconds or more, it shows "Crashed" and is restarted after 3 seconds (up to 3 times in

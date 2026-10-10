@@ -93,7 +93,7 @@ function usageOf(run: RunRecord) {
  */
 function RunHeader({ run }: { run: RunRecord }) {
   return (
-    <header className="border-b bg-canvas/80 px-8 pt-5 pb-0 backdrop-blur">
+    <header className="border-b bg-card/90 px-8 pt-6 pb-0 backdrop-blur">
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <StatusBadge status={run.status} />
@@ -148,7 +148,7 @@ function RunHeader({ run }: { run: RunRecord }) {
 
 /**
  * Run summary: duration, tools, tokens, reasoner backend. Same look as the
- * Overview cards
+ * Overview totals: one row of figures split by hairlines
  */
 function RunFacts({ run }: { run: RunRecord }) {
   const usage = usageOf(run)
@@ -157,9 +157,8 @@ function RunFacts({ run }: { run: RunRecord }) {
   ).length
   const duration = run.durationMs ?? Date.now() - Date.parse(run.startedAt)
   return (
-    // Two columns when the detail is narrow; the 1px gaps over the canvas draw
-    // the dividers either way.
-    <div className="surface-card mb-6 grid grid-cols-2 gap-px overflow-hidden bg-canvas @min-[40rem]:grid-cols-4">
+    // Two columns when the detail is narrow
+    <div className="mb-8 grid grid-cols-2 gap-y-4 border-b border-border pb-6 @min-[40rem]:grid-cols-4">
       <Fact
         icon={<Timer />}
         label={run.status === 'running' ? 'Elapsed' : 'Duration'}
@@ -202,7 +201,7 @@ function Fact({
   hint?: string
 }) {
   return (
-    <div className="min-w-0 bg-card px-4 py-3">
+    <div className="min-w-0 px-4 first:pl-0 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-border @max-[40rem]:[&:nth-child(3)]:border-l-0 @max-[40rem]:[&:nth-child(3)]:pl-0">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground [&_svg]:size-3.5 [&_svg]:shrink-0">
         {icon}
         <span className="truncate">{label}</span>

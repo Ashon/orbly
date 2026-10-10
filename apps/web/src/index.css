@@ -17,6 +17,7 @@
   --color-well: var(--well);
   --color-canvas: var(--canvas);
   --color-card-accent: var(--card-accent);
+  --color-selected: var(--selected);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -57,11 +58,13 @@
  *   Logo #01ab78 -> #1fc289 -> #48c89c, ring edge mint #a8e7d3
  *   Text contrast: white on light primary #007c5c 5.2:1, #04281d on dark primary #3ccb96 7.7:1
  *   The running status uses teal to stand apart from succeeded (green).
- * Cards are separated by surfaces, not borders. Higher surfaces are lighter. (same rule in light and dark)
- *   canvas: content area background, card: surface raised above it, card-accent: emphasized surface such as bot replies
- *   well: background for lists, code, and bars inside cards (a recessed surface at about the canvas level)
- *   Dividers inside cards are thin cuts in the canvas color (divide-canvas).
- *   Content cards all use surface-card: 20px rounded corners, card surface, a very faint shadow.
+ * Surfaces, not borders, set the levels. Higher surfaces are lighter. (same rule in light and dark)
+ *   sidebar: the window's chrome, card: the one content surface raised beside it,
+ *   card-accent: emphasized surface such as bot replies and the setup notice,
+ *   selected: the selected item of a list (sidebar, Settings sections, runs), a step below both the sidebar and the
+ *     content surface so it reads on either; a hover takes half of it
+ *   well: background for lists, code and logs on the content surface (a recessed surface)
+ *   Parts of the content surface are split by hairlines (border-border), not cards of their own.
  */
 :root {
   color-scheme: light;
@@ -78,6 +81,7 @@
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.23 0.025 172);
   --card-accent: oklch(0.982 0.03 165);
+  --selected: oklch(0.935 0.026 167);
   --well: oklch(0.972 0.008 168);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.23 0.025 172);
@@ -109,8 +113,6 @@
   --card-shadow:
     0 1px 2px oklch(0.3 0.03 170 / 0.05),
     0 10px 28px -14px oklch(0.3 0.03 170 / 0.14);
-  /* Status bar: lifted over the content, which scrolls under it */
-  --bar-shadow: 0 -10px 22px -12px oklch(0.3 0.03 170 / 0.24);
 }
 
 .dark {
@@ -121,6 +123,7 @@
   --card: oklch(0.215 0.015 175);
   --card-foreground: oklch(0.93 0.012 165);
   --card-accent: oklch(0.25 0.035 168);
+  --selected: oklch(0.265 0.03 168);
   --well: oklch(0.175 0.012 175);
   --popover: oklch(0.21 0.015 175);
   --popover-foreground: oklch(0.93 0.012 165);
@@ -149,7 +152,6 @@
   --chart-2: #48c89c;
   --chart-3: #a8e7d3;
   --card-shadow: 0 1px 2px oklch(0 0 0 / 0.25);
-  --bar-shadow: 0 -10px 22px -10px oklch(0 0 0 / 0.75);
 }
 
 @utility surface-card {
@@ -158,11 +160,24 @@
   box-shadow: var(--card-shadow);
 }
 
-/* A bar that sits a level above the content scrolling under it (the status bar) */
-@utility surface-bar {
-  position: relative;
-  z-index: 10;
-  box-shadow: var(--bar-shadow);
+/*
+ * Inside the one content surface (App's main), a card is not raised again: it becomes a flat, recessed well,
+ * so a screen reads as one surface with a few grouped areas, not a stack of panels.
+ */
+.content-surface .surface-card {
+  background-color: var(--well);
+  box-shadow: none;
+}
+.content-surface .surface-card-accent {
+  box-shadow: none;
+}
+
+/*
+ * A group of rows (Settings, the sandbox panel) on the one surface: no fill and no shadow. Its own padding is pulled
+ * back out, so its text lines up with the page header, and its rows are split by hairlines.
+ */
+@utility surface-group {
+  margin-inline: calc(var(--spacing) * -4);
 }
 
 /* Accent card (bot replies): same shape as surface-card, card-accent surface */
@@ -215,12 +230,6 @@
   }
   .pacenote-gradient {
     background: var(--pacenote-gradient);
-  }
-  .pacenote-gradient-text {
-    background: var(--pacenote-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
   }
 }
 

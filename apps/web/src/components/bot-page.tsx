@@ -41,7 +41,7 @@ export function BotPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b px-8 pt-6 pb-5">
+      <div className="shrink-0 border-b px-10 pt-8 pb-6">
         <div className="@container mx-auto max-w-5xl">
           <div className="flex items-start gap-4">
             <span
@@ -71,7 +71,7 @@ export function BotPage() {
             <Controls supervisor={supervisor} />
           </div>
           {supervisor?.message && <Notice supervisor={supervisor} />}
-          <div className="mt-4 grid grid-cols-2 gap-3 @min-[44rem]:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-y-5 @min-[44rem]:grid-cols-4">
             <Info icon={<Bot />} label="Bot account">
               {status?.bot ? `@${status.bot.user}` : '-'}
               <Sub>{status?.bot?.team}</Sub>
@@ -273,7 +273,8 @@ function Info({
   children: React.ReactNode
 }) {
   return (
-    <div className="surface-card min-w-0 px-4 py-3.5">
+    // One figure in a row split by hairlines, not a card of its own
+    <div className="min-w-0 px-5 first:pl-0 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-border @max-[44rem]:[&:nth-child(3)]:border-l-0 @max-[44rem]:[&:nth-child(3)]:pl-0">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground [&_svg]:size-3.5">
         {icon}
         {label}
@@ -350,7 +351,7 @@ function LogPanel() {
 
   return (
     <section className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b px-8 py-2">
+      <div className="flex shrink-0 items-center gap-2 border-b px-10 py-2.5">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-2 gap-y-1.5">
           <span className="text-sm font-medium">Logs</span>
           <div className="ml-2 flex gap-1">
@@ -405,7 +406,7 @@ function LogPanel() {
         onWheel={(e) => {
           if (e.deltaY < 0) setFollow(false)
         }}
-        className="min-h-0 flex-1 overflow-auto bg-muted/30 px-8 py-2 font-mono text-[11.5px] leading-[1.6] select-text"
+        className="min-h-0 flex-1 overflow-auto px-10 py-2 font-mono text-[11.5px] leading-[1.6] select-text"
       >
         <div className="mx-auto max-w-5xl">
           {lines.map((line, i) => (

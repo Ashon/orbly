@@ -8,7 +8,7 @@ export const RECHECK_SANDBOX = 'recheck-sandbox'
 
 /**
  * The sandbox's readiness (image, network, egress proxy, broker), checked again
- * while the bot runs instead of only at startup, so the status bar and the Bot
+ * while the bot runs instead of only at startup, so the sidebar and the Pace
  * screen follow a proxy that was started or stopped later. Reports a change
  * only when the problems differ from the last check.
  */

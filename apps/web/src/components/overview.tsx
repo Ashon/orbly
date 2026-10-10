@@ -15,7 +15,6 @@ import { useHealth, useStats } from '@/lib/api'
 import { useSupervisor } from '@/lib/desktop'
 import { formatDuration, formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { PacenoteMark } from './logo'
 
 /**
  * The first thing to do when the bot cannot start yet, usually connecting Slack
@@ -30,7 +29,7 @@ function SetupCard({
   issues?: { key?: string }[]
 }) {
   return (
-    <div className="surface-card mb-4 flex items-center gap-4 px-5 py-4">
+    <div className="mt-6 flex items-center gap-4 rounded-2xl bg-card-accent px-5 py-4">
       <div className="min-w-0 flex-1">
         <h2 className="text-sm font-semibold">Set up Pace</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
@@ -79,36 +78,35 @@ export function Overview() {
   const running = data?.byStatus.running ?? 0
 
   return (
-    // All cards sit in one grid: 4 columns, or 2 when the overview is narrow (a
-    // wide run list), so no card gets too tight for its content. Gaps are gap-4
-    // both ways, and the chart and tools cards span 2 columns to line up.
-    <div className="@container mx-auto max-w-4xl px-8 py-8">
-      <div className="mb-6 flex items-center gap-3">
-        <PacenoteMark className="size-10" />
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            <span className="pacenote-gradient-text">Pacenote</span> run history
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            The Slack mentions Pace answered, with its tool calls, replies, and
-            outputs.
-          </p>
-        </div>
-      </div>
+    // One surface, no cards: the figures share a row split by hairlines, and
+    // the chart and the tools sit side by side under a divider. The row wraps
+    // to two columns when the surface is narrow.
+    <div className="@container mx-auto max-w-4xl px-10 py-9">
+      {/* A page title like the other screens'; the brand is the sidebar's. */}
+      <header>
+        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          How Pace has answered your Slack mentions: how many, how well, and
+          with which tools.
+        </p>
+      </header>
 
       {supervisor?.phase === 'setup' && (
         <SetupCard message={supervisor.message} issues={supervisor.issues} />
       )}
 
-      <div className="grid grid-cols-2 gap-4 @min-[50rem]:grid-cols-4">
-        <StatCard
+      <section
+        aria-label="Totals"
+        className="mt-9 grid grid-cols-2 gap-y-8 @min-[46rem]:grid-cols-4"
+      >
+        <Metric
           icon={<Activity className="text-primary" />}
           label="Total runs"
           value={data ? formatNumber(data.total) : '-'}
           unit={data?.total === 1 ? 'run' : 'runs'}
           hint={data ? `${formatNumber(today)} today` : undefined}
         />
-        <StatCard
+        <Metric
           icon={<CircleCheck className="text-status-succeeded" />}
           label="Success rate"
           value={successRate === undefined ? '-' : String(successRate)}
@@ -119,14 +117,14 @@ export function Overview() {
               : undefined
           }
         />
-        <StatCard
+        <Metric
           icon={<Timer className="text-chart-1" />}
           label="Average duration"
           value={avgValue}
           unit={avgUnit}
           hint="Time to finish one request"
         />
-        <StatCard
+        <Metric
           icon={
             <LoaderCircle
               className={cn(
@@ -141,16 +139,16 @@ export function Overview() {
           hint={running > 0 ? 'Generating replies now' : 'No active requests'}
           accent={running > 0}
         />
+      </section>
 
-        <section className="surface-card col-span-2 flex flex-col p-5">
+      <div className="mt-10 grid gap-10 border-t border-border pt-9 @min-[46rem]:grid-cols-2">
+        <section className="flex flex-col">
           <CardHeader
             icon={<BarChart3 className="text-primary" />}
             label="Last 14 days"
             meta="Runs per day"
           />
-          {/* Bars fill the card's remaining height. (up to 5 tools so the
-              height matches the tools card next to it) */}
-          <div className="mt-4 flex min-h-36 flex-1 gap-5">
+          <div className="mt-5 flex min-h-40 flex-1 gap-5">
             <div className="flex shrink-0 flex-col justify-end pb-5">
               <Value
                 value={formatNumber(recentRuns)}
@@ -162,7 +160,7 @@ export function Overview() {
             </div>
             {/* Pill-shaped bars: filled over the background (well) by run
                 count, with failures painted red at the top. The columns
-                share the width, so the chart never grows past its card;
+                share the width, so the chart never grows past its section;
                 when they get too narrow for every date, every other date
                 (counting back from today) is hidden. */}
             <div className="@container/bars flex min-w-0 flex-1 items-end gap-1">
@@ -209,14 +207,14 @@ export function Overview() {
           </div>
         </section>
 
-        <section className="surface-card col-span-2 p-5">
+        <section>
           <CardHeader
             icon={<Wrench className="text-chart-1" />}
             label="Top tools"
             meta="Calls"
           />
           {data?.topTools.length ? (
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-5 space-y-3">
               {data.topTools.slice(0, 5).map((tool) => (
                 <li key={tool.name} className="text-xs">
                   <div className="mb-1.5 flex items-baseline justify-between gap-2">
@@ -235,7 +233,7 @@ export function Overview() {
               ))}
             </ul>
           ) : (
-            <p className="py-6 text-center text-xs text-muted-foreground">
+            <p className="py-8 text-sm text-muted-foreground">
               No tool calls recorded.
             </p>
           )}
@@ -243,7 +241,7 @@ export function Overview() {
       </div>
 
       {health.data && (
-        <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
+        <p className="mt-10 flex items-start gap-1.5 border-t border-border pt-5 text-xs text-muted-foreground">
           <FolderOpen className="mt-px size-3.5 shrink-0" />
           <span className="shrink-0">Run history folder</span>
           <span className="min-w-0 font-mono break-all select-text">
@@ -256,8 +254,8 @@ export function Overview() {
 }
 
 /**
- * Card header: colored icon and title, with secondary text such as the range on
- * the right
+ * Section header: colored icon and title, with secondary text such as the range
+ * on the right
  */
 function CardHeader({
   icon,
@@ -308,7 +306,11 @@ function Value({
   )
 }
 
-function StatCard({
+/**
+ * One figure in the totals row. Figures after the first are set off by a
+ * hairline on their left, so the row reads as one band.
+ */
+function Metric({
   icon,
   label,
   value,
@@ -324,9 +326,9 @@ function StatCard({
   accent?: boolean
 }) {
   return (
-    <div className="surface-card p-5">
+    <div className="min-w-0 px-6 first:pl-0 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-border @max-[46rem]:[&:nth-child(3)]:border-l-0 @max-[46rem]:[&:nth-child(3)]:pl-0">
       <CardHeader icon={icon} label={label} />
-      <div className="mt-4">
+      <div className="mt-3">
         <Value
           value={value}
           unit={value === '-' ? undefined : unit}

@@ -141,7 +141,7 @@ describe.runIf(process.env.E2E_APP)('desktop app', () => {
     expect(reply!.text).toBe('*Healthy*. Up 3 days.')
 
     // The run shows up in the history with the answer and a link back to Slack.
-    await page.evaluate("window.location.hash = '#/'")
+    await page.evaluate("window.location.hash = '#/runs'")
     await page.getByText('how is web-01?').first().click({ timeout: 15_000 })
     await page.getByText('Up 3 days.').first().waitFor()
     const link = page.getByRole('link', { name: 'View in Slack' })

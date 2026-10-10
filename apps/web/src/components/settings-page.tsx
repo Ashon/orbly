@@ -613,7 +613,7 @@ export function SettingsPage() {
           ),
         })}
         {pending.some((item) => item.component === 'broker') && (
-          <section className="surface-card overflow-hidden">
+          <section className="surface-group">
             <PendingList
               pending={pending.filter((item) => item.component === 'broker')}
               sandbox={sandbox}
@@ -639,12 +639,12 @@ export function SettingsPage() {
     ),
     general: (
       <>
-        <section className="surface-card overflow-hidden">
+        <section className="surface-group">
           <CardHeader
             title="App"
             help="Stored with the run history, not in the settings file."
           />
-          <div className="divide-y divide-canvas">
+          <div className="divide-y divide-border">
             <Row
               label="Theme"
               help="System follows the macOS appearance. PACENOTE_DESKTOP_THEME in the environment overrides it."
@@ -664,12 +664,12 @@ export function SettingsPage() {
             )}
           </div>
         </section>
-        <section className="surface-card overflow-hidden">
+        <section className="surface-group">
           <CardHeader
             title="Files"
             help="Pace reads its settings from a file outside the repository. Runs from the app and the terminal share it."
           />
-          <div className="divide-y divide-canvas">
+          <div className="divide-y divide-border">
             <Row
               label="Settings file"
               help={
@@ -746,7 +746,7 @@ export function SettingsPage() {
 
       <div className="@container/content flex min-w-0 flex-1 flex-col">
         <ScrollArea className="min-h-0 flex-1">
-          <div className="max-w-3xl space-y-4 px-8 py-6 @max-[36rem]/content:px-4">
+          <div className="max-w-3xl space-y-8 px-8 py-7 @max-[36rem]/content:px-4">
             <header>
               <h2 className="text-lg font-semibold tracking-tight">
                 {SECTION_INFO[section].label}
@@ -887,8 +887,8 @@ function NavItem({
       className={cn(
         'flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 @max-[44rem]/settings:justify-center @max-[44rem]/settings:px-0',
         active
-          ? 'bg-card font-medium text-foreground shadow-xs'
-          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+          ? 'bg-selected font-medium text-foreground'
+          : 'text-muted-foreground hover:bg-selected/50 hover:text-foreground'
       )}
     >
       <span className="relative shrink-0">
@@ -951,7 +951,7 @@ function SubHeading({
   chip?: React.ReactNode
 }) {
   return (
-    <div className="px-1 pt-3">
+    <div className="pt-3">
       <h3 className="flex items-center gap-2 text-sm font-semibold">
         {title}
         {chip}
@@ -975,7 +975,7 @@ function CardHeader({
   action?: React.ReactNode
 }) {
   return (
-    <header className="flex items-start gap-3 border-b border-canvas px-4 py-3">
+    <header className="flex items-start gap-3 border-b border-border px-4 py-3">
       <div className="min-w-0 flex-1">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
           {title}
@@ -1024,7 +1024,7 @@ function GroupCard({
   const basic = fields.filter((field) => !field.advanced)
   const advanced = fields.filter((field) => field.advanced)
   return (
-    <section className="surface-card overflow-hidden">
+    <section className="surface-group">
       <CardHeader
         title={info.label}
         help={help ?? info.help}
@@ -1034,7 +1034,7 @@ function GroupCard({
       />
       {children}
       {basic.length > 0 && (
-        <div className="divide-y divide-canvas">{basic.map(row)}</div>
+        <div className="divide-y divide-border">{basic.map(row)}</div>
       )}
       {after}
       {advanced.length > 0 && (
@@ -1178,7 +1178,7 @@ function ClaudeTokenSetup({
   }
 
   return (
-    <div className="border-t border-canvas bg-well/60 px-4 py-3">
+    <div className="border-t border-border bg-well/60 px-4 py-3">
       {state.step === 'waiting' ? (
         <div className="flex items-center gap-3">
           <LoaderCircle className="size-4 shrink-0 animate-spin text-muted-foreground" />
@@ -1444,7 +1444,7 @@ function HubPairing({
     }
   })()
   return (
-    <div className="border-t border-canvas bg-well/60 px-4 py-3">{body}</div>
+    <div className="border-t border-border bg-well/60 px-4 py-3">{body}</div>
   )
 }
 
@@ -1462,7 +1462,7 @@ function Requirements({
   onOpen: (section: Section) => void
 }) {
   return (
-    <ul className="space-y-1.5 border-t border-canvas bg-well/60 px-4 py-2.5">
+    <ul className="space-y-1.5 border-t border-border bg-well/60 px-4 py-2.5">
       {items.map((item) => (
         <li key={item.label} className="flex items-center gap-2 text-xs">
           {item.ok ? (
@@ -1846,7 +1846,7 @@ function ThemePicker() {
           className={cn(
             'flex h-6 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none',
             mode === value
-              ? 'bg-card text-foreground shadow-xs'
+              ? 'bg-card text-foreground shadow-xs dark:bg-selected'
               : 'text-muted-foreground hover:text-foreground'
           )}
         >
@@ -1901,7 +1901,7 @@ function Advanced({
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className={cn(bordered && 'border-t border-canvas')}
+      className={cn(bordered && 'border-t border-border')}
     >
       <CollapsibleTrigger className="flex w-full items-center gap-1 px-4 py-2 text-left text-xs text-muted-foreground hover:text-foreground">
         <ChevronRight
@@ -1909,7 +1909,7 @@ function Advanced({
         />
         Advanced ({count})
       </CollapsibleTrigger>
-      <CollapsibleContent className="divide-y divide-canvas overflow-hidden border-t border-canvas data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+      <CollapsibleContent className="divide-y divide-border overflow-hidden border-t border-border data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -1918,7 +1918,7 @@ function Advanced({
 
 function CheckResult({ items }: { items: SlackCheckItem[] }) {
   return (
-    <ul className="space-y-1 border-b border-canvas bg-well/60 px-4 py-2.5">
+    <ul className="space-y-1 border-b border-border bg-well/60 px-4 py-2.5">
       {items.map((item) => (
         <li key={item.label} className="flex items-start gap-2 text-xs">
           {item.ok ? (
