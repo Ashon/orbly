@@ -40,10 +40,11 @@ Using the packaged app:
 Layout:
 
 - The sidebar on the left lists the screens for watching Pace at the top ("Overview", "Runs", "Pace") and "Settings" at the
-  bottom, above Pace's status. Cmd+B keeps only its icons, and the choice is remembered. Windows narrower than 900 pixels
-  keep only the icons too.
-- Pace's status sits at the bottom of the sidebar: connection status, reasoner backend, requests in progress or the last request
-  time, and startup check issues (when any). Clicking "Pace: ..." opens the Pace screen, or the settings to fix when setup is needed.
+  bottom. Cmd+B keeps only its icons, and the choice is remembered. Windows narrower than 900 pixels keep only the icons too.
+- The status bar along the bottom of the window holds indicators to glance at: Pace's connection status, reasoner backend,
+  attached tools and startup check issues (when any) on the left; requests in progress, the last request time and a folder
+  button that opens the run history in Finder on the right. Clicking "Pace: ..." opens the Pace screen, or the
+  settings to fix when setup is needed. Narrow windows drop the less needed ones.
 - Each screen is one content surface next to the sidebar. Its parts are told apart by space and hairlines, not by cards of their own.
 - The top bar holds the run search (Cmd+K focuses it, Esc clears it). Typing a search opens Runs.
 - Runs shows the run list and the selected run side by side. The line between them can be dragged, and a double-click resets it.
@@ -63,7 +64,7 @@ Bot management:
 - Stop and app quit send SIGTERM. The bot waits up to 20 seconds for requests in progress, and the rest resume on the next start.
 - Before launching the bot, the app checks the settings with the bot's own rules. When the Slack tokens are missing (a first run) or a
   value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Pace screen, the Overview,
-  the sidebar, and the tray menu). That way opens the section to fix: Slack for missing or rejected tokens, otherwise the section
+  the status bar, and the tray menu). That way opens the section to fix: Slack for missing or rejected tokens, otherwise the section
   of the first invalid value. Tokens Slack rejects (`invalid_auth` and the like) also end up there. Saving in Settings then starts
   the bot ("Save and start Pace").
 - If the bot dies after running normally for 30 seconds or more, it shows "Crashed" and is restarted after 3 seconds (up to 3 times in

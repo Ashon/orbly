@@ -79,7 +79,7 @@ async function main(): Promise<void> {
   const reasoner = createReasoner(config.reasoner, sandbox)
   // If the sandbox is not ready, reasoner calls fail. They do not fall back to
   // the host. The check repeats while the bot runs, and right away when the
-  // desktop app finishes a sandbox job, so the status (and the sidebar)
+  // desktop app finishes a sandbox job, so the status (and the status bar)
   // follows a proxy that is started or stopped later.
   const allProblems = () => [
     ...sandboxHealth.current.map((problem) => `Sandbox: ${problem}`),

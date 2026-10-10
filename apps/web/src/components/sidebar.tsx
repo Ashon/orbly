@@ -1,18 +1,12 @@
-import { setupSettingsRoute } from '@src/settings/fields'
 import {
   Bot,
   History,
   LayoutDashboard,
   Settings,
-  TriangleAlert,
   type LucideIcon,
 } from 'lucide-react'
 import { Tooltip } from '@/components/ui/tooltip'
-import { useBotStatus } from '@/lib/api'
-import { useSupervisor } from '@/lib/desktop'
-import { formatRelative } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { describeBot, TONE_CLASS } from './bot-state'
 import { PacenoteMark } from './logo'
 
 export type Section = 'overview' | 'runs' | 'bot' | 'settings'
@@ -25,7 +19,7 @@ const ITEMS: Item[] = [
   { section: 'runs', label: 'Runs', icon: History },
   { section: 'bot', label: 'Pace', icon: Bot },
 ]
-/** Setting the app up, at the bottom beside Pace's status */
+/** Setting the app up, at the bottom */
 const SETTINGS: Item = {
   section: 'settings',
   label: 'Settings',
@@ -34,20 +28,17 @@ const SETTINGS: Item = {
 
 /**
  * The app's sections as a labeled list: the screens for watching Pace at the
- * top, and Settings at the bottom above Pace's status. A compact sidebar keeps
- * only the icons, for narrow windows.
+ * top, and Settings at the bottom. (Pace's status is in the status bar.) A
+ * compact sidebar keeps only the icons, for narrow windows.
  */
 export function Sidebar({
   active,
   compact,
   onNavigate,
-  onOpenRoute,
 }: {
   active: Section
   compact: boolean
   onNavigate: (section: Section) => void
-  /** Opens a route such as #/settings/messengers */
-  onOpenRoute: (route: string) => void
 }) {
   const item = (props: Item) => (
     <NavItem
@@ -62,7 +53,7 @@ export function Sidebar({
     <nav
       aria-label="Sections"
       className={cn(
-        'flex shrink-0 flex-col pb-4',
+        'flex shrink-0 flex-col pb-3',
         compact ? 'w-16 items-center px-2' : 'w-56 px-3'
       )}
     >
@@ -87,22 +78,7 @@ export function Sidebar({
 
       <div className="flex flex-col gap-1">{ITEMS.map(item)}</div>
 
-      <div
-        className={cn(
-          'mt-auto flex w-full flex-col gap-3',
-          compact && 'items-center'
-        )}
-      >
-        {item(SETTINGS)}
-        <div
-          className={cn(
-            'w-full border-t border-sidebar-border pt-3',
-            compact && 'flex justify-center'
-          )}
-        >
-          <PaceStatus compact={compact} onOpenRoute={onOpenRoute} />
-        </div>
-      </div>
+      <div className="mt-auto">{item(SETTINGS)}</div>
     </nav>
   )
 }
@@ -141,101 +117,5 @@ function NavItem({
     </Tooltip>
   ) : (
     button
-  )
-}
-
-/**
- * Pace's status, to glance at from any screen: whether it is connected, what it
- * answers with, and what needs attention. When setup is needed it goes straight
- * to the settings that fix it.
- */
-function PaceStatus({
-  compact,
-  onOpenRoute,
-}: {
-  compact: boolean
-  onOpenRoute: (route: string) => void
-}) {
-  const { data } = useBotStatus()
-  const supervisor = useSupervisor()
-  const { tone, label } = describeBot(data, supervisor)
-  const status = data?.alive ? data.status : undefined
-  const active = status?.requests.active ?? 0
-  const problems = status?.problems ?? []
-  const setup = supervisor?.phase === 'setup'
-  const open = () =>
-    onOpenRoute(setup ? setupSettingsRoute(supervisor.issues) : '#/bot')
-
-  const dot = (
-    <span className="relative flex size-2 shrink-0">
-      {(tone === 'ok' || tone === 'busy') && (
-        <span
-          className={cn(
-            'absolute inset-0 animate-ping rounded-full opacity-50',
-            TONE_CLASS[tone].dot
-          )}
-        />
-      )}
-      <span
-        className={cn('relative size-2 rounded-full', TONE_CLASS[tone].dot)}
-      />
-    </span>
-  )
-
-  if (compact)
-    return (
-      <Tooltip content={`Pace: ${label}`} side="right">
-        <button
-          type="button"
-          onClick={open}
-          aria-label={`Pace: ${label}`}
-          className="grid size-10 place-items-center rounded-xl hover:bg-selected/50"
-        >
-          {dot}
-        </button>
-      </Tooltip>
-    )
-
-  const detail = [
-    status?.reasoner,
-    active > 0
-      ? `${active} active`
-      : status?.requests.lastAt
-        ? `last request ${formatRelative(status.requests.lastAt)}`
-        : undefined,
-  ].filter(Boolean)
-
-  return (
-    <div className="flex flex-col gap-1 px-2.5">
-      <button
-        type="button"
-        onClick={open}
-        className="-mx-2 flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-selected/50"
-      >
-        {dot}
-        <span className={cn('font-semibold', TONE_CLASS[tone].text)}>
-          Pace: {label}
-        </span>
-      </button>
-      {(setup || detail.length > 0) && (
-        <p className="text-xs leading-snug text-muted-foreground">
-          {setup
-            ? 'A few settings are missing before Pace can start.'
-            : detail.join(' · ')}
-        </p>
-      )}
-      {problems.length > 0 && (
-        <button
-          type="button"
-          onClick={() => onOpenRoute('#/bot')}
-          title={problems.join('\n')}
-          className="flex items-center gap-1.5 text-left text-xs font-medium text-status-interrupted hover:underline"
-        >
-          <TriangleAlert className="size-3.5 shrink-0" />
-          {problems.length}{' '}
-          {problems.length === 1 ? 'check issue' : 'check issues'}
-        </button>
-      )}
-    </div>
   )
 }

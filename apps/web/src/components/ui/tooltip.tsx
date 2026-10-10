@@ -20,6 +20,7 @@ function Tooltip({
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
+          collisionPadding={8}
           className={cn(
             'z-50 max-w-xs rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md animate-in fade-in-0 zoom-in-95'
           )}

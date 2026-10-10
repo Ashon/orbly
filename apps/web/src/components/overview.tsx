@@ -3,7 +3,6 @@ import {
   Activity,
   BarChart3,
   CircleCheck,
-  FolderOpen,
   LoaderCircle,
   Settings,
   Timer,
@@ -11,7 +10,7 @@ import {
 } from 'lucide-react'
 import type * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { useHealth, useStats } from '@/lib/api'
+import { useStats } from '@/lib/api'
 import { useSupervisor } from '@/lib/desktop'
 import { formatDuration, formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -59,7 +58,6 @@ function splitUnit(text: string): [string, string] {
 export function Overview() {
   const stats = useStats()
   const supervisor = useSupervisor()
-  const health = useHealth()
   const data = stats.data
   const finished = data
     ? data.byStatus.succeeded + data.byStatus.failed + data.byStatus.interrupted
@@ -239,16 +237,6 @@ export function Overview() {
           )}
         </section>
       </div>
-
-      {health.data && (
-        <p className="mt-10 flex items-start gap-1.5 border-t border-border pt-5 text-xs text-muted-foreground">
-          <FolderOpen className="mt-px size-3.5 shrink-0" />
-          <span className="shrink-0">Run history folder</span>
-          <span className="min-w-0 font-mono break-all select-text">
-            {health.data.root}
-          </span>
-        </p>
-      )}
     </div>
   )
 }

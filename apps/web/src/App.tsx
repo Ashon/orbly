@@ -16,6 +16,7 @@ import { RunList } from './components/run-list'
 import { SearchField } from './components/search-field'
 import { SettingsPage } from './components/settings-page'
 import { Sidebar, type Section } from './components/sidebar'
+import { StatusBar } from './components/status-bar'
 
 type Route =
   | { page: 'overview' }
@@ -110,12 +111,11 @@ export default function App() {
             active={section}
             compact={compact}
             onNavigate={(next) => go(next === 'overview' ? '#/' : `#/${next}`)}
-            onOpenRoute={go}
           />
           {/* One surface holds the whole screen. Its parts are told apart by
               space and hairlines, not by cards of their own. */}
           <main
-            className="content-surface mr-3 mb-3 min-w-0 flex-1 overflow-hidden rounded-[20px] bg-card"
+            className="content-surface mr-3 min-w-0 flex-1 overflow-hidden rounded-[20px] bg-card"
             style={{ boxShadow: 'var(--card-shadow)' }}
           >
             {route.page === 'bot' ? (
@@ -136,6 +136,7 @@ export default function App() {
             )}
           </main>
         </div>
+        <StatusBar onOpenRoute={go} />
       </div>
     </TooltipProvider>
   )
