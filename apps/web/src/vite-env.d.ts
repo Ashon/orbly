@@ -21,6 +21,10 @@ import type {
 } from '@src/sandbox/types'
 
 declare global {
+  interface ImportMetaEnv {
+    /** 1: the build includes the Debug section (pnpm desktop) */
+    readonly VITE_PACENOTE_DEBUG?: string
+  }
   interface Window {
     /** Present only in the desktop app (preload). */
     pacenoteDesktop?: {

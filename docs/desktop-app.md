@@ -15,6 +15,11 @@ folder and single-instance lock, so they start next to an installed Pacenote. Th
 `icon.swift` as `assets/pacenote-icon-dev.png`) and the menu bar item say "Dev". Both use the
 same config and data folder (`~/.pacenote`), so the bot lock still keeps a single bot running.
 
+These runs also have a Debug section above Settings, for things to look at in motion (Pace's spinner at each size, with speed,
+pause, a scrubber and the frame rate). Its code is only in builds made for development: `pnpm desktop` builds the UI with
+`VITE_PACENOTE_DEBUG=1`, and the Vite dev server always includes it. `pnpm desktop:build` and `pnpm package:mac`, which
+release builds use, leave it out.
+
 Packaging:
 
 - `pnpm package:mac` builds `release/Pacenote-v<version>-macos-<arch>.app.zip` with a `.sha256` file. The arch defaults to

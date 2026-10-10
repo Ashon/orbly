@@ -4,12 +4,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { BotPage } from './components/bot-page'
-import { DebugPage } from './components/debug-page'
 import {
   ResizeHandle,
   useStoredFlag,
@@ -23,6 +22,22 @@ import { SearchField } from './components/search-field'
 import { SettingsPage } from './components/settings-page'
 import { Sidebar, type Section } from './components/sidebar'
 import { StatusBar } from './components/status-bar'
+
+/**
+ * The Debug section is only in builds made for development: the Vite dev
+ * server, or VITE_PACENOTE_DEBUG=1 (pnpm desktop). Release builds (pnpm
+ * desktop:build, pnpm package:mac) leave its code out, since the bundler drops
+ * the import, and even a build with it shows it only in development runs.
+ */
+const DebugPage =
+  import.meta.env.DEV || import.meta.env.VITE_PACENOTE_DEBUG === '1'
+    ? lazy(() =>
+        import('./components/debug-page').then((module) => ({
+          default: module.DebugPage,
+        }))
+      )
+    : undefined
+const showDebug = DebugPage !== undefined && !!window.pacenoteDesktop?.dev
 
 type Route =
   | { page: 'overview' }
@@ -43,8 +58,7 @@ function readRoute(): Route {
   if (hash.startsWith('#/runs')) return { page: 'runs' }
   if (hash.startsWith('#/bot')) return { page: 'bot' }
   if (hash.startsWith('#/settings')) return { page: 'settings' }
-  if (hash.startsWith('#/debug') && window.pacenoteDesktop?.dev)
-    return { page: 'debug' }
+  if (hash.startsWith('#/debug') && showDebug) return { page: 'debug' }
   return { page: 'overview' }
 }
 
@@ -127,6 +141,7 @@ export default function App() {
             active={section}
             compact={compact}
             onNavigate={(next) => go(next === 'overview' ? '#/' : `#/${next}`)}
+            showDebug={showDebug}
           />
           {/* One surface holds the whole screen. Its parts are told apart by
               space and hairlines, not by cards of their own. */}
@@ -139,7 +154,7 @@ export default function App() {
             ) : route.page === 'settings' ? (
               <SettingsPage />
             ) : route.page === 'debug' ? (
-              <DebugPage />
+              <Suspense>{DebugPage && <DebugPage />}</Suspense>
             ) : route.page === 'runs' ? (
               <RunsPage
                 q={q}

@@ -26,7 +26,7 @@ const SETTINGS: Item = {
   label: 'Settings',
   icon: Settings,
 }
-/** Development builds only, above Settings */
+/** Builds made for development only (see App), above Settings */
 const DEBUG: Item = { section: 'debug', label: 'Debug', icon: Bug }
 
 /**
@@ -38,10 +38,12 @@ export function Sidebar({
   active,
   compact,
   onNavigate,
+  showDebug,
 }: {
   active: Section
   compact: boolean
   onNavigate: (section: Section) => void
+  showDebug: boolean
 }) {
   const item = (props: Item) => (
     <NavItem
@@ -84,7 +86,7 @@ export function Sidebar({
       <div className="flex flex-col gap-1">{ITEMS.map(item)}</div>
 
       <div className="mt-auto flex flex-col gap-1">
-        {window.pacenoteDesktop?.dev && item(DEBUG)}
+        {showDebug && item(DEBUG)}
         {item(SETTINGS)}
       </div>
     </nav>
