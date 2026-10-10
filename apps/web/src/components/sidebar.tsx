@@ -78,7 +78,7 @@ export function Sidebar({
 
       <div className="flex flex-col gap-1">{ITEMS.map(item)}</div>
 
-      <div className="mt-auto">{item(SETTINGS)}</div>
+      <div className="mt-auto flex flex-col">{item(SETTINGS)}</div>
     </nav>
   )
 }
