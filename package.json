@@ -1,6 +1,6 @@
 {
   "name": "pacenote",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "description": "Pacenote: you drive, Pace reads the notes. A Slack bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)",
   "type": "module",
