@@ -48,7 +48,7 @@ export class BotAlreadyRunningError extends Error {
     managedBy: string
   ) {
     super(
-      `Pacey is already running (pid ${pid}, ${managedBy === 'desktop' ? 'desktop app' : 'terminal'}). ` +
+      `Pace is already running (pid ${pid}, ${managedBy === 'desktop' ? 'desktop app' : 'terminal'}). ` +
         'Running two with the same app token makes Slack split events between them, so only one runs.'
     )
   }

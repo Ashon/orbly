@@ -71,13 +71,13 @@ export interface UploadRecord {
   files: { title?: string; filename: string; size: number }[]
 }
 
-const BOT_ID = 'B0PACEY'
+const BOT_ID = 'B0PACE'
 const APP_ID = 'A0E2E'
 
 export class FakeSlack {
   readonly botToken = 'xoxb-e2e-0000-bot'
   readonly appToken = 'xapp-1-A0E2E-0000-app'
-  readonly botUserId = 'U0PACEY'
+  readonly botUserId = 'U0PACE'
   readonly team = { id: 'T0E2E', name: 'e2e' }
   readonly calls: ApiCall[] = []
   readonly ephemerals: Ephemeral[] = []
@@ -102,7 +102,7 @@ export class FakeSlack {
   private pinger?: NodeJS.Timeout
 
   constructor() {
-    this.addUser({ id: this.botUserId, name: 'pacey' })
+    this.addUser({ id: this.botUserId, name: 'pace' })
     this.server = createServer((req, res) => {
       this.route(req, res).catch((err: unknown) => {
         res.writeHead(500).end(String(err))
@@ -383,7 +383,7 @@ export class FakeSlack {
             url: `${this.url}/`,
             team: this.team.name,
             team_id: this.team.id,
-            user: 'pacey',
+            user: 'pace',
             user_id: this.botUserId,
             bot_id: BOT_ID,
           },

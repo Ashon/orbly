@@ -25,17 +25,17 @@ export const SETTING_SECTIONS: {
   {
     id: 'messengers',
     label: 'Messengers',
-    help: 'The chat apps Pacey answers in, and who can ask there. Changes apply when Pacey restarts.',
+    help: 'The chat apps Pace answers in, and who can ask there. Changes apply when Pace restarts.',
   },
   {
     id: 'answers',
     label: 'Answers',
-    help: 'The CLI that writes answers and how requests are handled. Changes apply when Pacey restarts.',
+    help: 'The CLI that writes answers and how requests are handled. Changes apply when Pace restarts.',
   },
   {
     id: 'sandbox',
     label: 'Sandbox',
-    help: 'Where the reasoner CLI runs for each request. Allowed domains apply when the proxy restarts, everything else when Pacey restarts.',
+    help: 'Where the reasoner CLI runs for each request. Allowed domains apply when the proxy restarts, everything else when Pace restarts.',
   },
   {
     id: 'ops',
@@ -45,7 +45,7 @@ export const SETTING_SECTIONS: {
   {
     id: 'logs',
     label: 'History & logs',
-    help: 'What Pacey keeps after answering. Changes apply when Pacey restarts.',
+    help: 'What Pace keeps after answering. Changes apply when Pace restarts.',
   },
 ]
 
@@ -166,7 +166,7 @@ export const SETTING_GROUPS: SettingGroupInfo[] = [
     id: 'ops',
     section: 'ops',
     label: 'Ops tools',
-    help: 'Turning them on or off applies when Pacey restarts.',
+    help: 'Turning them on or off applies when Pace restarts.',
   },
   {
     id: 'files',
@@ -218,7 +218,7 @@ export const SETTING_GROUPS: SettingGroupInfo[] = [
     id: 'logs',
     section: 'logs',
     label: 'Logs',
-    help: 'What Pacey writes to its log.',
+    help: 'What Pace writes to its log.',
   },
 ]
 
@@ -303,7 +303,7 @@ export const SETTING_FIELDS: SettingField[] = [
     key: 'SOCKET_CLIENT_PING_TIMEOUT_MS',
     group: 'slack',
     label: 'Client ping timeout (ms)',
-    help: 'Reconnects if a ping sent by Pacey gets no reply within this time. (1000 to 60000)',
+    help: 'Reconnects if a ping sent by Pace gets no reply within this time. (1000 to 60000)',
     type: 'number',
     default: '5000',
     advanced: true,

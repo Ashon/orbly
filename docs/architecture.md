@@ -5,17 +5,17 @@ How Pacenote is put together, in five pictures. The diagrams are drawn by `scrip
 
 ## The pieces
 
-Pacey, the bot, runs on your Mac as a process the desktop app manages, in four layers: the Slack messenger, the
+Pace, the bot, runs on your Mac as a process the desktop app manages, in four layers: the Slack messenger, the
 mention pipeline, the reasoner that calls your `claude` or `codex` CLI, and the sandbox the CLI runs in. Slack reaches
 it over Socket Mode, so nothing listens on a public port. With the Docker sandbox, each answer is reasoned in a new,
 hardened container whose only ways out are the egress proxy (the model APIs and the domains you allow) and ops-broker
 (ops tools, with the credentials kept in the broker); without it, the CLI runs on your Mac with your own login.
-Diagrams are rendered in a container of their own, with no network. Settings and everything Pacey keeps live in
+Diagrams are rendered in a container of their own, with no network. Settings and everything Pace keeps live in
 `~/.pacenote`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/architecture-dark.svg">
-  <img alt="Slack; Pacey on your Mac as four layers (messenger, pipeline, reasoner, sandbox); and the Docker sandbox with the renderer, the reasoner and its two ways out, the egress proxy and ops-broker" src="diagrams/architecture-light.svg">
+  <img alt="Slack; Pace on your Mac as four layers (messenger, pipeline, reasoner, sandbox); and the Docker sandbox with the renderer, the reasoner and its two ways out, the egress proxy and ops-broker" src="diagrams/architecture-light.svg">
 </picture>
 
 More: [How it works](how-it-works.md), [Reasoner sandbox](sandbox.md), [Ops tools](ops-tools.md),
@@ -29,13 +29,13 @@ and the answer replaces the placeholder. A restart resumes an unfinished answer 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/mention-flow-dark.svg">
-  <img alt="The steps of one mention across Slack, Pacey and the sandbox, and what happens when a mention is refused, fails, is interrupted or has to wait" src="diagrams/mention-flow-light.svg">
+  <img alt="The steps of one mention across Slack, Pace and the sandbox, and what happens when a mention is refused, fails, is interrupted or has to wait" src="diagrams/mention-flow-light.svg">
 </picture>
 
 ## Team hub
 
 For a team, one hub server holds the Slack app and routes each member's mentions to that member's own desktop, which
-answers with that member's login, sandbox and tools. Desktops pair once with a code sent to Pacey in Slack and never
+answers with that member's login, sandbox and tools. Desktops pair once with a code sent to Pace in Slack and never
 hold a Slack token.
 
 <picture>

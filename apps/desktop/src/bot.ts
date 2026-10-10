@@ -181,7 +181,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
   private build(): Promise<boolean> {
     this.set({
       phase: 'building',
-      message: 'Building Pacey (pnpm build)',
+      message: 'Building Pace (pnpm build)',
       output: [],
     })
     return new Promise((resolve) => {
@@ -237,7 +237,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
       cwd: this.options.cwd,
       env,
       stdio: 'pipe',
-      serviceName: 'Pacey',
+      serviceName: 'Pace',
     })
     this.child = child
     this.childStartedAt = Date.now()
@@ -284,7 +284,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         phase: 'crashed',
         pid: undefined,
         restarts: this.restartTimes.length,
-        message: `Pacey exited (code ${code}). Restarting in 3 seconds.`,
+        message: `Pace exited (code ${code}). Restarting in 3 seconds.`,
       })
       setTimeout(() => void this.start(), 3_000)
       return
@@ -305,7 +305,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
               phase: 'failed',
               pid: undefined,
               message:
-                `Pacey stopped right after starting (code ${code}). ${last}`.trim(),
+                `Pace stopped right after starting (code ${code}). ${last}`.trim(),
             }
       )
       return
@@ -313,7 +313,7 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
     this.set({
       phase: 'crashed',
       pid: undefined,
-      message: `Pacey keeps exiting and will not be restarted (code ${code}).`,
+      message: `Pace keeps exiting and will not be restarted (code ${code}).`,
     })
   }
 
@@ -338,13 +338,13 @@ export class BotSupervisor extends EventEmitter<{ change: [SupervisorState] }> {
         phase: 'external',
         pid: externalPid,
         message:
-          'Pacey is running elsewhere, such as a terminal. Stop it there to manage it here.',
+          'Pace is running elsewhere, such as a terminal. Stop it there to manage it here.',
       })
     } else if (!externalPid && this.state.phase === 'external') {
       this.set({
         phase: 'idle',
         pid: undefined,
-        message: 'Pacey stopped running elsewhere.',
+        message: 'Pace stopped running elsewhere.',
       })
       if (this.state.autoStart) void this.start()
     }

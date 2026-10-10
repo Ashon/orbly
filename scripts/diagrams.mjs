@@ -235,39 +235,32 @@ ${this.parts.join('\n')}
 }
 
 /**
- * Slack, Pacey's layers on the desktop, the Docker sandbox, and what the
+ * Slack, Pace's layers on the desktop, the Docker sandbox, and what the
  * sandbox may reach
  */
 function architecture(c) {
   c.header(
     'architecture',
-    "One person's setup: Pacey runs on your Mac and reasons each answer in a disposable sandbox."
+    "One person's setup: Pace runs on your Mac and reasons each answer in a disposable sandbox."
   )
 
   // Slack
   c.card(40, 120, 220, 300, { title: 'Slack', sub: 'Your workspace' })
   c.item(56, 176, 188, '#ops', 'A public channel')
-  c.item(
-    56,
-    232,
-    188,
-    '@Pacey  check web-01',
-    'A mention, in a thread or not',
-    {
-      mono: false,
-    }
-  )
+  c.item(56, 232, 188, '@Pace  check web-01', 'A mention, in a thread or not', {
+    mono: false,
+  })
   c.item(56, 288, 188, 'Socket Mode', 'Events over a WebSocket')
   c.item(56, 344, 188, 'Web API', 'Replies, edits, files')
 
-  // The Mac. Pacey's layers, in the order a mention goes through them.
+  // The Mac. Pace's layers, in the order a mention goes through them.
   c.card(320, 120, 410, 526, {
     title: 'Your Mac',
     sub: 'Pacenote.app, from Homebrew',
   })
   c.card(336, 176, 378, 284, { accent: true, radius: 14 })
-  c.text(352, 200, 'Pacey', { size: 14, weight: 700, fill: c.t.primary })
-  c.text(400, 200, 'the bot process, managed by the app', {
+  c.text(352, 200, 'Pace', { size: 14, weight: 700, fill: c.t.primary })
+  c.text(394, 200, 'the bot process, managed by the app', {
     size: 12,
     fill: c.t.muted,
   })
@@ -294,7 +287,7 @@ function architecture(c) {
   )
   c.well(336, 532, 378, 98)
   c.text(352, 554, '~/.pacenote', { mono: true, size: 12, weight: 600 })
-  c.text(352, 572, 'Settings and what Pacey keeps, outside the app', {
+  c.text(352, 572, 'Settings and what Pace keeps, outside the app', {
     size: 11.5,
     fill: c.t.muted,
   })
@@ -361,7 +354,7 @@ function architecture(c) {
   const second = c.chip(848, 602, 'internal network')
   c.chip(856 + second, 602, 'removed after use')
 
-  // Slack and Pacey's messenger
+  // Slack and Pace's messenger
   c.arrow(
     [
       [260, 255],
@@ -421,11 +414,11 @@ function teamHub(c) {
     title: 'Slack',
     sub: 'One app for the workspace',
   })
-  c.item(56, 176, 218, '@Pacey  status of web-01', 'alice asks', {
+  c.item(56, 176, 218, '@Pace  status of web-01', 'alice asks', {
     mono: false,
   })
-  c.item(56, 232, 218, '@Pacey  draft the PR', 'bob asks', { mono: false })
-  c.item(56, 288, 218, '@Pacey  connect K7Q2-9DMX', 'Pairing a desktop', {
+  c.item(56, 232, 218, '@Pace  draft the PR', 'bob asks', { mono: false })
+  c.item(56, 288, 218, '@Pace  connect K7Q2-9DMX', 'Pairing a desktop', {
     mono: false,
   })
 
@@ -461,14 +454,14 @@ function teamHub(c) {
   c.chip(484, 344, 'token hashes only', { width: 124 })
 
   const desks = [
-    ["alice's Mac", 'Her claude login, her sandbox'],
-    ["bob's Mac", 'His codex login, his sandbox'],
+    ["alice's Mac", 'Their own claude login and sandbox'],
+    ["bob's Mac", 'Their own codex login and sandbox'],
   ]
   desks.forEach(([title, help], i) => {
     const y = 120 + i * 130
     c.card(810, y, 350, 116, { accent: true, title, sub: help })
     c.chip(828, y + 70, 'Pacenote.app', { width: 100 })
-    c.chip(936, y + 70, 'Pacey answers here', { tone: 'running', width: 136 })
+    c.chip(936, y + 70, 'Pace answers here', { tone: 'running', width: 136 })
   })
 
   c.arrow(
@@ -526,7 +519,7 @@ function teamHub(c) {
     ],
     [
       'In Slack',
-      'The member mentions @Pacey connect <code>, so the hub learns who is pairing.',
+      'The member mentions @Pace connect <code>, so the hub learns who is pairing.',
     ],
     [
       'Confirm',
@@ -549,12 +542,12 @@ function teamHub(c) {
  * after a restart
  */
 function mentionFlow(c) {
-  c.header('one mention', 'What Pacey does between a mention and its answer.')
+  c.header('one mention', 'What Pace does between a mention and its answer.')
 
   // Three lanes, named on the left
   const lanes = [
     ['Slack', 'The workspace', 120, 104],
-    ['Pacey', 'On your Mac', 236, 132],
+    ['Pace', 'On your Mac', 236, 132],
     ['Sandbox', 'Docker or the host', 380, 104],
   ]
   lanes.forEach(([name, help, y, h], i) => {
@@ -681,13 +674,13 @@ function mentionFlow(c) {
     },
     {
       tone: 'interrupted',
-      title: 'Pacey restarts',
+      title: 'Pace restarts',
       help: 'inflight.json resumes it once in the same message: "I restarted..."',
     },
     {
       tone: 'running',
       title: 'Too many at once',
-      help: 'Two run, ten wait; beyond that Pacey says it is busy.',
+      help: 'Two run, ten wait; beyond that Pace says it is busy.',
     },
   ]
   others.forEach((o, i) => {
@@ -824,7 +817,7 @@ function codeLayout(c) {
   c.text(
     60,
     666,
-    'Electron: supervises Pacey, settings store, sandbox jobs, menu bar',
+    'Electron: supervises Pace, settings store, sandbox jobs, menu bar',
     {
       size: 11.5,
       fill: c.t.muted,

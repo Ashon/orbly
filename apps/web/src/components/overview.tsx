@@ -32,9 +32,9 @@ function SetupCard({
   return (
     <div className="surface-card mb-4 flex items-center gap-4 px-5 py-4">
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold">Set up Pacey</h2>
+        <h2 className="text-sm font-semibold">Set up Pace</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {message ?? 'Some settings are missing before Pacey can start.'}
+          {message ?? 'Some settings are missing before Pace can start.'}
         </p>
       </div>
       <Button
@@ -90,7 +90,7 @@ export function Overview() {
             <span className="pacenote-gradient-text">Pacenote</span> run history
           </h1>
           <p className="text-sm text-muted-foreground">
-            The Slack mentions Pacey answered, with its tool calls, replies, and
+            The Slack mentions Pace answered, with its tool calls, replies, and
             outputs.
           </p>
         </div>

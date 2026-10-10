@@ -69,7 +69,7 @@ export interface ContextMessage {
   id: string
   /** Epoch milliseconds */
   at: number
-  /** "@alice", or "@pacey (bot)" for the bot's own messages */
+  /** "@alice", or "@pace (bot)" for the bot's own messages */
   author: string
   text: string
   files: MessageFile[]

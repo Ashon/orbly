@@ -37,7 +37,7 @@ import { HubPairing } from './hub-pairing.js'
 import { SettingsStore } from './settings.js'
 
 /**
- * Pacenote desktop app. Runs and manages Pacey (the bot) (Slack Socket Mode) as
+ * Pacenote desktop app. Runs and manages Pace (the bot) (Slack Socket Mode) as
  * a child process and shows its status, logs, and run history.
  * - The UI (apps/web build) and the query API are served only over the
  *   pacenote://app protocol, so no external port is opened.
@@ -315,7 +315,7 @@ function updateTray(): void {
   const key = JSON.stringify([summary, phase])
   if (key === lastTrayKey) return
   lastTrayKey = key
-  tray.setToolTip(`${appName} - Pacey: ${summary.label}`)
+  tray.setToolTip(`${appName} - Pace: ${summary.label}`)
   // Shows the number of active requests next to the menu bar icon. (macOS)
   // Dev runs say so next to the tray icon, since the installed Pacenote may sit
   // beside it.
@@ -336,7 +336,7 @@ function updateTray(): void {
   const controls: MenuItemConstructorOptions[] = supervisor
     ? [
         live
-          ? { label: 'Restart Pacey', click: () => void supervisor.restart() }
+          ? { label: 'Restart Pace', click: () => void supervisor.restart() }
           : phase === 'setup'
             ? {
                 label: 'Open Settings...',
@@ -346,7 +346,7 @@ function updateTray(): void {
                   ),
               }
             : {
-                label: 'Start Pacey',
+                label: 'Start Pace',
                 enabled:
                   phase === 'idle' || phase === 'failed' || phase === 'crashed',
                 click: () => void supervisor.start(),
@@ -357,7 +357,7 @@ function updateTray(): void {
     Menu.buildFromTemplate([
       { label: `Open ${appName}`, click: () => showMainWindow() },
       { type: 'separator' },
-      { label: `Pacey: ${summary.label}`, enabled: false },
+      { label: `Pace: ${summary.label}`, enabled: false },
       ...(summary.active > 0
         ? [
             {
@@ -651,7 +651,7 @@ app.on('before-quit', (event) => {
   // 30 seconds)
   if (supervisor?.managing && !botStopped) {
     event.preventDefault()
-    tray?.setToolTip(`${appName} - Pacey: Stopping`)
+    tray?.setToolTip(`${appName} - Pace: Stopping`)
     void supervisor.stop().finally(() => {
       botStopped = true
       supervisor.dispose()

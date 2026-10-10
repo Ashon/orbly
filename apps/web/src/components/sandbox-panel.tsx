@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils'
 type Sandbox = ReturnType<typeof useSandbox>
 
 export const APPLY_LABEL: Record<SandboxComponent, string> = {
-  bot: 'Restart Pacey',
+  bot: 'Restart Pace',
   proxy: 'Restart proxy',
   broker: 'Recreate broker',
 }
@@ -263,7 +263,7 @@ export function PendingList({
           </div>
           {component === 'bot' && supervisor?.phase === 'external' ? (
             <span className="text-muted-foreground">
-              Restart Pacey in the terminal yourself
+              Restart Pace in the terminal yourself
             </span>
           ) : (
             <Button

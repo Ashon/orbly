@@ -5,7 +5,7 @@
  * - Desktops never hold a Slack token. Their Slack Web API calls, file
  *   downloads and uploads go through the hub, which allows only what the thread
  *   routed to them needs. (src/hub/policy.ts)
- * - A desktop pairs once: it shows a code, the member sends "@Pacey connect
+ * - A desktop pairs once: it shows a code, the member sends "@Pace connect
  *   <code>" in Slack, and the desktop confirms the Slack user who sent it. The
  *   desktop then keeps a token only the hub can check (it stores a hash).
  * Shared by the hub (src/hub) and the desktop
@@ -75,7 +75,7 @@ export interface PairStartRequest {
 
 export interface PairStartResponse {
   pairingId: string
-  /** What the member sends in Slack: "@Pacey connect <code>" */
+  /** What the member sends in Slack: "@Pace connect <code>" */
   code: string
   expiresAt: string
 }

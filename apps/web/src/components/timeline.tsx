@@ -104,7 +104,7 @@ export function Timeline({ run }: { run: RunRecord }) {
       {answer && (
         <Bubble
           avatar={<PacenoteMark className="size-7" />}
-          title="Pacey"
+          title="Pace"
           meta={run.finishedAt ? formatDateTime(run.finishedAt) : undefined}
           accent
         >

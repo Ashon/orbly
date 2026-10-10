@@ -34,13 +34,13 @@ export function StatusBar({
 
   return (
     <footer className="surface-bar flex h-7 shrink-0 items-center gap-1 overflow-hidden border-t border-sidebar-border bg-sidebar px-2 text-[11px] whitespace-nowrap text-muted-foreground">
-      {/* When setup is needed, Pacey's status goes straight to Settings,
+      {/* When setup is needed, Pace's status goes straight to Settings,
           where it is fixed. */}
       <Item
         tip={
           supervisor?.phase === 'setup'
-            ? 'Open Settings to set up Pacey'
-            : "Pacey's status and logs"
+            ? 'Open Settings to set up Pace'
+            : "Pace's status and logs"
         }
         onClick={
           supervisor?.phase === 'setup'
@@ -62,7 +62,7 @@ export function StatusBar({
           />
         </span>
         <span className={cn('font-medium', TONE_CLASS[tone].text)}>
-          Pacey: {label}
+          Pace: {label}
         </span>
       </Item>
       {status?.reasoner && (
@@ -101,7 +101,7 @@ export function StatusBar({
           </Item>
         )}
         {status?.requests.lastAt && (
-          <Item tip={`${status.requests.handled} handled since Pacey started`}>
+          <Item tip={`${status.requests.handled} handled since Pace started`}>
             <Clock />
             Last request {formatRelative(status.requests.lastAt)}
           </Item>

@@ -49,7 +49,7 @@ brew install --cask pacenote
 
 Two processes with the same app token make Slack split events between them, so run only one.
 At startup the bot takes a run lock through `PACENOTE_DATA_DIR/bot.json`. If another bot is alive, it waits 30 seconds for it to exit,
-and if it is still alive it exits with "Pacey is already running".
+and if it is still alive it exits with "Pace is already running".
 `pnpm dev` restarts the process whenever the source changes, so requests in progress can be cut off while you edit code.
 
 Restart handling:

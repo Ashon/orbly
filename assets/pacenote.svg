@@ -10,6 +10,6 @@
   </defs>
   <!-- The track: the previous ring, opened at the upper right like a curve ahead -->
   <path d="M273.1 92.9A164 164 0 1 0 419.1 238.9" fill="none" stroke="url(#pacenote-gradient)" stroke-width="84" stroke-linecap="round"/>
-  <!-- Pacey: the co-driver, one step ahead on the same line -->
+  <!-- Pace: the co-driver, one step ahead on the same line -->
   <circle cx="372" cy="140" r="42" fill="url(#pacenote-gradient)"/>
 </svg>

@@ -21,7 +21,7 @@ export function systemPrompt(
   }: PromptAbilities = {}
 ): string {
   const lines = [
-    `You are Pacey, a work assistant that answers mentions in ${messenger.name} ${messenger.venues}.`,
+    `You are Pace, a work assistant that answers mentions in ${messenger.name} ${messenger.venues}.`,
     '',
     'Rules:',
     '- <request> is the request from the person who mentioned you. Answer this request.',

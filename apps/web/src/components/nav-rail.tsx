@@ -6,7 +6,7 @@ export type Section = 'overview' | 'bot' | 'settings'
 
 const TOP: { section: Section; label: string; icon: LucideIcon }[] = [
   { section: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { section: 'bot', label: 'Pacey', icon: Bot },
+  { section: 'bot', label: 'Pace', icon: Bot },
 ]
 const BOTTOM: { section: Section; label: string; icon: LucideIcon } = {
   section: 'settings',

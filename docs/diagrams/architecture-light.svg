@@ -12,7 +12,7 @@
 <g transform="translate(36.359223300970875 30.359223300970875) scale(0.07281553398058252)"><path d="M273.1 92.9A164 164 0 1 0 419.1 238.9" fill="none" stroke="url(#mark-big)" stroke-width="84" stroke-linecap="round"/><circle cx="372" cy="140" r="42" fill="url(#mark-big)"/></g>
 <text x="84" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="url(#wordmark)" text-anchor="start">Pacenote</text>
 <text x="188" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#10211c" text-anchor="start">architecture</text>
-<text x="84" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#4f665e" text-anchor="start">One person's setup: Pacey runs on your Mac and reasons each answer in a disposable sandbox.</text>
+<text x="84" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#4f665e" text-anchor="start">One person's setup: Pace runs on your Mac and reasons each answer in a disposable sandbox.</text>
 <rect x="40" y="120" width="220" height="300" rx="18" fill="#ffffff" filter="url(#shadow)"/>
 <text x="58" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#10211c" text-anchor="start">Slack</text>
 <text x="58" y="169" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4f665e" text-anchor="start">Your workspace</text>
@@ -20,7 +20,7 @@
 <text x="68" y="195" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#10211c" text-anchor="start">#ops</text>
 <text x="68" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4f665e" text-anchor="start">A public channel</text>
 <rect x="56" y="232" width="188" height="46" rx="12" fill="#eef6f2"/>
-<text x="68" y="251" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#10211c" text-anchor="start">@Pacey  check web-01</text>
+<text x="68" y="251" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#10211c" text-anchor="start">@Pace  check web-01</text>
 <text x="68" y="268" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4f665e" text-anchor="start">A mention, in a thread or not</text>
 <rect x="56" y="288" width="188" height="46" rx="12" fill="#eef6f2"/>
 <text x="68" y="307" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#10211c" text-anchor="start">Socket Mode</text>
@@ -32,8 +32,8 @@
 <text x="338" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#10211c" text-anchor="start">Your Mac</text>
 <text x="338" y="169" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4f665e" text-anchor="start">Pacenote.app, from Homebrew</text>
 <rect x="336" y="176" width="378" height="284" rx="14" fill="#e7fff4" filter="url(#shadow)"/>
-<text x="352" y="200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#007c5c" text-anchor="start">Pacey</text>
-<text x="400" y="200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4f665e" text-anchor="start">the bot process, managed by the app</text>
+<text x="352" y="200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#007c5c" text-anchor="start">Pace</text>
+<text x="394" y="200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4f665e" text-anchor="start">the bot process, managed by the app</text>
 <rect x="352" y="214" width="346" height="46" rx="12" fill="#eef6f2"/>
 <text x="364" y="233" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#10211c" text-anchor="start">messengers/slack</text>
 <text x="364" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4f665e" text-anchor="start">Messenger: Slack events in, answers out</text>
@@ -55,7 +55,7 @@
 <text x="348" y="510" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4f665e" text-anchor="start">Status, run history, settings, menu bar</text>
 <rect x="336" y="532" width="378" height="98" rx="12" fill="#eef6f2"/>
 <text x="352" y="554" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#10211c" text-anchor="start">~/.pacenote</text>
-<text x="352" y="572" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4f665e" text-anchor="start">Settings and what Pacey keeps, outside the app</text>
+<text x="352" y="572" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4f665e" text-anchor="start">Settings and what Pace keeps, outside the app</text>
 <text x="352" y="606" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="11.5" font-weight="400" fill="#003e2a" text-anchor="start">.env</text>
 <text x="436" y="606" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="11.5" font-weight="400" fill="#003e2a" text-anchor="start">runs/</text>
 <text x="520" y="606" font-family="ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace" font-size="11.5" font-weight="400" fill="#003e2a" text-anchor="start">logs/</text>

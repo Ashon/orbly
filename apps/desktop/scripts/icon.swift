@@ -38,7 +38,7 @@ func gradient(_ colors: [CGColor], _ locations: [CGFloat]) -> CGGradient {
 }
 
 /// The mark as one filled outline, from assets/pacenote.svg (512 grid): the track, a ring of radius 164 and width 84
-/// opened at the upper right, and Pacey, a dot of radius 42 on the same circle one step ahead. `scale` maps svg units
+/// opened at the upper right, and Pace, a dot of radius 42 on the same circle one step ahead. `scale` maps svg units
 /// to pixels around `center`. y grows upward here, so the svg's angles flip sign.
 func mark(center: CGPoint, scale: CGFloat) -> CGPath {
     let start = atan2(256 - 92.9, 273.1 - 256) // svg (273.1, 92.9): the top, just right of center

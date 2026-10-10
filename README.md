@@ -7,18 +7,18 @@
 [![ci](https://github.com/Ashon/pacenote/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ashon/pacenote/actions/workflows/ci.yml)
 [![e2e coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FAshon%2Fpacenote%2Fbadges%2Fe2e-coverage.json)](https://github.com/Ashon/pacenote/actions/workflows/ci.yml)
 
-**You drive. Pacey reads the notes.**
+**You drive. Pace reads the notes.**
 
-In rallying, the co-driver reads pace notes so the driver can keep their eyes on the road. Pacenote puts Pacey in that
-seat for your team's Slack: mention `@Pacey` in a public channel, and Pacey reads the thread, hands the reasoning to a
+In rallying, the co-driver reads pace notes so the driver can keep their eyes on the road. Pacenote puts Pace in that
+seat for your team's Slack: mention `@Pace` in a public channel, and Pace reads the thread, hands the reasoning to a
 local `claude` or `codex` CLI on your machine, keeps only what matters now, and answers in the same thread.
 
-Two names, two roles: **Pacenote** is the project and the app; **Pacey** is who you talk to, the Slack bot and the
+Two names, two roles: **Pacenote** is the project and the app; **Pace** is who you talk to, the Slack bot and the
 voice of the app. (Formerly Orbly and Verda: see [Migrating](docs/migrating.md).)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture-dark.svg">
-  <img alt="Slack; Pacey on your Mac as four layers (messenger, pipeline, reasoner, sandbox); and the Docker sandbox with the renderer, the reasoner and its two ways out, the egress proxy and ops-broker" src="docs/diagrams/architecture-light.svg">
+  <img alt="Slack; Pace on your Mac as four layers (messenger, pipeline, reasoner, sandbox); and the Docker sandbox with the renderer, the reasoner and its two ways out, the egress proxy and ops-broker" src="docs/diagrams/architecture-light.svg">
 </picture>
 
 ## What it does
@@ -48,7 +48,7 @@ Then:
    token with `connections:write`. (On a team with a hub, pair with the hub instead: see [Team hub](docs/team-hub.md).)
 3. Open Pacenote. In Settings > Messengers > Slack, save the app token and the bot token. Allowed users limits who can ask.
 4. In Settings > Sandbox, run "Build sandbox images" and "Restart proxy".
-5. Invite `@Pacey` to a public channel and mention it.
+5. Invite `@Pace` to a public channel and mention it.
 
 `brew upgrade --cask pacenote` updates the app. Config and run history live in `~/.pacenote` and are kept across
 upgrades and uninstalls. To run from source instead, see [Installation](docs/installation.md).

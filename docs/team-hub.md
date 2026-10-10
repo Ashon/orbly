@@ -15,7 +15,7 @@ Slack <--Socket Mode--> hub (deploy/hub: Slack tokens, paired desktops) <--WebSo
 - Routing: a mention goes to the desktop of the member who wrote it. Members without a paired desktop, or whose desktop is
   offline, get a message only they can see that says so.
 - Pairing: in Pacenote, Settings > Messengers > Slack > Team hub, enter the hub URL and choose Connect. Pacenote shows a code; send
-  `@Pacey connect <code>` in a channel Pacenote is in, then confirm in Pacenote that the Slack account shown is yours.
+  `@Pace connect <code>` in a channel Pacenote is in, then confirm in Pacenote that the Slack account shown is yours.
   The confirmation is what counts, so a code someone else saw and sent first is turned down on the desktop.
   The desktop keeps a random token in `.env` (`HUB_TOKEN`); the hub stores only its SHA-256.
 - One desktop per member: pairing again replaces the previous desktop. Settings > Messengers > Slack > Disconnect unpairs it.

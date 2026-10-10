@@ -54,7 +54,7 @@ export function BotPage() {
             </span>
             <div className="min-w-0 flex-1">
               <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-                Pacey
+                Pace
                 <span
                   className={cn('text-sm font-medium', TONE_CLASS[tone].text)}
                 >
@@ -196,7 +196,7 @@ function Controls({ supervisor }: { supervisor: SupervisorState | undefined }) {
   if (!control || !supervisor) {
     return (
       <p className="shrink-0 text-right text-xs text-muted-foreground">
-        Start and stop Pacey
+        Start and stop Pace
         <br />
         from the desktop app.
       </p>

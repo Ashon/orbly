@@ -182,7 +182,7 @@ describe('connection check', () => {
       const bodies: Record<string, object> = {
         'auth.test': {
           ok: true,
-          user: 'pacey',
+          user: 'pace',
           user_id: 'U0V',
           team: 'T',
           bot_id: 'B1',
@@ -201,7 +201,7 @@ describe('connection check', () => {
       fetchImpl
     )
     expect(items.map((item) => item.ok)).toEqual([true, false, true, true])
-    expect(items[0]?.detail).toBe('pacey (U0V) @ T')
+    expect(items[0]?.detail).toBe('pace (U0V) @ T')
     expect(items[1]?.detail).toContain(
       'channels:read, files:read, files:write, users:read'
     )

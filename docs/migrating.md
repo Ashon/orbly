@@ -1,7 +1,7 @@
 # Migrating from Orbly or Verda
 
-The project was renamed twice: Verda (v0.1), then Orbly (v0.2), now Pacenote (v0.3), with Pacey as the assistant's
-name. The repository moved to [Ashon/pacenote](https://github.com/Ashon/pacenote) (old links redirect; for a clone,
+The project was renamed twice: Verda (v0.1), then Orbly (v0.2), now Pacenote (v0.3), with Pace as the assistant's
+name (Pacey in v0.3.0). The repository moved to [Ashon/pacenote](https://github.com/Ashon/pacenote) (old links redirect; for a clone,
 `git remote set-url origin git@github.com:Ashon/pacenote.git`). The Homebrew cask is now `pacenote`. An existing Orbly or Verda setup keeps working, with warnings in the bot log and the terminal:
 
 - `ORBLY_*` and `VERDA_*` environment variables (in the environment or in `.env`) are read as their `PACENOTE_*` names
@@ -26,8 +26,8 @@ To migrate by hand:
    and replaces the old app with Pacenote.app. If brew keeps listing the old cask, run
    `brew uninstall --cask orbly && brew install --cask pacenote`. Without Homebrew, remove `/Applications/Orbly.app` and
    install Pacenote.app.
-5. In api.slack.com, re-apply `slack-app-manifest.yaml` (app name Pacenote, bot display name Pacey), so mentions read
-   `@Pacey`. A team hub's Slack app gets the same.
+5. In api.slack.com, re-apply `slack-app-manifest.yaml` (app name Pacenote, bot display name Pace), so mentions read
+   `@Pace`. A team hub's Slack app gets the same.
 6. Start Pacenote. Old images, containers and networks can then be removed (`docker compose -p orbly-sandbox down`,
    `docker image rm orbly-reasoner orbly-renderer orbly-egress-proxy orbly-ops-broker`, and the same for `verda-` ones
    still left).

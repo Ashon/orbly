@@ -32,11 +32,11 @@ Using the packaged app:
   From the repository, the same jobs run with `pnpm sandbox:build`, `sandbox:up`, `sandbox:ops-up` and `k8s:kubeconfig`.
 - The packaged app uses its bundles as they are, so it has no "Rebuild and restart". After changing code, reinstall with `pnpm package:mac && pnpm install:mac`.
 - To avoid two bots on the same Slack app token, do not run `pnpm desktop` or `pnpm dev` while using the packaged app.
-  (If both run, the bot run lock makes the one started later only show "Pacey is running elsewhere, such as a terminal.")
+  (If both run, the bot run lock makes the one started later only show "Pace is running elsewhere, such as a terminal.")
 
 Layout:
 
-- The left rail switches sections: "Overview" (with the run list), "Pacey" (the bot), and "Settings" at the bottom. The top bar holds the
+- The left rail switches sections: "Overview" (with the run list), "Pace" (the bot), and "Settings" at the bottom. The top bar holds the
   run search (Cmd+K focuses it, Esc clears it); the run list shows next to the overview and run details, while the bot and
   settings screens use the full width.
 - The toggle at the left of the top bar (Cmd+B) hides or shows the run list, and the choice is remembered. When the window
@@ -45,7 +45,7 @@ Layout:
 - The window can be as narrow as 600 pixels. Narrow screens stack their cards and rows, and Settings shows its sections as
   icons.
 - The status bar at the bottom holds status to glance at: bot connection status, reasoner backend, attached tools, startup check issues (when any),
-  requests in progress, and last request time. Clicking the "Pacey: ..." status item opens the Pacey screen.
+  requests in progress, and last request time. Clicking the "Pace: ..." status item opens the Pace screen.
 
 Bot management:
 
@@ -54,18 +54,18 @@ Bot management:
   The packaged app uses its bundled bot (`bot/index.mjs`) as is.
   Environment variables are read from the config file (`~/.pacenote/.env`) like `node --env-file`, and existing environment variables take precedence.
   PATH comes from the login shell. (So docker, codex and pnpm are found even when the app is launched from Finder)
-- The Pacey screen has "Start", "Stop", "Restart" and "Rebuild and restart" (development runs only). The number of requests in progress is shown next to the menu bar icon.
-- The menu bar (tray) holds only "Open Pacenote" at the top, then the bot status ("Pacey: ...") with "Start Pacey" (when stopped) or "Restart Pacey", and "Quit Pacenote".
+- The Pace screen has "Start", "Stop", "Restart" and "Rebuild and restart" (development runs only). The number of requests in progress is shown next to the menu bar icon.
+- The menu bar (tray) holds only "Open Pacenote" at the top, then the bot status ("Pace: ...") with "Start Pace" (when stopped) or "Restart Pace", and "Quit Pacenote".
   App settings (automatic start, run history folder) are in Settings.
 - Stop and app quit send SIGTERM. The bot waits up to 20 seconds for requests in progress, and the rest resume on the next start.
 - Before launching the bot, the app checks the settings with the bot's own rules. When the Slack tokens are missing (a first run) or a
-  value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Pacey screen, the Overview,
+  value is invalid, it does not launch the bot and shows "Setup needed" with a way to Settings (on the Pace screen, the Overview,
   the status bar, and the tray menu). That way opens the section to fix: Slack for missing or rejected tokens, otherwise the section
   of the first invalid value. Tokens Slack rejects (`invalid_auth` and the like) also end up there. Saving in Settings then starts
-  the bot ("Save and start Pacey").
+  the bot ("Save and start Pace").
 - If the bot dies after running normally for 30 seconds or more, it shows "Crashed" and is restarted after 3 seconds (up to 3 times in
   10 minutes). If it stops right after starting for another reason, or a dev build fails, it shows "Failed to start" with the cause and
-  the last output on the Pacey screen.
+  the last output on the Pace screen.
 - If a bot is already running from a terminal (`pnpm dev` and so on), the app leaves it alone and only shows its status and logs as "Running in terminal".
   When the terminal bot stops, the app takes over. (It starts the bot right away if automatic start is on)
 - Closing the window hides the app in the tray and the bot keeps running. Quit from the tray menu or with Cmd+Q.
@@ -101,7 +101,7 @@ Settings:
   can be saved a piece at a time; the bot shows "Setup needed" until it is complete.
 - Saving keeps comments, order, and entries the settings screen does not handle (such as personal API keys). Fields reset to their default are emptied as `KEY=`.
   New entries are appended at the end, and the file mode (600) is kept.
-- Saved settings take effect after the bot restarts. "Save and restart Pacey" does both at once.
+- Saved settings take effect after the bot restarts. "Save and restart Pace" does both at once.
 - A field also set in the app's environment variables takes precedence over `.env`, so the UI marks it.
 - Socket Mode keepalive values: `SOCKET_CLIENT_PING_TIMEOUT_MS` (default 5000), `SOCKET_SERVER_PING_TIMEOUT_MS` (default 30000),
   `SOCKET_PING_PONG_LOG` (default off, visible with `LOG_LEVEL=debug`)
@@ -142,7 +142,7 @@ Status and logs:
   Bolt and Socket Mode client logs go through the same logger, with the scopes `pacenote:socket` and `pacenote:bolt`.
   Connects, reconnects, disconnects and received events (envelope, retry count) are logged.
 - The log file masks token and key formats and the ticket in the Socket Mode connection URL.
-- The Pacey screen shows logs as "All", "Socket Mode", "Mentions" or "Warnings and errors", with search. It rereads them every 2 seconds and follows the end.
+- The Pace screen shows logs as "All", "Socket Mode", "Mentions" or "Warnings and errors", with search. It rereads them every 2 seconds and follows the end.
   With `LOG_LEVEL=debug`, detailed Socket Mode client logs are also written.
 
 Run history:

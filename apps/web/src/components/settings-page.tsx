@@ -104,7 +104,7 @@ const SECTION_INFO: Record<
  */
 const NAV: { label: string; items: Section[] }[] = [
   { label: 'App', items: ['general'] },
-  { label: 'Pacey', items: SETTING_SECTIONS.map((info) => info.id) },
+  { label: 'Pace', items: SETTING_SECTIONS.map((info) => info.id) },
 ]
 
 const GROUP = Object.fromEntries(
@@ -291,11 +291,11 @@ export function SettingsPage() {
           restarted || !botChanged
             ? {
                 tone: brokerChanged ? 'warn' : 'ok',
-                text: `${restarted ? (botLive ? 'Saved and restarted Pacey.' : 'Saved and started Pacey.') : 'Saved.'}${brokerNote}`,
+                text: `${restarted ? (botLive ? 'Saved and restarted Pace.' : 'Saved and started Pace.') : 'Saved.'}${brokerNote}`,
               }
             : {
                 tone: 'warn',
-                text: `Saved. Restart Pacey to apply.${brokerNote}`,
+                text: `Saved. Restart Pace to apply.${brokerNote}`,
                 restart: Boolean(supervisor),
               }
         )
@@ -338,7 +338,7 @@ export function SettingsPage() {
                 }
               : {
                   tone: 'warn',
-                  text: `Saved the ${label}. ${botLive ? 'Restart' : 'Start'} Pacey to use it.`,
+                  text: `Saved the ${label}. ${botLive ? 'Restart' : 'Start'} Pace to use it.`,
                   restart: true,
                 }
         )
@@ -561,7 +561,7 @@ export function SettingsPage() {
                     load()
                     setNotice({
                       tone: 'warn',
-                      text: 'Saved a new claude token. Restart Pacey to use it.',
+                      text: 'Saved a new claude token. Restart Pace to use it.',
                       restart: true,
                     })
                   }}
@@ -653,8 +653,8 @@ export function SettingsPage() {
             </Row>
             {supervisor && (
               <Row
-                label="Start Pacey when the app opens"
-                help="When off, start Pacey from its screen or the menu bar."
+                label="Start Pace when the app opens"
+                help="When off, start Pace from its screen or the menu bar."
               >
                 <Switch
                   checked={supervisor.autoStart}
@@ -667,15 +667,15 @@ export function SettingsPage() {
         <section className="surface-card overflow-hidden">
           <CardHeader
             title="Files"
-            help="Pacey reads its settings from a file outside the repository. Runs from the app and the terminal share it."
+            help="Pace reads its settings from a file outside the repository. Runs from the app and the terminal share it."
           />
           <div className="divide-y divide-canvas">
             <Row
               label="Settings file"
               help={
                 view.exists
-                  ? 'Everything under Pacey is saved here.'
-                  : "Does not exist yet. Saving any of Pacey's settings creates it."
+                  ? 'Everything under Pace is saved here.'
+                  : "Does not exist yet. Saving any of Pace's settings creates it."
               }
             >
               <PathControl
@@ -781,11 +781,11 @@ export function SettingsPage() {
                       void (botLive ? control?.restart() : control?.start())
                       setNotice({
                         tone: 'ok',
-                        text: botLive ? 'Restarting Pacey.' : 'Starting Pacey.',
+                        text: botLive ? 'Restarting Pace.' : 'Starting Pace.',
                       })
                     }}
                   >
-                    {botLive ? 'Restart now' : 'Start Pacey'}
+                    {botLive ? 'Restart now' : 'Start Pace'}
                   </Button>
                 )}
               </div>
@@ -849,9 +849,7 @@ export function SettingsPage() {
                     ) : (
                       <Save />
                     )}
-                    {botLive
-                      ? 'Save and restart Pacey'
-                      : 'Save and start Pacey'}
+                    {botLive ? 'Save and restart Pace' : 'Save and start Pace'}
                   </Button>
                 )}
               </div>
@@ -1248,7 +1246,7 @@ type PairState =
   | { step: 'error'; message: string }
 
 /**
- * Pairs this desktop with the team hub: get a code, send "@Pacey connect
+ * Pairs this desktop with the team hub: get a code, send "@Pace connect
  * <code>" in Slack, then confirm the Slack member who sent it. Confirming is
  * what makes it count, so a code someone else saw and sent first is turned down
  * here.
@@ -1315,7 +1313,7 @@ function HubPairing({
         })
       setState({ step: 'idle' })
       onPaired(
-        `Paired with the hub as ${res.user.name} @ ${res.team.name}.${res.started ? ' Started Pacey.' : ''}`
+        `Paired with the hub as ${res.user.name} @ ${res.team.name}.${res.started ? ' Started Pace.' : ''}`
       )
     })
   }
@@ -1356,7 +1354,7 @@ function HubPairing({
               <p className="text-sm font-medium">Pair this desktop</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {state.note ??
-                  'You get a code to send to Pacey in Slack. Mentions you make then come to this desktop.'}
+                  'You get a code to send to Pace in Slack. Mentions you make then come to this desktop.'}
               </p>
             </div>
             <Button size="sm" onClick={start} disabled={!hubUrl}>
@@ -1376,11 +1374,11 @@ function HubPairing({
         return (
           <div className="space-y-2.5">
             <p className="text-sm">
-              In Slack, mention Pacey with this code in any channel it is in:
+              In Slack, mention Pace with this code in any channel it is in:
             </p>
             <div className="flex items-center gap-3">
               <code className="rounded-lg bg-card px-3 py-2 font-mono text-base font-semibold tracking-wide shadow-xs select-all">
-                @Pacey connect {state.code}
+                @Pace connect {state.code}
               </code>
               <Button size="sm" variant="ghost" onClick={() => cancel()}>
                 Cancel

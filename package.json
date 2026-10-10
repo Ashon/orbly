@@ -2,7 +2,7 @@
   "name": "pacenote",
   "version": "0.3.0",
   "private": true,
-  "description": "Pacenote: you drive, Pacey reads the notes. A Slack bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)",
+  "description": "Pacenote: you drive, Pace reads the notes. A Slack bot that answers public channel mentions with local claude/codex CLIs (Socket Mode)",
   "type": "module",
   "packageManager": "pnpm@11.4.0",
   "engines": {

@@ -12,12 +12,12 @@
 <g transform="translate(36.359223300970875 30.359223300970875) scale(0.07281553398058252)"><path d="M273.1 92.9A164 164 0 1 0 419.1 238.9" fill="none" stroke="url(#mark-big)" stroke-width="84" stroke-linecap="round"/><circle cx="372" cy="140" r="42" fill="url(#mark-big)"/></g>
 <text x="84" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="url(#wordmark)" text-anchor="start">Pacenote</text>
 <text x="188" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#e1ebe6" text-anchor="start">one mention</text>
-<text x="84" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#93a79e" text-anchor="start">What Pacey does between a mention and its answer.</text>
+<text x="84" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#93a79e" text-anchor="start">What Pace does between a mention and its answer.</text>
 <rect x="40" y="120" width="1120" height="104" rx="18" fill="#121c19" filter="url(#shadow)"/>
 <text x="60" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#e1ebe6" text-anchor="start">Slack</text>
 <text x="60" y="188" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">The workspace</text>
 <rect x="40" y="236" width="1120" height="132" rx="18" fill="#0f271e" filter="url(#shadow)"/>
-<text x="60" y="300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#3ccb96" text-anchor="start">Pacey</text>
+<text x="60" y="300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#3ccb96" text-anchor="start">Pace</text>
 <text x="60" y="318" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">On your Mac</text>
 <rect x="40" y="380" width="1120" height="104" rx="18" fill="#121c19" filter="url(#shadow)"/>
 <text x="60" y="430" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#e1ebe6" text-anchor="start">Sandbox</text>
@@ -90,12 +90,12 @@
 <text x="354" y="598" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">in the log.</text>
 <rect x="604" y="512" width="266" height="100" rx="14" fill="#121c19" filter="url(#shadow)"/>
 <rect x="620" y="532" width="6" height="60" rx="3" fill="#e9a84a"/>
-<text x="636" y="546" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e1ebe6" text-anchor="start">Pacey restarts</text>
+<text x="636" y="546" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e1ebe6" text-anchor="start">Pace restarts</text>
 <text x="636" y="566" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">inflight.json resumes it once in</text>
 <text x="636" y="582" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">the same message: "I restarted..."</text>
 <rect x="886" y="512" width="266" height="100" rx="14" fill="#121c19" filter="url(#shadow)"/>
 <rect x="902" y="532" width="6" height="60" rx="3" fill="#1bd3b3"/>
 <text x="918" y="546" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e1ebe6" text-anchor="start">Too many at once</text>
 <text x="918" y="566" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Two run, ten wait; beyond that</text>
-<text x="918" y="582" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Pacey says it is busy.</text>
+<text x="918" y="582" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Pretendard, 'Noto Sans KR', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#93a79e" text-anchor="start">Pace says it is busy.</text>
 </svg>

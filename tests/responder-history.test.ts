@@ -71,7 +71,7 @@ function setup(complete: (request: ReasonRequest) => Promise<string>) {
   const messenger = new SlackMessenger({
     client,
     directory,
-    botUserId: 'U0PACEY',
+    botUserId: 'U0PACE',
     workspaceUrl: 'https://example.slack.com/',
     files: { token: 'xoxb-1' },
     allowedUsers: [],
@@ -99,7 +99,7 @@ const mention = (ts: string): Mention =>
     ts,
     thread_ts: '1791443475.275049',
     user: 'U0BOSS',
-    text: '<@U0PACEY> check the status of web-01',
+    text: '<@U0PACE> check the status of web-01',
     event_ts: ts,
   } as AppMentionEvent)!
 

@@ -6,7 +6,7 @@ What happens between a mention and its answer: context, attachments, diagrams an
 @bot mention in a public channel
   -> messenger adapter (Slack: Bolt, Socket Mode or the team hub, app_mention event) -> Mention
   -> check allowed users / public channel
-  -> Pacey posts "Working on it..." in the thread
+  -> Pace posts "Working on it..." in the thread
   -> collect thread context (the whole thread, or the last 10 messages outside a thread)
   -> Reasoner: claude -p or codex exec (a disposable container when REASONER_SANDBOX=docker)
   -> replace "Working on it..." with the answer (long answers continue in more messages)

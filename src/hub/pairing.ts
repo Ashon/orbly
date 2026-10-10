@@ -26,7 +26,7 @@ export function normalizeCode(code: string): string {
  * Pairings in progress, kept in memory (a hub restart only cancels pairings
  * that have not been confirmed).
  * 1. start: the desktop sends its token's hash and gets a code
- * 2. bind: a member sends "@Pacey connect <code>" in Slack
+ * 2. bind: a member sends "@Pace connect <code>" in Slack
  * 3. confirm: the desktop, shown who sent it, confirms with the token itself
  * A code binds to the first member who sends it, and the desktop's confirmation
  * is what makes it count, so a code someone else saw and sent first is turned

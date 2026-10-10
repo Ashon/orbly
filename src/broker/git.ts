@@ -403,7 +403,7 @@ export class GitWorkspaces {
           title: title.trim(),
           head: workspace.branch,
           base: workspace.base,
-          body: `${body.trim()}\n\n---\n_This draft PR was written by Pacey (Pacenote) from a Slack request. It needs review before merging._`,
+          body: `${body.trim()}\n\n---\n_This draft PR was written by Pace (Pacenote) from a Slack request. It needs review before merging._`,
           draft: true,
         }),
       }
